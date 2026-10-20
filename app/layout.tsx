@@ -5,10 +5,10 @@ import { getDict } from '@/lib/i18n';
 import { getLang } from '@/lib/i18n/server';
 import './globals.css';
 
-export const metadata: Metadata = {
-  title: 'BLOP Match',
-  description: 'Meet people who like what you like.',
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const t = getDict(await getLang());
+  return { title: t.appName, description: t.meta.description };
+}
 
 export const viewport: Viewport = {
   width: 'device-width',

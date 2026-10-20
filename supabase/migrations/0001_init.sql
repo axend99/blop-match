@@ -142,6 +142,7 @@ as $$
 $$;
 
 -- What a participant may see about their matches: never type, score or email.
+-- other_deleted lets the UI show a translated label and hide contacts for anonymised partners.
 create function public.get_my_matches()
 returns table (
   match_id uuid,
@@ -150,7 +151,8 @@ returns table (
   other_whatsapp text,
   other_instagram text,
   shared_items text[],
-  reviewed_by_me boolean
+  reviewed_by_me boolean,
+  other_deleted boolean
 )
 language sql
 stable
@@ -164,7 +166,8 @@ as $$
     o.whatsapp,
     o.instagram,
     m.shared_items,
-    exists (select 1 from public.reviews r where r.match_id = m.id and r.reviewer_id = me.id)
+    exists (select 1 from public.reviews r where r.match_id = m.id and r.reviewer_id = me.id),
+    o.deleted_at is not null
   from public.participants me
   join public.matches m on me.id in (m.a_id, m.b_id)
   join public.participants o on o.id = case when m.a_id = me.id then m.b_id else m.a_id end

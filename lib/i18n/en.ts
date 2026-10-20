@@ -1,6 +1,9 @@
 const en = {
   appName: 'BLOP Match',
   languageLabel: 'Language',
+  meta: {
+    description: 'Meet people who like what you like.',
+  },
   home: {
     title: 'Meet people who like what you like',
     subtitle: 'A short friendship experiment by BLOP. Coming soon.',
