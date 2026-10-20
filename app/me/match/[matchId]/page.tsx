@@ -46,17 +46,19 @@ export default async function MatchPage({ params }: { params: Promise<{ matchId:
         {deleted && <p className="text-midnight/70">{t.match.left}</p>}
       </div>
 
-      <section className="space-y-2 rounded-3xl bg-pink/40 p-5">
-        <h2 className="text-lg font-semibold">{t.match.commonGround}</h2>
-        {match.shared_items.length > 0 ? (
-          <p className="text-lg">{match.shared_items.map((code) => interestLabel(code, lang)).join(' · ')}</p>
-        ) : (
-          <div className="flex items-center justify-center gap-3">
-            <Image src={thinking} alt="" className="w-16" />
-            <p className="text-lg">{t.match.getToKnow}</p>
-          </div>
-        )}
-      </section>
+      {!deleted && (
+        <section className="space-y-2 rounded-3xl bg-pink/40 p-5">
+          <h2 className="text-lg font-semibold">{t.match.commonGround}</h2>
+          {match.shared_items.length > 0 ? (
+            <p className="text-lg">{match.shared_items.map((code) => interestLabel(code, lang)).join(' · ')}</p>
+          ) : (
+            <div className="flex items-center justify-center gap-3">
+              <Image src={thinking} alt="" className="w-16" />
+              <p className="text-lg">{t.match.getToKnow}</p>
+            </div>
+          )}
+        </section>
+      )}
 
       {alsoLikes.length > 0 && (
         <section className="space-y-2">

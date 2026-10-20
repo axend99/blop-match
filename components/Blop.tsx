@@ -13,11 +13,12 @@ export default function Blop({
   className = '',
 }: {
   variant: Category | null;
-  label: string;
+  label?: string; // omit when the Blop is decorative (e.g. inside a labelled link)
   className?: string;
 }) {
+  const a11y = label ? { role: 'img', 'aria-label': label } : { 'aria-hidden': true };
   return (
-    <svg viewBox="-4 -14 212 214" role="img" aria-label={label} className={className}>
+    <svg viewBox="-4 -14 212 214" {...a11y} className={className}>
       <defs>
         <linearGradient id="blop-body" x1="0.15" y1="0.1" x2="0.85" y2="0.95">
           <stop offset="0" stopColor="#f6d3f6" />
