@@ -7,7 +7,7 @@ const pt: Dict = {
     description: 'Conhece pessoas que gostam do mesmo que tu.',
   },
   common: {
-    signOut: 'Terminar sessão',
+    signOut: 'Sair',
     genericError: 'Algo correu mal. Tenta outra vez.',
   },
   home: {
