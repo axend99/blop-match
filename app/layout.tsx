@@ -1,9 +1,13 @@
 import type { Metadata, Viewport } from 'next';
+import { Outfit } from 'next/font/google';
 import Link from 'next/link';
+import BlopLogo from '@/components/BlopLogo';
 import LangSwitcher from '@/components/LangSwitcher';
 import { getDict } from '@/lib/i18n';
 import { getLang } from '@/lib/i18n/server';
 import './globals.css';
+
+const outfit = Outfit({ subsets: ['latin'], variable: '--font-outfit' });
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = getDict(await getLang());
@@ -13,6 +17,7 @@ export async function generateMetadata(): Promise<Metadata> {
 export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
+  themeColor: '#f5f2ef',
 };
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
@@ -20,12 +25,12 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   const t = getDict(lang);
 
   return (
-    <html lang={lang}>
-      <body className="min-h-dvh bg-white text-neutral-900 antialiased">
+    <html lang={lang} className={outfit.variable}>
+      <body className="min-h-dvh bg-paper text-midnight antialiased">
         <div className="mx-auto flex min-h-dvh w-full max-w-md flex-col px-4">
           <header className="flex items-center justify-between py-4">
-            <Link href="/" className="text-lg font-bold tracking-tight">
-              {t.appName}
+            <Link href="/" aria-label={t.appName}>
+              <BlopLogo />
             </Link>
             <LangSwitcher current={lang} label={t.languageLabel} />
           </header>

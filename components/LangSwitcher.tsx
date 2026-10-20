@@ -10,7 +10,7 @@ export default function LangSwitcher({ current, label }: { current: Lang; label:
   const [pending, startTransition] = useTransition();
 
   return (
-    <div role="group" aria-label={label} className="flex rounded-full border border-neutral-300 p-0.5 text-sm">
+    <div role="group" aria-label={label} className="flex rounded-full border border-midnight/20 bg-white p-0.5 text-sm">
       {LANGS.map((lang) => (
         <button
           key={lang}
@@ -24,7 +24,7 @@ export default function LangSwitcher({ current, label }: { current: Lang; label:
             })
           }
           className={`min-w-11 rounded-full px-3 py-1.5 font-medium uppercase ${
-            lang === current ? 'bg-neutral-900 text-white' : 'text-neutral-600'
+            lang === current ? 'bg-midnight text-white' : 'text-midnight/70'
           }`}
         >
           {lang}
