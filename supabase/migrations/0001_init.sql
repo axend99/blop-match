@@ -1,6 +1,7 @@
 -- BLOP Match — initial schema, RLS and helper functions.
 -- Data deletion on request = anonymisation: the participant row is kept with personal
--- fields cleared (deleted_at set), so matches and the other person's review survive.
+-- fields cleared (name='[deleted]', email/whatsapp/instagram null, other_text '{}', active false,
+-- deleted_at set), then the auth user is deleted. Matches and the other person's review survive.
 
 -- ---------------------------------------------------------------------------
 -- Tables
@@ -190,10 +191,11 @@ alter table public.review_requests enable row level security;
 alter table public.reviews enable row level security;
 alter table public.email_log enable row level security;
 
--- participants: read own row; directly update only language and "leave the study".
--- Profile creation and other edits go through validated server actions.
+-- participants: read own row; directly update only the language.
+-- Profile creation, "leave the study" and other edits go through validated server actions.
 revoke insert, update, delete on public.participants from anon, authenticated;
-grant update (lang, active) on public.participants to authenticated;
+grant select on public.participants to authenticated;
+grant update (lang) on public.participants to authenticated;
 
 create policy participants_select_own on public.participants
   for select to authenticated
@@ -208,6 +210,7 @@ create policy participants_update_own on public.participants
 
 -- reviews: read own; insert only for own match after the delay; never update/delete.
 revoke insert, update, delete on public.reviews from anon, authenticated;
+grant select on public.reviews to authenticated;
 grant insert (
   match_id, reviewer_id, contacted, interest_1_7, who_first, comfort_1_7, why_not, talked,
   flow_1_7, common_ground_1_7, satisfaction_1_7, meet_again_1_7, met, comment
