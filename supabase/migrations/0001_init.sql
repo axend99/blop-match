@@ -137,6 +137,7 @@ create function public.review_delay_days()
 returns int
 language sql
 immutable
+set search_path = ''
 as $$
   select 3
 $$;
