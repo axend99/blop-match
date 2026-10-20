@@ -11,6 +11,7 @@ export async function GET(request: NextRequest) {
   if (!secret || request.headers.get('authorization') !== `Bearer ${secret}`) {
     return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
   }
-  const matching = await runMatchingForAll();
+  // Leave headroom under maxDuration for the later steps.
+  const matching = await runMatchingForAll(Date.now() + 40_000);
   return NextResponse.json({ matching });
 }

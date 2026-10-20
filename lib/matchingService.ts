@@ -20,6 +20,7 @@ type Participant = {
 
 type MatchRow = { id: string; a_id: string; b_id: string; type: 'compatible' | 'control' };
 
+// Loads everything at once (fine at this study's size: PostgREST returns up to 1000 rows per query).
 async function loadState() {
   const supabase = createServiceClient();
   const [people, matches] = await Promise.all([
@@ -58,7 +59,7 @@ async function loadState() {
 }
 
 async function notify(participant: Participant | undefined, matchId: string): Promise<boolean> {
-  if (!participant?.email || participant.deleted_at) return false;
+  if (!participant?.email || participant.deleted_at || !participant.active) return false;
   const lang = isLang(participant.lang) ? participant.lang : 'en';
   return sendEmail({
     participantId: participant.id,
@@ -90,15 +91,26 @@ async function createMatches(
       p_max_compatible: config.maxCompatible,
       p_max_control: config.maxControl,
     });
-    if (error) {
-      console.error('[matching] try_create_match failed', error);
+    if (error || !matchId) {
+      // Failed, or lost a race for the slot: undo the in-memory booking; the next run tries again.
+      if (error) console.error('[matching] try_create_match failed', error);
+      release(state, p.aId, p.bId, p.type);
       continue;
     }
-    if (!matchId) continue; // Lost a race for the slot; the next run tries again.
     created++;
     await Promise.all([notify(state.byId.get(p.aId), matchId), notify(state.byId.get(p.bId), matchId)]);
   }
   return created;
+}
+
+function release(state: Awaited<ReturnType<typeof loadState>>, aId: string, bId: string, type: string) {
+  for (const [self, other] of [[aId, bId], [bId, aId]]) {
+    const c = state.pool.get(self);
+    if (!c) continue;
+    if (type === 'compatible') c.compatibleCount--;
+    else c.controlCount--;
+    c.matchedIds.delete(other);
+  }
 }
 
 // Runs after a profile is created: fills the new person's slots, which also fills the
@@ -109,9 +121,10 @@ export async function runMatchingFor(participantId: string): Promise<number> {
   return person ? createMatches(state, person) : 0;
 }
 
-// Daily cron (Phase 4): everyone with free slots, oldest first, then re-sends any
-// new_match email that was lost (email_log makes this idempotent).
-export async function runMatchingForAll(): Promise<{ created: number; emailsRetried: number }> {
+// Daily cron: everyone with free slots, oldest first, then re-sends any new_match email
+// that was lost (email_log makes this idempotent). Stops at `deadline` (ms timestamp) so the
+// request stays within the function time limit; the rest is done on the next run.
+export async function runMatchingForAll(deadline = Infinity): Promise<{ created: number; emailsRetried: number }> {
   const state = await loadState();
   const config = matchingConfig();
   const waiting = [...state.pool.values()]
@@ -119,14 +132,17 @@ export async function runMatchingForAll(): Promise<{ created: number; emailsRetr
     .sort((a, b) => a.createdAt.localeCompare(b.createdAt));
 
   let created = 0;
-  for (const person of waiting) created += await createMatches(state, person);
+  for (const person of waiting) {
+    if (Date.now() > deadline) break;
+    created += await createMatches(state, person);
+  }
 
   const { data: sent } = await state.supabase.from('email_log').select('participant_id, match_id').eq('kind', 'new_match');
   const done = new Set((sent ?? []).map((r) => `${r.participant_id}|${r.match_id}`));
   let emailsRetried = 0;
   for (const m of state.matches) {
     for (const id of [m.a_id, m.b_id]) {
-      if (done.has(`${id}|${m.id}`)) continue;
+      if (done.has(`${id}|${m.id}`) || Date.now() > deadline) continue;
       if (await notify(state.byId.get(id), m.id)) emailsRetried++;
     }
   }

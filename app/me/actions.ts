@@ -6,13 +6,17 @@ import { getMyParticipant, getUser } from '@/lib/auth';
 import { createServiceClient } from '@/lib/supabase/service';
 
 // "Leave the study": deactivates the caller's own profile (no new matches).
-export async function leaveStudy(): Promise<void> {
+export async function leaveStudy(): Promise<{ ok: boolean }> {
   if (!(await getUser())) redirect('/login');
   const me = await getMyParticipant();
   if (!me) redirect('/join');
   if (me.active) {
     const { error } = await createServiceClient().from('participants').update({ active: false }).eq('id', me.id);
-    if (error) console.error('[me] leave failed', error);
+    if (error) {
+      console.error('[me] leave failed', error);
+      return { ok: false };
+    }
   }
   revalidatePath('/me');
+  return { ok: true };
 }

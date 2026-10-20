@@ -46,13 +46,13 @@ export default async function MePage() {
                     href={`/me/match/${m.match_id}`}
                     className="flex gap-4 rounded-3xl bg-white p-4 shadow-sm active:scale-[0.99]"
                   >
-                    <Blop variant={avatarCategory(m.other_interests)} label={t.avatarAlt(name)} className="size-20 shrink-0" />
+                    <Blop variant={avatarCategory(m.other_interests)} className="size-20 shrink-0" />
                     <div className="min-w-0 flex-1 space-y-1.5">
                       <div className="flex items-center justify-between gap-2">
                         <span className="truncate text-lg font-semibold">{name}</span>
                         <span aria-hidden="true" className="text-xl text-midnight/40">›</span>
                       </div>
-                      {m.shared_items.length > 0 ? (
+                      {m.other_deleted ? null : m.shared_items.length > 0 ? (
                         <div className="flex flex-wrap gap-1.5">
                           <span className="sr-only">{t.me.youBothLike}</span>
                           {m.shared_items.slice(0, 3).map((code) => (
@@ -79,7 +79,7 @@ export default async function MePage() {
 
       {me.active && (
         <div className="flex justify-center pt-4">
-          <LeaveStudy t={t.leave} />
+          <LeaveStudy t={t.leave} errorText={t.common.genericError} />
         </div>
       )}
     </div>
