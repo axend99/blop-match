@@ -1,6 +1,6 @@
 import 'server-only';
 import { render } from '@react-email/components';
-import { Resend } from 'resend';
+import nodemailer from 'nodemailer';
 import { createServiceClient } from '@/lib/supabase/service';
 import { siteUrl } from '@/lib/site';
 
@@ -16,7 +16,20 @@ type SendEmailArgs = {
 };
 
 export function emailConfigured(): boolean {
-  return Boolean(process.env.RESEND_API_KEY && process.env.EMAIL_FROM && siteUrl());
+  return Boolean(
+    process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS && process.env.EMAIL_FROM && siteUrl(),
+  );
+}
+
+// Any SMTP server works (Gmail with an app password today, a custom domain later).
+function transport() {
+  const port = Number(process.env.SMTP_PORT) || 465;
+  return nodemailer.createTransport({
+    host: process.env.SMTP_HOST,
+    port,
+    secure: port === 465,
+    auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS },
+  });
 }
 
 // Sends at most once per (participant, kind, match): the email_log row is written first,
@@ -39,16 +52,12 @@ export async function sendEmail({ participantId, kind, matchId = null, to, subje
     return false;
   }
 
-  const { error } = await new Resend(process.env.RESEND_API_KEY).emails.send({
-    from: process.env.EMAIL_FROM!,
-    to,
-    subject,
-    html: await render(react),
-  });
-  if (error) {
+  try {
+    await transport().sendMail({ from: process.env.EMAIL_FROM, to, subject, html: await render(react) });
+    return true;
+  } catch (error) {
     console.error(`[email] ${kind} send failed`, error);
     await supabase.from('email_log').delete().eq('id', log.id);
     return false;
   }
-  return true;
 }
