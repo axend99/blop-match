@@ -69,7 +69,9 @@ MIN_SHARED_COMPATIBLE=2
 
 Regras de navegação: um logado sem perfil vai para `/join`; um logado com perfil vai para `/me`.
 
-Cartão de match em `/me`: primeiro nome, "You both like:" + chips dos itens partilhados (ou "Get to know each other!" se nenhum), botão WhatsApp (`https://wa.me/<número só com dígitos>`), botão Instagram (`https://instagram.com/<handle sem @>`), botão "Rate this interaction" (ativo só depois do prazo) ou "Reviewed ✓". Nunca mostrar score, tipo do match ou o e-mail da outra pessoa.
+Cartão de match em `/me`: BLOP da outra pessoa, primeiro nome, até 3 chips dos itens partilhados (ou "Get to know each other!" se nenhum) e o estado da review ("Rate this interaction" ativo só depois do prazo, ou "Reviewed ✓"). Tocar no cartão abre `/me/match/[matchId]` (a "cheat sheet"): "Blop found someone you should meet", BLOP grande, "Nome, faixa etária", "Based in <cidade>", caixa "Your common ground" com os itens partilhados, "Also likes…" com os outros interesses, botão WhatsApp (`https://wa.me/<número só com dígitos>`) e botão Instagram (`https://instagram.com/<handle sem @>`). Nunca mostrar score, tipo do match ou o e-mail da outra pessoa.
+
+Avatar BLOP: cada pessoa tem um BLOP (SVG, `components/Blop.tsx`) com o acessório da categoria em que tem mais interesses (`lib/avatar.ts`).
 
 Todo o design é mobile-first, simples e limpo, com botões grandes.
 
@@ -89,7 +91,7 @@ Campos (todos obrigatórios, exceto "outro"):
 - `origin`: `this_city` | `same_country` | `other_country`
 - `interests`: 3 a 6 itens por categoria (validar no cliente e no servidor)
 - `other_text`: um campo livre opcional por categoria (não entra no matching)
-- `consent`: checkbox obrigatória: "I agree to share my first name, WhatsApp and Instagram with my matches, and to take part in this research study. I am 18 or older." + link para `/privacy`
+- `consent`: checkbox obrigatória: "I agree to share my first name, age range, city, interests, WhatsApp and Instagram with my matches, and to take part in this research study. I am 18 or older." + link para `/privacy`
 
 Os interesses são chips clicáveis agrupados por categoria, com um contador "2/6".
 
@@ -208,12 +210,12 @@ A lógica de cálculo fica em `lib/stats.ts` (funções puras com testes). Cada 
 
 ### RLS
 - Um participante lê e atualiza só a própria linha em `participants`.
-- Dos seus matches, lê apenas: `name`, `whatsapp`, `instagram` e `shared_items` da outra pessoa. Implementar via view ou função `get_my_matches()` com `security definer`, nunca expondo `type` nem `score`.
+- Dos seus matches, lê apenas: `name`, `whatsapp`, `instagram`, `age_range`, `city`, `interests` e `shared_items` da outra pessoa (nada disto se ela tiver sido anonimizada). Implementar via view ou função `get_my_matches()` com `security definer`, nunca expondo `type` nem `score`.
 - Insere a review apenas dos seus próprios matches e apenas depois do prazo (validar também no servidor).
 - Admin, cron e matching usam a service role, só no servidor.
 
 ### Privacidade (`/privacy`, EN/PT)
-Estudo académico do projeto BLOP (MIET 2026). Dados recolhidos: os do perfil e as reviews. Quem os vê: os matches veem o primeiro nome, WhatsApp, Instagram e os interesses em comum; a equipa vê tudo para análise. Os dados são guardados até ao fim do estudo e depois anonimizados ou apagados. "Leave the study" desativa o perfil; para eliminar os dados, basta escrever para founders@meetblop.com. Idade mínima: 18 anos.
+Estudo académico do projeto BLOP (MIET 2026). Dados recolhidos: os do perfil e as reviews. Quem os vê: os matches veem o primeiro nome, faixa etária, cidade, interesses, WhatsApp e Instagram (nunca o e-mail); a equipa vê tudo para análise. Os dados são guardados até ao fim do estudo e depois anonimizados ou apagados. "Leave the study" desativa o perfil; para eliminar os dados, basta escrever para founders@meetblop.com. Idade mínima: 18 anos.
 
 ---
 

@@ -4,6 +4,9 @@ import { getMyParticipant, getUser } from '@/lib/auth';
 import { getDict } from '@/lib/i18n';
 import { getLang } from '@/lib/i18n/server';
 
+// The server action also runs matching and sends emails in after().
+export const maxDuration = 60;
+
 export default async function JoinPage() {
   if (!(await getUser())) redirect('/login');
   if (await getMyParticipant()) redirect('/me');

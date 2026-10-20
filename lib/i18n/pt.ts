@@ -17,13 +17,13 @@ const pt: Dict = {
     howTitle: 'Como funciona',
     steps: [
       'Entra e conta-nos um pouco sobre ti e os teus interesses (cerca de 5 minutos).',
-      'Enviamos-te um e-mail quando tiveres um match. Vais ver o primeiro nome, o WhatsApp e o Instagram dessa pessoa.',
+      'Enviamos-te um e-mail quando tiveres um match. Vais ver o primeiro nome dessa pessoa, o que têm em comum, o WhatsApp e o Instagram.',
       'Mete conversa e, se houver química, combinem um encontro.',
     ],
     review: (days: number) =>
       `${days} ${days === 1 ? 'dia' : 'dias'} depois de cada match, pedimos-te que avalies a interação. Demora 2 minutos.`,
     duration: 'O estudo dura cerca de 2 semanas. É só para fazer amigos.',
-    privacy: 'Só os teus matches veem o teu primeiro nome, WhatsApp e Instagram. Podes sair quando quiseres.',
+    privacy: 'Só os teus matches veem o teu perfil (primeiro nome, faixa etária, cidade, interesses), o teu WhatsApp e o teu Instagram. Nunca o teu e-mail. Podes sair quando quiseres.',
     privacyLink: 'Ler o aviso de privacidade',
     cta: 'Participar na experiência',
   },
@@ -62,7 +62,7 @@ const pt: Dict = {
     otherLabel: 'Outro (opcional)',
     otherPlaceholder: 'Faltou alguma coisa?',
     consent:
-      'Aceito partilhar o meu primeiro nome, WhatsApp e Instagram com os meus matches e participar neste estudo de investigação. Tenho 18 anos ou mais.',
+      'Aceito partilhar o meu primeiro nome, faixa etária, cidade, interesses, WhatsApp e Instagram com os meus matches e participar neste estudo de investigação. Tenho 18 anos ou mais.',
     consentLink: 'Aviso de privacidade',
     submit: 'Participar',
     submitting: 'A guardar…',
@@ -99,9 +99,40 @@ const pt: Dict = {
       consent: 'Tens de aceitar para participar.',
     },
   },
+  avatarAlt: (name: string) => `O Blop de ${name}`,
   me: {
     title: (name: string) => `Olá, ${name}!`,
+    lookingTitle: 'O Blop está à procura do teu match…',
     noMatches: 'Enviamos-te um e-mail assim que tiveres um match.',
+    matchesTitle: 'Os teus matches',
+    youBothLike: 'Ambos gostam de:',
+    getToKnow: 'Fiquem a conhecer-se!',
+    rateFrom: (date: string) => `Avalia esta interação a partir de ${date}`,
+    rate: 'Avaliar esta interação',
+    reviewed: 'Avaliado ✓',
+    formerParticipant: 'Ex-participante',
+    leftNotice: 'Saíste do estudo. Não vais receber novos matches.',
+  },
+  match: {
+    intro: 'O Blop encontrou alguém que devias conhecer',
+    basedIn: (city: string) => `Vive em ${city}`,
+    commonGround: 'O que têm em comum',
+    getToKnow: 'Fiquem a conhecer-se!',
+    alsoLikes: 'Também gosta de…',
+    whatsapp: 'Mandar mensagem no WhatsApp',
+    instagram: 'Abrir Instagram',
+    back: 'Os meus matches',
+    left: 'Esta pessoa já não está no estudo.',
+  },
+  leave: {
+    button: 'Sair do estudo',
+    confirm: 'Sair do estudo? Deixas de receber novos matches. Os matches atuais continuam visíveis.',
+    yes: 'Sim, sair',
+    cancel: 'Cancelar',
+  },
+  notFound: {
+    title: 'O Blop não encontra esta página.',
+    back: 'Ir para a página inicial',
   },
   privacy: {
     title: 'Aviso de privacidade',
@@ -116,7 +147,7 @@ const pt: Dict = {
       },
       {
         heading: 'Quem vê',
-        body: 'Os teus matches veem o teu primeiro nome, WhatsApp, Instagram e os interesses que têm em comum. Nunca veem o teu e-mail. A equipa de investigação vê tudo, apenas para análise.',
+        body: 'Os teus matches veem o teu primeiro nome, faixa etária, cidade, interesses, WhatsApp e Instagram. Nunca veem o teu e-mail. A equipa de investigação vê tudo, apenas para análise.',
       },
       {
         heading: 'Durante quanto tempo guardamos',
@@ -135,6 +166,12 @@ const pt: Dict = {
   emails: {
     button: 'Ir para a minha página',
     footer: 'BLOP Match · um estudo de investigação do BLOP (MIET 2026)',
+    newMatch: {
+      subject: 'Tens um novo match!',
+      greeting: (name: string) => `Olá ${name},`,
+      title: 'Tens um novo match!',
+      body: 'O Blop encontrou alguém que devias conhecer. Abre a tua página para veres quem é, o que têm em comum e como falar com essa pessoa.',
+    },
     welcome: {
       subject: 'Boas-vindas ao BLOP Match',
       greeting: (name: string) => `Olá ${name},`,

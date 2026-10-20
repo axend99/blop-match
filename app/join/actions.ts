@@ -1,10 +1,12 @@
 'use server';
 
 import { redirect } from 'next/navigation';
+import { after } from 'next/server';
 import { createElement } from 'react';
 import WelcomeEmail from '@/emails/WelcomeEmail';
 import { getMyParticipant, getUser } from '@/lib/auth';
 import { sendEmail } from '@/lib/email';
+import { runMatchingFor } from '@/lib/matchingService';
 import { getDict } from '@/lib/i18n';
 import { getLang, setLang } from '@/lib/i18n/server';
 import { validateProfile, type FieldErrors, type ProfileInput } from '@/lib/profile';
@@ -38,8 +40,6 @@ export async function createProfile(input: Omit<ProfileInput, 'lang'>): Promise<
     return { failed: true };
   }
 
-  // Phase 3: runMatchingFor(participant) goes here.
-
   try {
     await sendEmail({
       participantId: participant.id,
@@ -51,6 +51,15 @@ export async function createProfile(input: Omit<ProfileInput, 'lang'>): Promise<
   } catch (err) {
     console.error('[join] welcome email failed', err);
   }
+
+  // Match right away (also fills the slots of people already waiting) without delaying the redirect.
+  after(async () => {
+    try {
+      await runMatchingFor(participant.id);
+    } catch (err) {
+      console.error('[join] matching failed', err);
+    }
+  });
 
   await setLang(profile.lang);
   redirect('/me');

@@ -1,6 +1,6 @@
 # Backlog — pedidos do produto a encaixar nas próximas fases
 
-## Matches imediatos e área de matches (pedido de 20/10/2026, para a Fase 3)
+## Matches imediatos e área de matches (pedido de 20/10/2026) — feito na Fase 3
 
 1. **Match logo após o cadastro.** Quando a pessoa termina o perfil, o matching corre na hora
    (`runMatchingFor` no fim de `createProfile`, já marcado em `app/join/actions.ts`).
@@ -20,5 +20,6 @@
 
 ## Identidade visual
 
-- Avatar: cada participante terá o personagem BLOP em vez de foto de perfil.
-  O utilizador vai enviar a imagem do personagem.
+- Avatar BLOP — feito na Fase 3 em SVG (`components/Blop.tsx`), um acessório por categoria.
+  Plano B se o protótipo não agradar: uma imagem por categoria em `public/blop/<categoria>.webp`.
+- Ilustrações de estado em `public/blop/`: `looking.webp` (sem matches) e `thinking.webp` (0 em comum, 404).
