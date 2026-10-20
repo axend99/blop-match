@@ -15,13 +15,13 @@ const en = {
     howTitle: 'How it works',
     steps: [
       'Sign in and tell us a bit about you and your interests (about 5 minutes).',
-      'We email you when you have a match. You will see their first name, WhatsApp and Instagram.',
+      'We email you when you have a match. You will see their first name, what you have in common, their WhatsApp and Instagram.',
       'Reach out, have a chat and, if it clicks, meet up.',
     ],
     review: (days: number) =>
       `${days} ${days === 1 ? 'day' : 'days'} after each match, we ask you to rate the interaction. It takes 2 minutes.`,
     duration: 'The study runs for about 2 weeks. It is just for friendship.',
-    privacy: 'Only your matches see your first name, WhatsApp and Instagram. You can leave at any time.',
+    privacy: 'Only your matches see your profile (first name, age range, city, interests) and your WhatsApp and Instagram. Never your email. You can leave at any time.',
     privacyLink: 'Read the privacy notice',
     cta: 'Join the experiment',
   },
@@ -60,7 +60,7 @@ const en = {
     otherLabel: 'Other (optional)',
     otherPlaceholder: 'Anything we missed?',
     consent:
-      'I agree to share my first name, WhatsApp and Instagram with my matches, and to take part in this research study. I am 18 or older.',
+      'I agree to share my first name, age range, city, interests, WhatsApp and Instagram with my matches, and to take part in this research study. I am 18 or older.',
     consentLink: 'Privacy notice',
     submit: 'Join',
     submitting: 'Saving…',
@@ -97,9 +97,40 @@ const en = {
       consent: 'You need to agree to take part.',
     },
   },
+  avatarAlt: (name: string) => `${name}'s Blop`,
   me: {
     title: (name: string) => `Hi, ${name}!`,
+    lookingTitle: 'Blop is looking for your match…',
     noMatches: "We'll email you as soon as you get a match.",
+    matchesTitle: 'Your matches',
+    youBothLike: 'You both like:',
+    getToKnow: 'Get to know each other!',
+    rateFrom: (date: string) => `Rate this interaction from ${date}`,
+    rate: 'Rate this interaction',
+    reviewed: 'Reviewed ✓',
+    formerParticipant: 'Former participant',
+    leftNotice: "You left the study. You won't get new matches.",
+  },
+  match: {
+    intro: 'Blop found someone you should meet',
+    basedIn: (city: string) => `Based in ${city}`,
+    commonGround: 'Your common ground',
+    getToKnow: 'Get to know each other!',
+    alsoLikes: 'Also likes…',
+    whatsapp: 'Message on WhatsApp',
+    instagram: 'Open Instagram',
+    back: 'My matches',
+    left: 'This person is no longer in the study.',
+  },
+  leave: {
+    button: 'Leave the study',
+    confirm: "Leave the study? You won't get new matches. Your current matches stay visible.",
+    yes: 'Yes, leave',
+    cancel: 'Cancel',
+  },
+  notFound: {
+    title: "Blop can't find this page.",
+    back: 'Go to the home page',
   },
   privacy: {
     title: 'Privacy notice',
@@ -114,7 +145,7 @@ const en = {
       },
       {
         heading: 'Who sees it',
-        body: 'Your matches see your first name, WhatsApp, Instagram and the interests you have in common. They never see your email. The research team sees everything, for analysis only.',
+        body: 'Your matches see your first name, age range, city, interests, WhatsApp and Instagram. They never see your email. The research team sees everything, for analysis only.',
       },
       {
         heading: 'How long we keep it',
@@ -133,6 +164,12 @@ const en = {
   emails: {
     button: 'Go to my page',
     footer: 'BLOP Match · a research study by BLOP (MIET 2026)',
+    newMatch: {
+      subject: 'You have a new match!',
+      greeting: (name: string) => `Hi ${name},`,
+      title: 'You have a new match!',
+      body: 'Blop found someone you should meet. Open your page to see who it is, what you have in common and how to reach them.',
+    },
     welcome: {
       subject: 'Welcome to BLOP Match',
       greeting: (name: string) => `Hi ${name},`,

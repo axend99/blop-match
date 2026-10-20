@@ -1,6 +1,6 @@
 import 'server-only';
 import { render } from '@react-email/components';
-import nodemailer from 'nodemailer';
+import nodemailer, { type Transporter } from 'nodemailer';
 import { createServiceClient } from '@/lib/supabase/service';
 import { siteUrl } from '@/lib/site';
 
@@ -22,14 +22,16 @@ export function emailConfigured(): boolean {
 }
 
 // Any SMTP server works (Gmail with an app password today, a custom domain later).
+// One transporter per server instance, reused across sends.
+let transporter: Transporter | undefined;
 function transport() {
   const port = Number(process.env.SMTP_PORT) || 465;
-  return nodemailer.createTransport({
+  return (transporter ??= nodemailer.createTransport({
     host: process.env.SMTP_HOST,
     port,
     secure: port === 465,
     auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS },
-  });
+  }));
 }
 
 // Sends at most once per (participant, kind, match): the email_log row is written first,
