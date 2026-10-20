@@ -27,7 +27,7 @@ Prazo: em produção até domingo, 25 de outubro de 2026.
 
 - Next.js 15 (App Router) + TypeScript + Tailwind CSS
 - Supabase: Postgres + Auth (Google + magic link) + RLS. Usar `@supabase/ssr`.
-- Resend + React Email para e-mails
+- SMTP (Gmail com senha de app; trocável por domínio próprio) + nodemailer + React Email para e-mails
 - Vercel para hosting + Vercel Cron (1x por dia)
 - i18n próprio: `lib/i18n/en.ts`, `lib/i18n/pt.ts`, idioma guardado em cookie e no perfil
 - Testes: Vitest para `lib/matching.ts` e `lib/stats.ts`
@@ -37,8 +37,11 @@ Prazo: em produção até domingo, 25 de outubro de 2026.
 NEXT_PUBLIC_SUPABASE_URL=
 NEXT_PUBLIC_SUPABASE_ANON_KEY=
 SUPABASE_SERVICE_ROLE_KEY=
-RESEND_API_KEY=
-EMAIL_FROM="BLOP <hello@meetblop.com>"
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=465
+SMTP_USER=
+SMTP_PASS=
+EMAIL_FROM="BLOP Match <you@gmail.com>"
 NEXT_PUBLIC_SITE_URL=
 CRON_SECRET=
 ADMIN_EMAILS=email1@x.com,email2@x.com
@@ -231,5 +234,5 @@ Estudo académico do projeto BLOP (MIET 2026). Dados recolhidos: os do perfil e 
 **Fase 5 — Admin:** `lib/stats.ts` + testes; `/admin` com os 9 blocos; exportação CSV.
 ✓ Com dados de seed, o placar e os cortes mostram valores coerentes.
 
-**Fase 6 — Seed, deploy e teste:** `scripts/seed.ts` com 40 participantes falsos (mesclando perfis parecidos e opostos), matching e reviews aleatórias (compatíveis ligeiramente melhores); comando para limpar o seed; deploy na Vercel; lista final das variáveis de ambiente e passos de configuração (Google OAuth redirect, domínio no Resend).
+**Fase 6 — Seed, deploy e teste:** `scripts/seed.ts` com 40 participantes falsos (mesclando perfis parecidos e opostos), matching e reviews aleatórias (compatíveis ligeiramente melhores); comando para limpar o seed; deploy na Vercel; lista final das variáveis de ambiente e passos de configuração (Google OAuth redirect, SMTP no Supabase e na Vercel).
 ✓ O link público funciona no telemóvel de ponta a ponta.
