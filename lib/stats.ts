@@ -382,6 +382,7 @@ export const CONTACT_TRACKING_SINCE = '2026-10-21T07:40:00Z';
 export type ContactClickInput = {
   matches: { id: string; type: Group; a_id: string; b_id: string; created_at: string }[];
   deleted: Set<string>; // anonymised participant ids
+  seed?: Set<string>; // seed (fake) participant ids: their matches count even if older than the tracking
   clicks: { match_id: string; participant_id: string; channel: string; created_at: string }[];
   reviews: {
     match_id: string;
@@ -398,10 +399,12 @@ export type ContactClickInput = {
 // Unit: one side of a match (a person in a match). Sides of matches created before the
 // tracking started, or with an anonymised person (no buttons shown), are left out. In the
 // comparison with the review, only taps made before the review count.
-export function contactClicks({ matches, deleted, clicks, reviews, since = CONTACT_TRACKING_SINCE }: ContactClickInput) {
+export function contactClicks({ matches, deleted, seed = new Set(), clicks, reviews, since = CONTACT_TRACKING_SINCE }: ContactClickInput) {
   const sinceMs = new Date(since).getTime();
+  const tracked = (m: { a_id: string; b_id: string; created_at: string }) =>
+    new Date(m.created_at).getTime() >= sinceMs || (seed.has(m.a_id) && seed.has(m.b_id));
   const sides = matches
-    .filter((m) => new Date(m.created_at).getTime() >= sinceMs && !deleted.has(m.a_id) && !deleted.has(m.b_id))
+    .filter((m) => tracked(m) && !deleted.has(m.a_id) && !deleted.has(m.b_id))
     .flatMap((m) => [m.a_id, m.b_id].map((person) => ({ match: m.id, person, type: m.type })));
 
   const tapsOf = (match: string, person: string) => clicks.filter((c) => c.match_id === match && c.participant_id === person);
@@ -438,4 +441,31 @@ export function contactClicks({ matches, deleted, clicks, reviews, since = CONTA
   };
 
   return { all: summarize('all'), compatible: summarize('compatible'), control: summarize('control') };
+}
+
+// --- Admin data filter: real people, seed (fake) data, or everything ---
+
+export type DataMode = 'reais' | 'seed' | 'tudo';
+
+export function dataMode(value: string | undefined): DataMode {
+  return value === 'seed' || value === 'tudo' ? value : 'reais';
+}
+
+// Matches keep both sides in the chosen set; reviews, taps and alerts follow their person.
+export function filterAdminData<
+  P extends { id: string; is_seed: boolean },
+  M extends { a_id: string; b_id: string },
+  R extends { reviewer_id: string },
+  F extends { participant_id: string },
+  C extends { participant_id: string },
+>(data: { participants: P[]; matches: M[]; reviews: R[]; flags: F[]; clicks: C[] }, mode: DataMode) {
+  if (mode === 'tudo') return data;
+  const keep = new Set(data.participants.filter((p) => p.is_seed === (mode === 'seed')).map((p) => p.id));
+  return {
+    participants: data.participants.filter((p) => keep.has(p.id)),
+    matches: data.matches.filter((m) => keep.has(m.a_id) && keep.has(m.b_id)),
+    reviews: data.reviews.filter((r) => keep.has(r.reviewer_id)),
+    flags: data.flags.filter((f) => keep.has(f.participant_id)),
+    clicks: data.clicks.filter((c) => keep.has(c.participant_id)),
+  };
 }

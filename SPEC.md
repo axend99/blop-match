@@ -181,6 +181,8 @@ Derivado: `next_step = meet_again_1_7 >= 5 OR met IN ('yes','planned')`.
 
 A lógica de cálculo fica em `lib/stats.ts` (funções puras com testes). Cada percentagem ou média mostra o **n** ao lado. Unidade de análise: a review (uma pessoa a avaliar um match; cada match dá até 2 reviews). Percentagens sobre todas as reviews do grupo (`talked` nulo conta como "não"); médias ignoram respostas em falta. As metas comparam valores sem arredondar. Taxa de resposta = reviews de matches já abertos ÷ (2 × matches já abertos). H3: reviews dos dois grupos; só contam categorias com n ≥ 15 com e sem item partilhado; o valor é a maior diferença (com sinal); "Dados insuficientes" se nenhuma categoria tiver esse n. Usar gráficos simples (Recharts) e tabelas.
 
+No topo, um filtro **Reais / Seed / Tudo** (`?dados=`, padrão Reais) aplica-se a todos os blocos e às exportações CSV (com colunas `is_seed`); enquanto houver seed, um aviso lembra de o limpar antes de divulgar.
+
 1. **Placar das hipóteses:** um cartão por hipótese com o valor atual, a meta e o estado: "Acima da meta", "Abaixo da meta" ou "Dados insuficientes" (n < 15 em algum grupo).
 
 | # | Métrica | Meta |
@@ -208,7 +210,7 @@ A lógica de cálculo fica em `lib/stats.ts` (funções puras com testes). Cada 
 
 ### Tabelas (migração SQL em `supabase/migrations/`)
 
-- `participants`: id uuid pk, user_id uuid unique → auth.users, name, email, whatsapp, instagram, city, lang, age_range, time_in_city, origin, interests text[], other_text jsonb, consent_at timestamptz, active bool default true, created_at
+- `participants`: id uuid pk, user_id uuid unique → auth.users, name, email, whatsapp, instagram, city, lang, age_range, time_in_city, origin, interests text[], other_text jsonb, consent_at timestamptz, active bool default true, is_seed bool default false (dados falsos do `scripts/seed.ts`; nunca têm `user_id` nem `email`), created_at
 - `matches`: id uuid pk, a_id, b_id → participants, type text check in ('compatible','control'), score numeric, shared_items text[], shared_count int, shared_by_category jsonb, created_at; unique(a_id, b_id), check(a_id < b_id)
 - `review_requests`: match_id, participant_id, requested_at, reminded_at; pk(match_id, participant_id)
 - `reviews`: id uuid pk, match_id, reviewer_id, os campos da secção 7, created_at; unique(match_id, reviewer_id)
@@ -242,5 +244,5 @@ Estudo académico do projeto BLOP (MIET 2026). Dados recolhidos: os do perfil, a
 **Fase 5 — Admin:** `lib/stats.ts` + testes; `/admin` com os 11 blocos; exportação CSV.
 ✓ Com dados de seed, o placar e os cortes mostram valores coerentes.
 
-**Fase 6 — Seed, deploy e teste:** `scripts/seed.ts` com 40 participantes falsos (mesclando perfis parecidos e opostos), matching e reviews aleatórias (compatíveis ligeiramente melhores); comando para limpar o seed; deploy na Vercel; lista final das variáveis de ambiente e passos de configuração (Google OAuth redirect, SMTP no Supabase e na Vercel).
+**Fase 6 — Seed, deploy e teste:** `scripts/seed.ts` com 100 participantes falsos (mesclando perfis parecidos e opostos; `is_seed = true`, inativos, sem conta nem e-mail, por isso nenhum fluxo automático lhes toca), matching e reviews aleatórias (compatíveis ligeiramente melhores) e toques de contacto; `npm run seed:clean` para limpar o seed (aborta se houver matches entre seed e pessoas reais); guia em `docs/CONFIGURACAO.md`; deploy na Vercel; lista final das variáveis de ambiente e passos de configuração (Google OAuth redirect, SMTP no Supabase e na Vercel).
 ✓ O link público funciona no telemóvel de ponta a ponta.

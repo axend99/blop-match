@@ -1,5 +1,5 @@
 import 'server-only';
-import type { ReviewRow } from '@/lib/stats';
+import { filterAdminData, type DataMode, type ReviewRow } from '@/lib/stats';
 import { createServiceClient } from '@/lib/supabase/service';
 
 // Loads whole tables for /admin, 1000 rows per page in a stable order (PostgREST limit).
@@ -32,6 +32,7 @@ export type AdminParticipant = {
   talk_about_code: string | null;
   active: boolean;
   deleted_at: string | null;
+  is_seed: boolean;
   created_at: string;
 };
 
@@ -70,11 +71,11 @@ export type AdminFlag = {
 
 export type AdminClick = { match_id: string; participant_id: string; channel: string; created_at: string };
 
-export async function loadAdminData() {
-  const [participants, matches, reviews, flags, clicks] = await Promise.all([
+export async function loadAdminData(mode: DataMode) {
+  const [allParticipants, allMatches, allReviews, allFlags, allClicks] = await Promise.all([
     all<AdminParticipant>(
       'participants',
-      'id, name, email, whatsapp, instagram, city, lang, age_range, time_in_city, origin, interests, other_text, talk_about, talk_about_code, active, deleted_at, created_at',
+      'id, name, email, whatsapp, instagram, city, lang, age_range, time_in_city, origin, interests, other_text, talk_about, talk_about_code, active, deleted_at, is_seed, created_at',
     ),
     all<AdminMatch>('matches', 'id, a_id, b_id, type, score, shared_items, shared_count, shared_by_category, created_at'),
     all<AdminReview>(
@@ -84,6 +85,11 @@ export async function loadAdminData() {
     all<AdminFlag>('content_flags', 'id, participant_id, match_id, field, text, status, category, reason, created_at, resolved_at'),
     all<AdminClick>('contact_clicks', 'match_id, participant_id, channel, created_at'),
   ]);
+  const seedCount = allParticipants.filter((p) => p.is_seed).length;
+  const { participants, matches, reviews, flags, clicks } = filterAdminData(
+    { participants: allParticipants, matches: allMatches, reviews: allReviews, flags: allFlags, clicks: allClicks },
+    mode,
+  );
 
   const personById = new Map(participants.map((p) => [p.id, p]));
   const matchById = new Map(matches.map((m) => [m.id, m]));
@@ -119,5 +125,5 @@ export async function loadAdminData() {
     if (!firstTap.has(key) || c.created_at < firstTap.get(key)!) firstTap.set(key, c.created_at);
   }
 
-  return { participants, matches, reviews, flags, clicks, tapped, firstTap, rows, personById, matchById };
+  return { participants, matches, reviews, flags, clicks, tapped, firstTap, rows, personById, matchById, seedCount };
 }

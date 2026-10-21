@@ -2,7 +2,9 @@ import { describe, expect, it } from 'vitest';
 import {
   byCategory,
   contactClicks,
+  dataMode,
   doseResponse,
+  filterAdminData,
   funnel,
   hypotheses,
   mean,
@@ -357,5 +359,69 @@ describe('contactClicks', () => {
     expect(r.all.sides).toBe(2);
     expect(r.all.reviewed).toBe(0);
     expect(r.compatible.sides).toBe(0);
+  });
+});
+
+describe('contactClicks with seed', () => {
+  it('counts seed-only matches created before tracking started', () => {
+    const matches = [
+      { id: 'old', type: 'compatible' as const, a_id: 's1', b_id: 's2', created_at: '2026-10-01T00:00:00Z' },
+      { id: 'mixed', type: 'compatible' as const, a_id: 's1', b_id: 'r1', created_at: '2026-10-01T00:00:00Z' },
+    ];
+    const result = contactClicks({
+      matches,
+      deleted: new Set(),
+      seed: new Set(['s1', 's2']),
+      clicks: [{ match_id: 'old', participant_id: 's1', channel: 'whatsapp', created_at: '2026-10-02T00:00:00Z' }],
+      reviews: [],
+      since: '2026-10-21T00:00:00Z',
+    });
+    expect(result.all.sides).toBe(2);
+  });
+});
+
+describe('filterAdminData', () => {
+  const data = {
+    participants: [
+      { id: 'r1', is_seed: false },
+      { id: 'r2', is_seed: false },
+      { id: 's1', is_seed: true },
+      { id: 's2', is_seed: true },
+    ],
+    matches: [
+      { id: 'm1', a_id: 'r1', b_id: 'r2' },
+      { id: 'm2', a_id: 's1', b_id: 's2' },
+      { id: 'm3', a_id: 'r1', b_id: 's1' },
+    ],
+    reviews: [{ reviewer_id: 'r1' }, { reviewer_id: 's2' }],
+    flags: [{ participant_id: 's1' }],
+    clicks: [{ participant_id: 'r2' }, { participant_id: 's1' }],
+  };
+
+  it('defaults to real data', () => {
+    expect(dataMode(undefined)).toBe('reais');
+    expect(dataMode('nope')).toBe('reais');
+    expect(dataMode('seed')).toBe('seed');
+    expect(dataMode('tudo')).toBe('tudo');
+  });
+
+  it('keeps only real people and matches with both sides real', () => {
+    const f = filterAdminData(data, 'reais');
+    expect(f.participants.map((p) => p.id)).toEqual(['r1', 'r2']);
+    expect(f.matches.map((m) => m.id)).toEqual(['m1']);
+    expect(f.reviews).toEqual([{ reviewer_id: 'r1' }]);
+    expect(f.flags).toEqual([]);
+    expect(f.clicks).toEqual([{ participant_id: 'r2' }]);
+  });
+
+  it('keeps only seed data', () => {
+    const f = filterAdminData(data, 'seed');
+    expect(f.participants.map((p) => p.id)).toEqual(['s1', 's2']);
+    expect(f.matches.map((m) => m.id)).toEqual(['m2']);
+    expect(f.flags).toHaveLength(1);
+  });
+
+  it('keeps everything', () => {
+    expect(filterAdminData(data, 'tudo')).toBe(data);
   });
 });
