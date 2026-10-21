@@ -231,8 +231,19 @@ const pt: Dict = {
       ],
     },
   },
+  about: {
+    title: 'Sobre o estudo',
+    whatTitle: 'O que é',
+    what: 'O BLOP Match é uma pequena experiência de amizade do projeto BLOP (MIET 2026). Queremos perceber se interesses em comum tornam mais fácil a ligação entre desconhecidos.',
+    howTitle: 'Como funciona',
+    durationTitle: 'Quanto tempo demora',
+    privacyTitle: 'Os teus dados',
+    contactTitle: 'Dúvidas?',
+    contact: 'Escreve para founders@meetblop.com.',
+  },
   footer: {
     privacy: 'Privacidade',
+    about: 'Sobre o estudo',
   },
 };
 

@@ -229,8 +229,19 @@ const en = {
       ],
     },
   },
+  about: {
+    title: 'About the study',
+    whatTitle: 'What it is',
+    what: 'BLOP Match is a short friendship experiment by the BLOP project (MIET 2026). We want to learn whether shared interests make it easier for strangers to connect.',
+    howTitle: 'How it works',
+    durationTitle: 'How long it takes',
+    privacyTitle: 'Your data',
+    contactTitle: 'Questions?',
+    contact: 'Write to founders@meetblop.com.',
+  },
   footer: {
     privacy: 'Privacy',
+    about: 'About the study',
   },
 };
 
