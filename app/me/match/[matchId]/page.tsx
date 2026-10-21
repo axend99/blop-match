@@ -27,6 +27,10 @@ export default async function MatchPage({ params }: { params: Promise<{ matchId:
   const alsoLikes = match.other_interests.filter((code) => !shared.has(code));
   const age = match.other_age_range ? t.join.ageOptions[match.other_age_range as keyof Dict['join']['ageOptions']] : null;
   const whatsapp = match.other_whatsapp?.replace(/\D/g, '');
+  // One of their interests (in the viewer's language) or their own words.
+  const talksAbout = match.other_talk_about_code
+    ? interestLabel(match.other_talk_about_code, lang)
+    : match.other_talk_about && `“${match.other_talk_about}”`;
 
   return (
     <article className="space-y-6 text-center">
@@ -46,10 +50,10 @@ export default async function MatchPage({ params }: { params: Promise<{ matchId:
         {deleted && <p className="text-midnight/70">{t.match.left}</p>}
       </div>
 
-      {match.other_talk_about && !deleted && (
+      {talksAbout && !deleted && (
         <section className="space-y-1 rounded-3xl bg-lime/60 p-5">
           <h2 className="text-sm font-semibold uppercase tracking-wide">{t.match.talksAbout}</h2>
-          <p className="text-lg">“{match.other_talk_about}”</p>
+          <p className="text-lg">{talksAbout}</p>
         </section>
       )}
 

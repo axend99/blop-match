@@ -37,6 +37,7 @@ Prazo: em produção até domingo, 25 de outubro de 2026.
 NEXT_PUBLIC_SUPABASE_URL=
 NEXT_PUBLIC_SUPABASE_ANON_KEY=
 SUPABASE_SERVICE_ROLE_KEY=
+ANTHROPIC_API_KEY=
 SMTP_HOST=smtp.gmail.com
 SMTP_PORT=465
 SMTP_USER=
@@ -91,7 +92,7 @@ Campos (todos obrigatórios, exceto "outro"):
 - `origin`: `this_city` | `same_country` | `other_country`
 - `interests`: 3 a 6 itens por categoria (validar no cliente e no servidor)
 - `other_text`: um campo livre opcional por categoria (não entra no matching)
-- `talk_about`: "What I want to talk about", obrigatório no cadastro, até 140 caracteres numa linha (icebreaker mostrado aos matches; não entra no matching; não é editável depois)
+- "What I want to talk about" (icebreaker mostrado aos matches, obrigatório no cadastro, não editável depois, não entra no matching): **exatamente um** de `talk_about_code` (um dos interesses que a pessoa marcou) ou `talk_about` (texto livre, até 140 caracteres numa linha)
 - `consent`: checkbox obrigatória: "I agree to share my first name, age range, city, interests, WhatsApp and Instagram with my matches, and to take part in this research study. I am 18 or older." + link para `/privacy`
 
 Os interesses são chips clicáveis agrupados por categoria, com um contador "2/6".
@@ -196,6 +197,7 @@ A lógica de cálculo fica em `lib/stats.ts` (funções puras com testes). Cada 
 7. **Dose-resposta (H2):** satisfação média por `shared_count` (0, 1, 2, 3, 4+).
 8. **Motivos de não contacto** (`why_not`) por grupo; **itens mais escolhidos**; respostas "outro".
 9. **Tabelas brutas** com exportação CSV: participantes, matches e reviews (cada review junta os dados do match e do perfil de quem respondeu).
+10. **Alertas de conteúdo** (`content_flags`): textos livres marcados pela verificação automática (ou que ficaram por verificar), com campo, categoria, razão e o texto; botão "marcar como visto" (`resolved_at`). Mostrar o texto e a razão só como texto.
 
 ---
 
@@ -211,12 +213,12 @@ A lógica de cálculo fica em `lib/stats.ts` (funções puras com testes). Cada 
 
 ### RLS
 - Um participante lê e atualiza só a própria linha em `participants`.
-- Dos seus matches, lê apenas: `name`, `whatsapp`, `instagram`, `age_range`, `city`, `interests`, `talk_about` e `shared_items` da outra pessoa (nada disto se ela tiver sido anonimizada). Implementar via view ou função `get_my_matches()` com `security definer`, nunca expondo `type` nem `score`.
+- Dos seus matches, lê apenas: `name`, `whatsapp`, `instagram`, `age_range`, `city`, `interests`, `talk_about`, `talk_about_code` e `shared_items` da outra pessoa (nada disto se ela tiver sido anonimizada). Implementar via view ou função `get_my_matches()` com `security definer`, nunca expondo `type` nem `score`.
 - Insere a review apenas dos seus próprios matches e apenas depois do prazo (validar também no servidor).
 - Admin, cron e matching usam a service role, só no servidor.
 
 ### Privacidade (`/privacy`, EN/PT)
-Estudo académico do projeto BLOP (MIET 2026). Dados recolhidos: os do perfil e as reviews. Quem os vê: os matches veem o primeiro nome, faixa etária, cidade, interesses, aquilo de que a pessoa quer falar, WhatsApp e Instagram (nunca o e-mail); a equipa vê tudo para análise. Os dados são guardados até ao fim do estudo e depois anonimizados ou apagados. "Leave the study" desativa o perfil; para eliminar os dados, basta escrever para founders@meetblop.com (anonimização: `name='[deleted]'`, `email`, `whatsapp`, `instagram` e `talk_about` a null, `other_text '{}'`, `active=false`, `deleted_at` preenchido; depois apaga-se o utilizador de auth). Idade mínima: 18 anos.
+Estudo académico do projeto BLOP (MIET 2026). Dados recolhidos: os do perfil e as reviews. Quem os vê: os matches veem o primeiro nome, faixa etária, cidade, interesses, aquilo de que a pessoa quer falar, WhatsApp e Instagram (nunca o e-mail); a equipa vê tudo para análise. Os dados são guardados até ao fim do estudo e depois anonimizados ou apagados. "Leave the study" desativa o perfil; para eliminar os dados, basta escrever para founders@meetblop.com (anonimização: `name='[deleted]'`, `email`, `whatsapp`, `instagram`, `talk_about` e `talk_about_code` a null, `other_text '{}'`, `active=false`, `deleted_at` preenchido, apagam-se as linhas dessa pessoa em `content_flags`; depois apaga-se o utilizador de auth). Os textos livres (`talk_about`, `other_text`, comentário da review) são verificados por IA (Anthropic, `lib/moderationService.ts`) só para gerar alertas no `/admin`; nada é bloqueado. Idade mínima: 18 anos.
 
 ---
 
@@ -234,7 +236,7 @@ Estudo académico do projeto BLOP (MIET 2026). Dados recolhidos: os do perfil e 
 **Fase 4 — Cron e reviews:** `/api/cron` + `vercel.json`; `review_open` e `review_reminder`; formulário condicional com escalas 1–7.
 ✓ Com `REVIEW_DELAY_DAYS=0`, chamar o cron envia o pedido, a review fica gravada e não se pode repetir.
 
-**Fase 5 — Admin:** `lib/stats.ts` + testes; `/admin` com os 9 blocos; exportação CSV.
+**Fase 5 — Admin:** `lib/stats.ts` + testes; `/admin` com os 10 blocos; exportação CSV.
 ✓ Com dados de seed, o placar e os cortes mostram valores coerentes.
 
 **Fase 6 — Seed, deploy e teste:** `scripts/seed.ts` com 40 participantes falsos (mesclando perfis parecidos e opostos), matching e reviews aleatórias (compatíveis ligeiramente melhores); comando para limpar o seed; deploy na Vercel; lista final das variáveis de ambiente e passos de configuração (Google OAuth redirect, SMTP no Supabase e na Vercel).

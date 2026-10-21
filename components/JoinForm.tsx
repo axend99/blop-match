@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { useState, useTransition } from 'react';
 import { createProfile } from '@/app/join/actions';
-import type { Lang } from '@/lib/i18n';
+import { interestLabel, type Lang } from '@/lib/i18n';
 import type { Dict } from '@/lib/i18n/en';
 import { CATEGORIES, MAX_PER_CATEGORY, MIN_PER_CATEGORY, interestsByCategory, type Category } from '@/lib/interests';
 import {
@@ -35,6 +35,7 @@ export default function JoinForm({ t, lang, genericError }: { t: T; lang: Lang; 
   const [interests, setInterests] = useState<string[]>([]);
   const [otherText, setOtherText] = useState<Partial<Record<Category, string>>>({});
   const [talkAbout, setTalkAbout] = useState('');
+  const [talkAboutCode, setTalkAboutCode] = useState('');
   const [consent, setConsent] = useState(false);
   const [errors, setErrors] = useState<FieldErrors>({});
   const [failed, setFailed] = useState(false);
@@ -44,7 +45,10 @@ export default function JoinForm({ t, lang, genericError }: { t: T; lang: Lang; 
 
   function toggle(code: string, category: Category) {
     setInterests((current) => {
-      if (current.includes(code)) return current.filter((c) => c !== code);
+      if (current.includes(code)) {
+        if (code === talkAboutCode) setTalkAboutCode(''); // can only talk about an own interest
+        return current.filter((c) => c !== code);
+      }
       if (counts[category] >= MAX_PER_CATEGORY) return current;
       return [...current, code];
     });
@@ -64,6 +68,7 @@ export default function JoinForm({ t, lang, genericError }: { t: T; lang: Lang; 
       interests,
       other_text: otherText,
       talk_about: talkAbout,
+      talk_about_code: talkAboutCode,
       consent,
     };
     const check = validateProfile({ ...input, lang });
@@ -175,20 +180,62 @@ export default function JoinForm({ t, lang, genericError }: { t: T; lang: Lang; 
         {err('other_text')}
       </div>
 
-      <Field id="talk_about" label={t.talkAbout} hint={t.talkAboutHint}>
+      {/* Exactly one: one of the chosen interests, or a line of free text. */}
+      <fieldset
+        aria-describedby={errors.talk_about ? 'talk-about-error' : undefined}
+        className={`space-y-3 rounded-3xl border bg-white p-4 ${errors.talk_about ? 'border-red-600' : 'border-midnight/10'}`}
+      >
+        <legend className="sr-only">{t.talkAbout}</legend>
+        <div aria-hidden="true">
+          <p className="font-medium">{t.talkAbout}</p>
+          <p className="text-sm text-midnight/60">{t.talkAboutHint}</p>
+        </div>
+        <p className="text-sm font-medium">{t.talkAboutPick}</p>
+        {interests.length === 0 ? (
+          <p className="text-sm text-midnight/60">{t.talkAboutPickFirst}</p>
+        ) : (
+          <div className="flex flex-wrap gap-1.5">
+            {interests.map((code) => (
+              <button
+                key={code}
+                type="button"
+                aria-pressed={talkAboutCode === code}
+                onClick={() => {
+                  setTalkAboutCode(talkAboutCode === code ? '' : code);
+                  setTalkAbout('');
+                }}
+                className={`rounded-full border px-3 py-1 text-sm font-medium ${
+                  talkAboutCode === code ? 'border-violet bg-violet text-white' : 'border-midnight/15 bg-white'
+                }`}
+              >
+                {interestLabel(code, lang)}
+              </button>
+            ))}
+          </div>
+        )}
+        <label htmlFor="talk_about" className="block text-sm font-medium">
+          {t.talkAboutOr}
+        </label>
         <textarea
           id="talk_about"
           rows={2}
           value={talkAbout}
           maxLength={MAX_TALK_ABOUT}
-          onChange={(e) => setTalkAbout(e.target.value)}
-          className={`${inputClass} ${border('talk_about')} text-base`}
+          onChange={(e) => {
+            setTalkAbout(e.target.value);
+            setTalkAboutCode('');
+          }}
+          className={`${inputClass} border-midnight/15 text-base`}
         />
         <p className="text-right text-xs text-midnight/60">
           {talkAbout.length}/{MAX_TALK_ABOUT}
         </p>
-        {err('talk_about')}
-      </Field>
+        {errors.talk_about && (
+          <p id="talk-about-error" role="alert" className="text-sm text-red-700">
+            {t.errors[errors.talk_about]}
+          </p>
+        )}
+      </fieldset>
 
       <div className="space-y-2">
         <label className="flex gap-3">

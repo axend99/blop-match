@@ -9,6 +9,9 @@ import { getMyMatches } from '@/lib/myMatches';
 import { formatDate, reviewOpensAt } from '@/lib/site';
 import looking from '@/public/blop/looking.webp';
 
+// The server action also runs the AI check of the comment in after().
+export const maxDuration = 60;
+
 export default async function ReviewPage({ params }: { params: Promise<{ matchId: string }> }) {
   if (!(await getUser())) redirect('/login');
   if (!(await getMyParticipant())) redirect('/join');

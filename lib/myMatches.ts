@@ -15,6 +15,7 @@ export type MyMatch = {
   other_city: string | null;
   other_interests: string[];
   other_talk_about: string | null;
+  other_talk_about_code: string | null;
 };
 
 export async function getMyMatches(): Promise<MyMatch[]> {

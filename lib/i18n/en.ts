@@ -62,7 +62,10 @@ const en = {
     consent:
       'I agree to share my first name, age range, city, interests, what I want to talk about, WhatsApp and Instagram with my matches, and to take part in this research study. I am 18 or older.',
     talkAbout: 'What I want to talk about',
-    talkAboutHint: 'An icebreaker for your matches, e.g. the best surf spots near Lisbon.',
+    talkAboutHint: 'An icebreaker for your matches. Pick one thing.',
+    talkAboutPick: 'Pick one of your interests',
+    talkAboutPickFirst: 'Pick your interests above first.',
+    talkAboutOr: 'or write your own, e.g. the best surf spots near Lisbon',
     consentLink: 'Privacy notice',
     submit: 'Join',
     submitting: 'Saving…',
@@ -185,6 +188,10 @@ const en = {
       {
         heading: 'Who sees it',
         body: 'Your matches see your first name, age range, city, interests, what you want to talk about, WhatsApp and Instagram. They never see your email. The research team sees everything, for analysis only.',
+      },
+      {
+        heading: 'Safety checks',
+        body: 'To keep the study friendly, your free-text answers (what you want to talk about, the "Other" fields and review comments) are checked automatically by an AI service from Anthropic for offensive content. Only the text is sent, never your name or contacts. Nothing is blocked: the team reviews any alerts. Anthropic processes the text on our behalf, possibly outside the EU, and does not use it to train its models.',
       },
       {
         heading: 'How long we keep it',

@@ -36,6 +36,7 @@ export type ProfileInput = {
   interests: string[];
   other_text: Record<string, string>;
   talk_about: string;
+  talk_about_code: string;
   consent: boolean;
 };
 
@@ -50,7 +51,8 @@ export type Profile = {
   origin: Origin;
   interests: string[];
   other_text: Partial<Record<Category, string>>;
-  talk_about: string;
+  talk_about: string | null;
+  talk_about_code: string | null;
 };
 
 export type ErrorKey = 'required' | 'tooLong' | 'whatsapp' | 'instagram' | 'interests' | 'consent';
@@ -144,10 +146,19 @@ export function validateProfile(input: ProfileInput): ValidationResult {
     else other_text[key] = text;
   }
 
-  // One line of plain text: newlines and repeated spaces collapse before the length check.
-  const talk_about = str(input.talk_about).replace(/\s+/g, ' ').trim();
-  if (!talk_about) errors.talk_about = 'required';
-  else if (talk_about.length > MAX_TALK_ABOUT) errors.talk_about = 'tooLong';
+  // "What I want to talk about": exactly one of the person's own interests, or one line of
+  // free text (newlines and repeated spaces collapse before the length check).
+  const code = str(input.talk_about_code);
+  let talk_about: string | null = null;
+  let talk_about_code: string | null = null;
+  if (code) {
+    if (interests.includes(code) && interestByCode(code)) talk_about_code = code;
+    else errors.talk_about = 'required';
+  } else {
+    talk_about = str(input.talk_about).replace(/\s+/g, ' ').trim();
+    if (!talk_about) errors.talk_about = 'required';
+    else if (talk_about.length > MAX_TALK_ABOUT) errors.talk_about = 'tooLong';
+  }
 
   if (input.consent !== true) errors.consent = 'consent';
 
@@ -167,6 +178,7 @@ export function validateProfile(input: ProfileInput): ValidationResult {
       interests,
       other_text,
       talk_about,
+      talk_about_code,
     },
   };
 }

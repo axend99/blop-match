@@ -2,7 +2,10 @@
 
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
+import { after } from 'next/server';
 import { getMyParticipant, getUser } from '@/lib/auth';
+import { reviewTexts } from '@/lib/moderation';
+import { moderate } from '@/lib/moderationService';
 import { getMyMatches } from '@/lib/myMatches';
 import { validateReview, type ReviewErrors, type ReviewInput } from '@/lib/review';
 import { reviewOpensAt } from '@/lib/site';
@@ -30,6 +33,16 @@ export async function submitReview(matchId: string, input: ReviewInput): Promise
   if (error && error.code !== '23505') {
     console.error('[review] insert failed', error);
     return { failed: true };
+  }
+  if (!error) {
+    // AI check of the comment: only alerts /admin. Registered before redirect(), which throws.
+    after(async () => {
+      try {
+        await moderate(me.id, reviewTexts(result.data), match.match_id);
+      } catch (err) {
+        console.error('[review] moderation failed', err);
+      }
+    });
   }
 
   revalidatePath('/me');

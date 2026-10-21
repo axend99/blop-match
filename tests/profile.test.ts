@@ -25,6 +25,7 @@ const VALID: ProfileInput = {
   ],
   other_text: { music: '  80s synth ', sports: '   ' },
   talk_about: '  The best surf spots\n\n near Lisbon ',
+  talk_about_code: '',
   consent: true,
 };
 
@@ -76,6 +77,7 @@ describe('validateProfile', () => {
     expect(result.data.interests).toHaveLength(12);
     expect(result.data.other_text).toEqual({ music: '80s synth' });
     expect(result.data.talk_about).toBe('The best surf spots near Lisbon');
+    expect(result.data.talk_about_code).toBeNull();
   });
 
   it('requires 3 to 6 interests in every category', () => {
@@ -147,6 +149,21 @@ describe('validateProfile', () => {
     expect(err('x'.repeat(140))).toBeUndefined();
     expect(err('x'.repeat(141))).toBe('tooLong');
     expect(err('x'.repeat(70) + '\n\n\n' + 'x'.repeat(69))).toBeUndefined(); // 70 + 1 + 69 = 140
+  });
+
+  it('accepts one of the chosen interests instead of text, never both', () => {
+    const picked = withInput({ talk_about_code: 'sports_surf', talk_about: 'ignored' });
+    expect(picked.ok).toBe(true);
+    if (picked.ok) {
+      expect(picked.data.talk_about_code).toBe('sports_surf');
+      expect(picked.data.talk_about).toBeNull();
+    }
+    const notMine = withInput({ talk_about_code: 'sports_tennis', talk_about: '' });
+    expect(notMine.ok || notMine.errors.talk_about).toBe('required');
+    const unknown = withInput({ talk_about_code: 'music_polka', talk_about: '' });
+    expect(unknown.ok || unknown.errors.talk_about).toBe('required');
+    const neither = withInput({ talk_about_code: '', talk_about: '  ' });
+    expect(neither.ok || neither.errors.talk_about).toBe('required');
   });
 
   it('flags empty and too long text fields', () => {

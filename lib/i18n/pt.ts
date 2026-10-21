@@ -64,7 +64,10 @@ const pt: Dict = {
     consent:
       'Aceito partilhar o meu primeiro nome, faixa etária, cidade, interesses, aquilo de que quero falar, WhatsApp e Instagram com os meus matches e participar neste estudo de investigação. Tenho 18 anos ou mais.',
     talkAbout: 'Aquilo de que quero falar',
-    talkAboutHint: 'Um quebra-gelo para os teus matches, p. ex. as melhores praias para surfar perto de Lisboa.',
+    talkAboutHint: 'Um quebra-gelo para os teus matches. Escolhe só uma coisa.',
+    talkAboutPick: 'Escolhe um dos teus interesses',
+    talkAboutPickFirst: 'Escolhe primeiro os teus interesses acima.',
+    talkAboutOr: 'ou escreve o teu, p. ex. as melhores praias para surfar perto de Lisboa',
     consentLink: 'Aviso de privacidade',
     submit: 'Participar',
     submitting: 'A guardar…',
@@ -187,6 +190,10 @@ const pt: Dict = {
       {
         heading: 'Quem vê',
         body: 'Os teus matches veem o teu primeiro nome, faixa etária, cidade, interesses, aquilo de que queres falar, WhatsApp e Instagram. Nunca veem o teu e-mail. A equipa de investigação vê tudo, apenas para análise.',
+      },
+      {
+        heading: 'Verificação de segurança',
+        body: 'Para manter o estudo saudável, as tuas respostas de texto livre (aquilo de que queres falar, os campos "Outro" e os comentários das avaliações) são verificadas automaticamente por um serviço de IA da Anthropic, para detetar conteúdo ofensivo. Só é enviado o texto, nunca o teu nome nem os teus contactos. Nada é bloqueado: a equipa revê os alertas. A Anthropic trata o texto por nossa conta, possivelmente fora da UE, e não o usa para treinar os seus modelos.',
       },
       {
         heading: 'Durante quanto tempo guardamos',
