@@ -23,7 +23,7 @@ const pt: Dict = {
     review: (days: number) =>
       `${days} ${days === 1 ? 'dia' : 'dias'} depois de cada match, pedimos-te que avalies a interação. Demora 2 minutos.`,
     duration: 'O estudo dura cerca de 2 semanas. É só para fazer amigos.',
-    privacy: 'Só os teus matches veem o teu perfil (primeiro nome, faixa etária, cidade, interesses), o teu WhatsApp e o teu Instagram. Nunca o teu e-mail. Podes sair quando quiseres.',
+    privacy: 'Só os teus matches veem o teu perfil (primeiro nome, faixa etária, cidade, interesses, aquilo de que queres falar), o teu WhatsApp e o teu Instagram. Nunca o teu e-mail. Podes sair quando quiseres.',
     privacyLink: 'Ler o aviso de privacidade',
     cta: 'Participar na experiência',
   },
@@ -62,7 +62,9 @@ const pt: Dict = {
     otherLabel: 'Outro (opcional)',
     otherPlaceholder: 'Faltou alguma coisa?',
     consent:
-      'Aceito partilhar o meu primeiro nome, faixa etária, cidade, interesses, WhatsApp e Instagram com os meus matches e participar neste estudo de investigação. Tenho 18 anos ou mais.',
+      'Aceito partilhar o meu primeiro nome, faixa etária, cidade, interesses, aquilo de que quero falar, WhatsApp e Instagram com os meus matches e participar neste estudo de investigação. Tenho 18 anos ou mais.',
+    talkAbout: 'Aquilo de que quero falar',
+    talkAboutHint: 'Um quebra-gelo para os teus matches, p. ex. as melhores praias para surfar perto de Lisboa.',
     consentLink: 'Aviso de privacidade',
     submit: 'Participar',
     submitting: 'A guardar…',
@@ -118,6 +120,7 @@ const pt: Dict = {
     basedIn: (city: string) => `Vive em ${city}`,
     commonGround: 'O que têm em comum',
     getToKnow: 'Fiquem a conhecer-se!',
+    talksAbout: 'Quer falar sobre',
     alsoLikes: 'Também gosta de…',
     whatsapp: 'Mandar mensagem no WhatsApp',
     instagram: 'Abrir Instagram',
@@ -179,11 +182,11 @@ const pt: Dict = {
       },
       {
         heading: 'O que recolhemos',
-        body: 'O teu perfil (primeiro nome, e-mail, WhatsApp, Instagram, cidade, idioma, faixa etária, tempo na cidade, origem e interesses) e as avaliações que envias sobre os teus matches.',
+        body: 'O teu perfil (primeiro nome, e-mail, WhatsApp, Instagram, cidade, idioma, faixa etária, tempo na cidade, origem, interesses e aquilo de que queres falar) e as avaliações que envias sobre os teus matches.',
       },
       {
         heading: 'Quem vê',
-        body: 'Os teus matches veem o teu primeiro nome, faixa etária, cidade, interesses, WhatsApp e Instagram. Nunca veem o teu e-mail. A equipa de investigação vê tudo, apenas para análise.',
+        body: 'Os teus matches veem o teu primeiro nome, faixa etária, cidade, interesses, aquilo de que queres falar, WhatsApp e Instagram. Nunca veem o teu e-mail. A equipa de investigação vê tudo, apenas para análise.',
       },
       {
         heading: 'Durante quanto tempo guardamos',

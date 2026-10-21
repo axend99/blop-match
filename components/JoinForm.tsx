@@ -11,6 +11,7 @@ import {
   MAX_CITY,
   MAX_NAME,
   MAX_OTHER,
+  MAX_TALK_ABOUT,
   ORIGINS,
   TIMES_IN_CITY,
   countByCategory,
@@ -33,6 +34,7 @@ export default function JoinForm({ t, lang, genericError }: { t: T; lang: Lang; 
   const [origin, setOrigin] = useState('');
   const [interests, setInterests] = useState<string[]>([]);
   const [otherText, setOtherText] = useState<Partial<Record<Category, string>>>({});
+  const [talkAbout, setTalkAbout] = useState('');
   const [consent, setConsent] = useState(false);
   const [errors, setErrors] = useState<FieldErrors>({});
   const [failed, setFailed] = useState(false);
@@ -61,6 +63,7 @@ export default function JoinForm({ t, lang, genericError }: { t: T; lang: Lang; 
       origin,
       interests,
       other_text: otherText,
+      talk_about: talkAbout,
       consent,
     };
     const check = validateProfile({ ...input, lang });
@@ -171,6 +174,21 @@ export default function JoinForm({ t, lang, genericError }: { t: T; lang: Lang; 
         })}
         {err('other_text')}
       </div>
+
+      <Field id="talk_about" label={t.talkAbout} hint={t.talkAboutHint}>
+        <textarea
+          id="talk_about"
+          rows={2}
+          value={talkAbout}
+          maxLength={MAX_TALK_ABOUT}
+          onChange={(e) => setTalkAbout(e.target.value)}
+          className={`${inputClass} ${border('talk_about')} text-base`}
+        />
+        <p className="text-right text-xs text-midnight/60">
+          {talkAbout.length}/{MAX_TALK_ABOUT}
+        </p>
+        {err('talk_about')}
+      </Field>
 
       <div className="space-y-2">
         <label className="flex gap-3">

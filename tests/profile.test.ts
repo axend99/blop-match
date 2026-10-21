@@ -24,6 +24,7 @@ const VALID: ProfileInput = {
     'hob_beach', 'hob_bars', 'hob_travel',
   ],
   other_text: { music: '  80s synth ', sports: '   ' },
+  talk_about: '  The best surf spots\n\n near Lisbon ',
   consent: true,
 };
 
@@ -74,6 +75,7 @@ describe('validateProfile', () => {
     });
     expect(result.data.interests).toHaveLength(12);
     expect(result.data.other_text).toEqual({ music: '80s synth' });
+    expect(result.data.talk_about).toBe('The best surf spots near Lisbon');
   });
 
   it('requires 3 to 6 interests in every category', () => {
@@ -132,6 +134,19 @@ describe('validateProfile', () => {
     const result = validateProfile(bad);
     expect(result.ok).toBe(false);
     if (!result.ok) expect(result.errors.name).toBe('required');
+  });
+
+  it('requires what you want to talk about, up to 140 characters after collapsing spaces', () => {
+    const err = (talk_about: unknown) => {
+      const r = validateProfile({ ...VALID, talk_about } as ProfileInput);
+      return r.ok ? undefined : r.errors.talk_about;
+    };
+    expect(err('')).toBe('required');
+    expect(err('   \n ')).toBe('required');
+    expect(err(42)).toBe('required');
+    expect(err('x'.repeat(140))).toBeUndefined();
+    expect(err('x'.repeat(141))).toBe('tooLong');
+    expect(err('x'.repeat(70) + '\n\n\n' + 'x'.repeat(69))).toBeUndefined(); // 70 + 1 + 69 = 140
   });
 
   it('flags empty and too long text fields', () => {

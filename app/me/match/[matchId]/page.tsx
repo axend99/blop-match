@@ -46,6 +46,13 @@ export default async function MatchPage({ params }: { params: Promise<{ matchId:
         {deleted && <p className="text-midnight/70">{t.match.left}</p>}
       </div>
 
+      {match.other_talk_about && !deleted && (
+        <section className="space-y-1 rounded-3xl bg-lime/60 p-5">
+          <h2 className="text-sm font-semibold uppercase tracking-wide">{t.match.talksAbout}</h2>
+          <p className="text-lg">“{match.other_talk_about}”</p>
+        </section>
+      )}
+
       {!deleted && (
         <section className="space-y-2 rounded-3xl bg-pink/40 p-5">
           <h2 className="text-lg font-semibold">{t.match.commonGround}</h2>

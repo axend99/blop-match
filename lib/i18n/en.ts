@@ -21,7 +21,7 @@ const en = {
     review: (days: number) =>
       `${days} ${days === 1 ? 'day' : 'days'} after each match, we ask you to rate the interaction. It takes 2 minutes.`,
     duration: 'The study runs for about 2 weeks. It is just for friendship.',
-    privacy: 'Only your matches see your profile (first name, age range, city, interests) and your WhatsApp and Instagram. Never your email. You can leave at any time.',
+    privacy: 'Only your matches see your profile (first name, age range, city, interests, what you want to talk about) and your WhatsApp and Instagram. Never your email. You can leave at any time.',
     privacyLink: 'Read the privacy notice',
     cta: 'Join the experiment',
   },
@@ -60,7 +60,9 @@ const en = {
     otherLabel: 'Other (optional)',
     otherPlaceholder: 'Anything we missed?',
     consent:
-      'I agree to share my first name, age range, city, interests, WhatsApp and Instagram with my matches, and to take part in this research study. I am 18 or older.',
+      'I agree to share my first name, age range, city, interests, what I want to talk about, WhatsApp and Instagram with my matches, and to take part in this research study. I am 18 or older.',
+    talkAbout: 'What I want to talk about',
+    talkAboutHint: 'An icebreaker for your matches, e.g. the best surf spots near Lisbon.',
     consentLink: 'Privacy notice',
     submit: 'Join',
     submitting: 'Saving…',
@@ -116,6 +118,7 @@ const en = {
     basedIn: (city: string) => `Based in ${city}`,
     commonGround: 'Your common ground',
     getToKnow: 'Get to know each other!',
+    talksAbout: 'Wants to talk about',
     alsoLikes: 'Also likes…',
     whatsapp: 'Message on WhatsApp',
     instagram: 'Open Instagram',
@@ -177,11 +180,11 @@ const en = {
       },
       {
         heading: 'What we collect',
-        body: 'Your profile (first name, email, WhatsApp, Instagram, city, language, age range, time in the city, origin and interests) and the reviews you send about your matches.',
+        body: 'Your profile (first name, email, WhatsApp, Instagram, city, language, age range, time in the city, origin, interests and what you want to talk about) and the reviews you send about your matches.',
       },
       {
         heading: 'Who sees it',
-        body: 'Your matches see your first name, age range, city, interests, WhatsApp and Instagram. They never see your email. The research team sees everything, for analysis only.',
+        body: 'Your matches see your first name, age range, city, interests, what you want to talk about, WhatsApp and Instagram. They never see your email. The research team sees everything, for analysis only.',
       },
       {
         heading: 'How long we keep it',

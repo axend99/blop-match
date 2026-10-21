@@ -50,7 +50,6 @@ export const INTERESTS: Interest[] = [
   { code: 'food_brunch', category: 'food', en: 'Coffee & Brunch', pt: 'Café e Brunch' },
   { code: 'food_wine', category: 'food', en: 'Wine', pt: 'Vinho' },
   { code: 'food_craftbeer', category: 'food', en: 'Craft beer', pt: 'Cerveja artesanal' },
-  { code: 'food_cooking', category: 'food', en: 'Cooking at home', pt: 'Cozinhar em casa' },
   // hobbies
   { code: 'hob_photo', category: 'hobbies', en: 'Photography', pt: 'Fotografia' },
   { code: 'hob_reading', category: 'hobbies', en: 'Reading', pt: 'Leitura' },
@@ -69,6 +68,8 @@ export const INTERESTS: Interest[] = [
   { code: 'hob_clubbing', category: 'hobbies', en: 'Clubbing', pt: 'Discoteca' },
   { code: 'hob_dinners', category: 'hobbies', en: 'Dinners out', pt: 'Jantares fora' },
   { code: 'hob_terraces', category: 'hobbies', en: 'Terraces & Cafés', pt: 'Esplanadas' },
+  { code: 'hob_cooking', category: 'hobbies', en: 'Cooking at home', pt: 'Cozinhar em casa' },
+  { code: 'hob_knitting', category: 'hobbies', en: 'Knitting', pt: 'Tricô' },
 ];
 
 const BY_CODE = new Map(INTERESTS.map((i) => [i.code, i]));
