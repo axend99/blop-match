@@ -8,6 +8,7 @@ import { isAdmin } from '@/lib/admin';
 import { loadAdminData } from '@/lib/adminData';
 import { interestLabel } from '@/lib/i18n';
 import pt from '@/lib/i18n/pt';
+import { REVIEW_GRACE_MS } from '@/lib/review';
 import { reviewDelayDays } from '@/lib/site';
 import {
   MIN_N,
@@ -47,6 +48,24 @@ const SEGMENT_VALUE: Record<string, Record<string, string>> = {
   lang: { en: 'Inglês', pt: 'Português' },
 };
 const WHY_NOT_LABEL: Record<string, string> = pt.review.whyNotOptions;
+const FLAG_CATEGORY: Record<string, string> = {
+  sexual: 'sexual',
+  obscene: 'obsceno',
+  harassment: 'assédio/insulto',
+  hate: 'ódio',
+  violence: 'violência',
+  self_harm: 'autolesão',
+  spam: 'spam/publicidade',
+  personal_data: 'dados de contacto',
+};
+const flagField = (field: string) =>
+  field === 'talk_about'
+    ? 'Quero falar sobre'
+    : field === 'review_comment'
+      ? 'Comentário da review'
+      : field.startsWith('other_text.')
+        ? `Outro (${CATEGORY_LABEL[field.slice(11)] ?? field.slice(11)})`
+        : field;
 const STATUS: Record<Hypothesis['status'], { label: string; className: string }> = {
   above: { label: 'Acima da meta', className: 'bg-lime text-midnight' },
   below: { label: 'Abaixo da meta', className: 'bg-pink/60 text-midnight' },
@@ -133,6 +152,7 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
     reviews,
     now: new Date(),
     delayDays: reviewDelayDays(),
+    graceMs: REVIEW_GRACE_MS,
   });
   const byNewest = (a?: string | null, b?: string | null) => (b ?? '').localeCompare(a ?? '');
   const openFlags = flags.filter((f) => !f.resolved_at).sort((a, b) => byNewest(a.created_at, b.created_at));
@@ -168,6 +188,7 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
                   {STATUS[h.status].label}
                 </span>
               </div>
+              {h.category && <p className="text-sm font-medium">{CATEGORY_LABEL[h.category]}</p>}
               {h.values.map((v) => (
                 <p key={v.label}>
                   <span className="text-2xl font-bold tabular-nums">{hValue(v)}</span>{' '}
@@ -249,7 +270,7 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
               <td className="px-2 py-1.5">
                 <details>
                   <summary className="cursor-pointer font-medium">{CATEGORY_LABEL[c.category]}</summary>
-                  <ul className="mt-2 space-y-0.5 text-xs">
+                  <ul className="mt-2 w-48 space-y-0.5 whitespace-normal text-xs sm:w-72">
                     {c.items
                       .filter((i) => i.satisfactionWith.n > 0)
                       .sort((a, b) => (b.difference ?? -Infinity) - (a.difference ?? -Infinity))
@@ -397,9 +418,9 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
               <li key={f.id} className="space-y-1 rounded-2xl border border-midnight/10 p-3">
                 <div className="flex flex-wrap items-center gap-2 text-xs">
                   <span className={`rounded-full px-2 py-0.5 font-semibold ${f.status === 'flagged' ? 'bg-pink/60' : 'bg-midnight/10'}`}>
-                    {f.status === 'flagged' ? (f.category ?? 'marcado') : 'por verificar'}
+                    {f.status === 'flagged' ? (FLAG_CATEGORY[f.category ?? ''] ?? f.category ?? 'marcado') : 'por verificar'}
                   </span>
-                  <span className="text-midnight/60">{f.field}</span>
+                  <span className="text-midnight/60">{flagField(f.field)}</span>
                   <span className="text-midnight/60">· {personById.get(f.participant_id)?.name ?? '—'}</span>
                   <span className="text-midnight/60">· {new Date(f.created_at).toLocaleString('pt-PT', { timeZone: 'Europe/Lisbon' })}</span>
                 </div>
@@ -418,7 +439,7 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
               <ul className="mt-2 space-y-1">
                 {doneFlags.map((f) => (
                   <li key={f.id} className="break-words text-midnight/60">
-                    {f.field} · {personById.get(f.participant_id)?.name ?? '—'}: {f.text}
+                    {flagField(f.field)} · {personById.get(f.participant_id)?.name ?? '—'}: {f.text}
                   </li>
                 ))}
               </ul>

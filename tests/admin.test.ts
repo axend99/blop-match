@@ -49,6 +49,7 @@ describe('toCsv', () => {
     const csv = toCsv(['t', 'n', 'arr'], [{ t: '=HYPERLINK("x")', n: -0.5, arr: ['@a', 'b'] }]);
     expect(csv.split('\r\n')[1]).toBe(`"'=HYPERLINK(""x"")",-0.5,'@a; b`);
     expect(toCsv(['t'], [{ t: '\tcmd' }]).split('\r\n')[1]).toBe("'\tcmd");
+    expect(toCsv(['t'], [{ t: ' =1+1' }]).split('\r\n')[1]).toBe("' =1+1");
   });
 
   it('writes empty cells for null and JSON for objects', () => {

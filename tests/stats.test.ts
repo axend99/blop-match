@@ -118,7 +118,18 @@ describe('hypotheses', () => {
     );
   });
 
-  it('H1 compares raw values at the boundary (14.99 pp is below)', () => {
+  it('H1 counts an exact +15 pp and +1.0 as above despite float noise (14/20 vs 11/20, 5.3 vs 4.3)', () => {
+    // 0.7 − 0.55 = 0.1499… and 5.3 − 4.3 = 0.9999… in floating point
+    expect(0.7 - 0.55 < 0.15).toBe(true);
+    const comp = [...many(14, () => row({ satisfaction_1_7: 5.3 })), ...many(6, () => row({ talked: false, satisfaction_1_7: 5.3 }))];
+    const ctrl = [
+      ...many(11, () => row({ type: 'control', satisfaction_1_7: 4.3 })),
+      ...many(9, () => row({ type: 'control', talked: false, satisfaction_1_7: 4.3 })),
+    ];
+    expect(status([...comp, ...ctrl], 'H1').status).toBe('above');
+  });
+
+  it('H1 at exactly 15 pp (85 vs 100) is above', () => {
     const h = hypotheses([
       ...many(100, () => row({ satisfaction_1_7: 7 })),
       ...many(85, () => row({ type: 'control', satisfaction_1_7: 1 })),
@@ -128,11 +139,12 @@ describe('hypotheses', () => {
     expect(h.status).toBe('above');
   });
 
-  it('H2: Spearman between shared count and satisfaction', () => {
-    const rows = many(15, () => row()).map((r, i) => ({ ...r, shared_count: i, satisfaction_1_7: 1 + (i % 7) }));
-    const h = status(rows, 'H2');
-    expect(h.status).not.toBe('insufficient');
-    expect(status(rows.slice(0, 14), 'H2').status).toBe('insufficient');
+  it('H2: Spearman between shared count and satisfaction, in its 3 states', () => {
+    const up = many(15, () => row()).map((r, i) => ({ ...r, shared_count: i, satisfaction_1_7: 1 + Math.floor(i / 3) }));
+    expect(status(up, 'H2').status).toBe('above');
+    const down = up.map((r, i) => ({ ...r, satisfaction_1_7: 7 - Math.floor(i / 3) }));
+    expect(status(down, 'H2').status).toBe('below');
+    expect(status(up.slice(0, 14), 'H2').status).toBe('insufficient');
   });
 
   it('H3 takes the largest difference among categories with n ≥ 15 on both sides', () => {
@@ -141,18 +153,27 @@ describe('hypotheses', () => {
       row({ satisfaction_1_7: 5, shared_by_category: { music: 0, sports: 1 }, shared_items: ['sports_surf'] }),
     );
     const h = status([...withMusic, ...withoutMusic], 'H3');
-    expect(h.values[0].label).toContain('music');
+    expect(h.category).toBe('music');
     expect(h.values[0].value).toBeCloseTo(1);
     expect(h.status).toBe('above');
     expect(status([...withMusic, ...withoutMusic.slice(0, 14)], 'H3').status).toBe('insufficient');
   });
 
-  it('H4: common ground difference', () => {
+  it('H4: common ground difference, in its 3 states (exact 1.0 counts)', () => {
+    const comp = many(15, () => row({ common_ground_1_7: 5.3 }));
+    expect(status([...comp, ...many(15, () => row({ type: 'control', common_ground_1_7: 4.3 }))], 'H4').status).toBe('above');
+    expect(status([...comp, ...many(15, () => row({ type: 'control', common_ground_1_7: 4.5 }))], 'H4').status).toBe('below');
+    expect(status([...comp, ...many(14, () => row({ type: 'control', common_ground_1_7: 4 }))], 'H4').status).toBe('insufficient');
+  });
+
+  it('H3 exposes the category separately (translated by the page)', () => {
     const rows = [
-      ...many(15, () => row({ common_ground_1_7: 6 })),
-      ...many(15, () => row({ type: 'control', common_ground_1_7: 5.5 })),
+      ...many(15, () => row({ satisfaction_1_7: 5.75 })),
+      ...many(15, () => row({ satisfaction_1_7: 5, shared_by_category: { sports: 1 }, shared_items: ['sports_surf'] })),
     ];
-    expect(status(rows, 'H4').status).toBe('below');
+    const h = status(rows, 'H3');
+    expect(h.category).toBe('music');
+    expect(h.status).toBe('above'); // exactly +0.75
   });
 });
 
@@ -175,6 +196,16 @@ describe('blocks', () => {
     });
     expect(o).toMatchObject({ participants: 2, activeParticipants: 1, compatibleMatches: 1, controlMatches: 1, reviews: 2 });
     expect(o.responseRate).toEqual({ value: 0.5, n: 2 });
+    // a match 2 days 23.5 h old counts as open with the 1 h grace
+    const grace = overview({
+      participants: [],
+      matches: [{ id: 'c', type: 'compatible', created_at: '2026-10-22T09:30:00Z' }],
+      reviews: [{ match_id: 'c' }],
+      now,
+      delayDays: 3,
+      graceMs: 3_600_000,
+    });
+    expect(grace.responseRate).toEqual({ value: 0.5, n: 2 });
   });
 
   it('funnel: shares per group, base = reviews', () => {

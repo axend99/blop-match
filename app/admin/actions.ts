@@ -13,11 +13,12 @@ export async function resolveFlag(formData: FormData): Promise<void> {
   if (!(await isAdmin())) return;
   const id = String(formData.get('id') ?? '');
   if (!UUID.test(id)) return;
-  await createServiceClient()
+  const { error } = await createServiceClient()
     .from('content_flags')
     .update({ resolved_at: new Date().toISOString() })
     .eq('id', id)
     .is('resolved_at', null);
+  if (error) throw error;
   revalidatePath('/admin');
 }
 

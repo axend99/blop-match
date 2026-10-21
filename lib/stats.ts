@@ -108,7 +108,12 @@ export type Hypothesis = {
   values: { label: string; value: number | null; kind: 'pp' | 'pct' | 'points' | 'rho' }[];
   ns: { label: string; n: number }[];
   status: Status;
+  category?: Category; // H3: the category with the largest difference
 };
+
+// Targets compare raw values with a tiny tolerance, so float noise (0.7 − 0.55 = 0.1499…)
+// never turns an exact hit into a miss.
+const meets = (v: number | null, target: number) => v !== null && v >= target - 1e-9;
 
 function status(enough: boolean, values: (number | null)[], meets: boolean): Status {
   if (!enough || values.some((v) => v === null)) return 'insufficient';
@@ -183,7 +188,7 @@ export function hypotheses(rows: ReviewRow[]): Hypothesis[] {
       id: 'H0',
       values: [{ label: 'Contacto', value: h0.value, kind: 'pct' }],
       ns: [{ label: 'reviews', n: h0.n }],
-      status: status(h0.n >= MIN_N, [h0.value], (h0.value ?? 0) >= 0.4),
+      status: status(h0.n >= MIN_N, [h0.value], meets(h0.value, 0.4)),
     },
     {
       id: 'H1',
@@ -200,25 +205,26 @@ export function hypotheses(rows: ReviewRow[]): Hypothesis[] {
       status: status(
         Math.min(talkedC.n, talkedK.n, satC.n, satK.n) >= MIN_N,
         [talkedDiff, satDiff],
-        (talkedDiff ?? 0) >= 0.15 && (satDiff ?? 0) >= 1,
+        meets(talkedDiff, 0.15) && meets(satDiff, 1),
       ),
     },
     {
       id: 'H2',
       values: [{ label: 'ρ de Spearman', value: rho, kind: 'rho' }],
       ns: [{ label: 'reviews com satisfação', n: pairs.length }],
-      status: status(pairs.length >= MIN_N, [rho], (rho ?? 0) >= 0.3),
+      status: status(pairs.length >= MIN_N, [rho], meets(rho, 0.3)),
     },
     {
       id: 'H3',
-      values: [{ label: best ? `Maior diferença (${best.category})` : 'Maior diferença', value: best?.difference ?? null, kind: 'points' }],
+      category: best?.category,
+      values: [{ label: 'Maior diferença (com − sem item)', value: best?.difference ?? null, kind: 'points' }],
       ns: best
         ? [
             { label: 'com item', n: best.satisfactionWith.n },
             { label: 'sem item', n: best.satisfactionWithout.n },
           ]
         : [],
-      status: status(Boolean(best), [best?.difference ?? null], (best?.difference ?? 0) >= 0.75),
+      status: status(Boolean(best), [best?.difference ?? null], meets(best?.difference ?? null, 0.75)),
     },
     {
       id: 'H4',
@@ -227,7 +233,7 @@ export function hypotheses(rows: ReviewRow[]): Hypothesis[] {
         { label: 'comp.', n: cgC.n },
         { label: 'ctrl.', n: cgK.n },
       ],
-      status: status(Math.min(cgC.n, cgK.n) >= MIN_N, [cgDiff], (cgDiff ?? 0) >= 1),
+      status: status(Math.min(cgC.n, cgK.n) >= MIN_N, [cgDiff], meets(cgDiff, 1)),
     },
   ];
 }
@@ -240,12 +246,13 @@ export type OverviewInput = {
   reviews: { match_id: string }[];
   now: Date;
   delayDays: number;
+  graceMs?: number; // same slack as reviewOpensAt()
 };
 
 // Response rate uses the same matches on both sides: reviews of matches whose review has
 // opened, over two possible reviews per such match.
-export function overview({ participants, matches, reviews, now, delayDays }: OverviewInput) {
-  const opensBefore = now.getTime() - delayDays * 24 * 60 * 60 * 1000;
+export function overview({ participants, matches, reviews, now, delayDays, graceMs = 0 }: OverviewInput) {
+  const opensBefore = now.getTime() - delayDays * 24 * 60 * 60 * 1000 + graceMs;
   const open = new Set(matches.filter((m) => new Date(m.created_at).getTime() <= opensBefore).map((m) => m.id));
   const answered = reviews.filter((r) => open.has(r.match_id)).length;
   return {

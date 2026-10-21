@@ -1,7 +1,7 @@
 // CSV for the /admin exports. Strings that a spreadsheet would read as a formula get a
 // leading quote (CSV injection); numbers and booleans are written as they are.
 
-const FORMULA_START = /^[=+\-@\t\r]/;
+const FORMULA_START = /^\s*[=+\-@]|^[\t\r]/;
 
 function cell(value: unknown): string {
   if (value === null || value === undefined) return '';
