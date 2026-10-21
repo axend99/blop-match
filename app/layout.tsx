@@ -41,7 +41,10 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             </div>
           </header>
           <main className="flex-1 py-6">{children}</main>
-          <footer className="py-6 text-center text-sm text-neutral-500">
+          <footer className="flex justify-center gap-4 py-6 text-sm text-neutral-500">
+            <Link href="/about" className="underline">
+              {t.footer.about}
+            </Link>
             <Link href="/privacy" className="underline">
               {t.footer.privacy}
             </Link>

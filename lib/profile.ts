@@ -18,6 +18,7 @@ export type Origin = (typeof ORIGINS)[number];
 export const MAX_NAME = 40;
 export const MAX_CITY = 80;
 export const MAX_OTHER = 100;
+export const MAX_TALK_ABOUT = 140;
 
 // Same rule as the participants.whatsapp check in the migration (E.164).
 const WHATSAPP_RE = /^\+[1-9][0-9]{6,14}$/;
@@ -34,6 +35,8 @@ export type ProfileInput = {
   origin: string;
   interests: string[];
   other_text: Record<string, string>;
+  talk_about: string;
+  talk_about_code: string;
   consent: boolean;
 };
 
@@ -48,6 +51,8 @@ export type Profile = {
   origin: Origin;
   interests: string[];
   other_text: Partial<Record<Category, string>>;
+  talk_about: string | null;
+  talk_about_code: string | null;
 };
 
 export type ErrorKey = 'required' | 'tooLong' | 'whatsapp' | 'instagram' | 'interests' | 'consent';
@@ -141,6 +146,20 @@ export function validateProfile(input: ProfileInput): ValidationResult {
     else other_text[key] = text;
   }
 
+  // "What I want to talk about": exactly one of the person's own interests, or one line of
+  // free text (newlines and repeated spaces collapse before the length check).
+  const code = str(input.talk_about_code);
+  let talk_about: string | null = null;
+  let talk_about_code: string | null = null;
+  if (code) {
+    if (interests.includes(code) && interestByCode(code)) talk_about_code = code;
+    else errors.talk_about = 'required';
+  } else {
+    talk_about = str(input.talk_about).replace(/\s+/g, ' ').trim();
+    if (!talk_about) errors.talk_about = 'required';
+    else if (talk_about.length > MAX_TALK_ABOUT) errors.talk_about = 'tooLong';
+  }
+
   if (input.consent !== true) errors.consent = 'consent';
 
   if (Object.keys(errors).length > 0) return { ok: false, errors };
@@ -158,6 +177,8 @@ export function validateProfile(input: ProfileInput): ValidationResult {
       origin: input.origin as Origin,
       interests,
       other_text,
+      talk_about,
+      talk_about_code,
     },
   };
 }

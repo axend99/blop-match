@@ -5,7 +5,7 @@ import { redirect } from 'next/navigation';
 import { getMyParticipant, getUser } from '@/lib/auth';
 import { createServiceClient } from '@/lib/supabase/service';
 
-// "Leave the study": deactivates the caller's own profile (no new matches).
+// "Leave the study" (at the end of /about): deactivates the caller's own profile (no new matches).
 export async function leaveStudy(): Promise<{ ok: boolean }> {
   if (!(await getUser())) redirect('/login');
   const me = await getMyParticipant();
@@ -18,5 +18,6 @@ export async function leaveStudy(): Promise<{ ok: boolean }> {
     }
   }
   revalidatePath('/me');
+  revalidatePath('/about');
   return { ok: true };
 }

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { CATEGORIES, INTERESTS, MAX_PER_CATEGORY, interestsByCategory } from '@/lib/interests';
+import { CATEGORIES, INTERESTS, MAX_PER_CATEGORY, interestByCode, interestsByCategory } from '@/lib/interests';
 import { interestLabel } from '@/lib/i18n';
 
 const PREFIX = { music: 'music_', sports: 'sports_', food: 'food_', hobbies: 'hob_' };
@@ -22,8 +22,14 @@ describe('interests catalog', () => {
   });
 
   it('has EN and PT labels', () => {
-    expect(INTERESTS).toHaveLength(57);
+    expect(INTERESTS).toHaveLength(58);
     expect(interestLabel('food_veggie', 'pt')).toBe('Vegetariana e Vegana');
     expect(interestLabel('food_veggie', 'en')).toBe('Vegetarian & Vegan');
+  });
+
+  it('has cooking in hobbies (moved from food) and knitting', () => {
+    expect(interestByCode('hob_cooking')?.category).toBe('hobbies');
+    expect(interestByCode('food_cooking')).toBeUndefined();
+    expect(interestLabel('hob_knitting', 'pt')).toBe('Tricô');
   });
 });

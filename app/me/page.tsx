@@ -2,7 +2,6 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import Blop from '@/components/Blop';
-import LeaveStudy from '@/components/LeaveStudy';
 import ReviewStatus from '@/components/ReviewStatus';
 import { getMyParticipant, getUser } from '@/lib/auth';
 import { avatarCategory } from '@/lib/avatar';
@@ -77,11 +76,6 @@ export default async function MePage() {
         </section>
       )}
 
-      {me.active && (
-        <div className="flex justify-center pt-4">
-          <LeaveStudy t={t.leave} errorText={t.common.genericError} />
-        </div>
-      )}
     </div>
   );
 }

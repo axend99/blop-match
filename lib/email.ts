@@ -30,6 +30,10 @@ function transport() {
     host: process.env.SMTP_HOST,
     port,
     secure: port === 465,
+    // Fail fast instead of hanging past the function time limit.
+    connectionTimeout: 10_000,
+    greetingTimeout: 10_000,
+    socketTimeout: 10_000,
     auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS },
   }));
 }

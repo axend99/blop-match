@@ -5,6 +5,7 @@ import Blop from '@/components/Blop';
 import ReviewStatus from '@/components/ReviewStatus';
 import { getMyParticipant, getUser } from '@/lib/auth';
 import { avatarCategory } from '@/lib/avatar';
+import { whatsappLink, whatsappMessage, type Topic } from '@/lib/icebreaker';
 import { getDict, interestLabel } from '@/lib/i18n';
 import type { Dict } from '@/lib/i18n/en';
 import { getLang } from '@/lib/i18n/server';
@@ -14,7 +15,8 @@ import thinking from '@/public/blop/thinking.webp';
 // The match "cheat sheet": who they are and what you have in common.
 export default async function MatchPage({ params }: { params: Promise<{ matchId: string }> }) {
   if (!(await getUser())) redirect('/login');
-  if (!(await getMyParticipant())) redirect('/join');
+  const me = await getMyParticipant();
+  if (!me) redirect('/join');
   const { matchId } = await params;
   const match = (await getMyMatches()).find((m) => m.match_id === matchId);
   if (!match) notFound();
@@ -26,7 +28,26 @@ export default async function MatchPage({ params }: { params: Promise<{ matchId:
   const shared = new Set(match.shared_items);
   const alsoLikes = match.other_interests.filter((code) => !shared.has(code));
   const age = match.other_age_range ? t.join.ageOptions[match.other_age_range as keyof Dict['join']['ageOptions']] : null;
-  const whatsapp = match.other_whatsapp?.replace(/\D/g, '');
+  // One of their interests (in the viewer's language) or their own words; used both on screen
+  // and to open WhatsApp with a ready-made message built around it.
+  const topic: Topic = match.other_talk_about_code
+    ? { code: match.other_talk_about_code, label: interestLabel(match.other_talk_about_code, lang) }
+    : match.other_talk_about
+      ? { text: match.other_talk_about }
+      : null;
+  const talksAbout = topic && ('code' in topic ? topic.label : `“${topic.text}”`);
+  const whatsapp =
+    match.other_whatsapp &&
+    whatsappLink(
+      match.other_whatsapp,
+      whatsappMessage({
+        t: t.match,
+        me: me.name,
+        them: match.other_name,
+        topic,
+        shared: match.shared_items.map((code) => ({ code, label: interestLabel(code, lang) })),
+      }),
+    );
 
   return (
     <article className="space-y-6 text-center">
@@ -45,6 +66,13 @@ export default async function MatchPage({ params }: { params: Promise<{ matchId:
         {match.other_city && !deleted && <p className="text-lg text-midnight/70">{t.match.basedIn(match.other_city)}</p>}
         {deleted && <p className="text-midnight/70">{t.match.left}</p>}
       </div>
+
+      {talksAbout && !deleted && (
+        <section className="space-y-1 rounded-3xl bg-lime/60 p-5">
+          <h2 className="text-sm font-semibold uppercase tracking-wide">{t.match.talksAbout}</h2>
+          <p className="text-lg">{talksAbout}</p>
+        </section>
+      )}
 
       {!deleted && (
         <section className="space-y-2 rounded-3xl bg-pink/40 p-5">
@@ -77,7 +105,7 @@ export default async function MatchPage({ params }: { params: Promise<{ matchId:
         <div className="space-y-3">
           {whatsapp && (
             <a
-              href={`https://wa.me/${whatsapp}`}
+              href={whatsapp}
               target="_blank"
               rel="noopener noreferrer"
               className="block rounded-full bg-[#25d366] px-6 py-4 text-lg font-semibold text-midnight"
@@ -98,7 +126,7 @@ export default async function MatchPage({ params }: { params: Promise<{ matchId:
         </div>
       )}
 
-      <ReviewStatus t={t.me} lang={lang} createdAt={match.created_at} reviewed={match.reviewed_by_me} />
+      <ReviewStatus t={t.me} lang={lang} createdAt={match.created_at} reviewed={match.reviewed_by_me} matchId={match.match_id} />
     </article>
   );
 }

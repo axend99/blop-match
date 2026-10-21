@@ -1,3 +1,5 @@
+import { REVIEW_GRACE_MS } from '@/lib/review';
+
 export function siteUrl(): string | undefined {
   return process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/+$/, '') || undefined;
 }
@@ -29,5 +31,10 @@ export function formatDate(date: Date, lang: string): string {
 }
 
 export function reviewOpensAt(matchCreatedAt: string): Date {
-  return new Date(new Date(matchCreatedAt).getTime() + reviewDelayDays() * 24 * 60 * 60 * 1000);
+  const opens = new Date(matchCreatedAt).getTime() + reviewDelayDays() * 24 * 60 * 60 * 1000 - REVIEW_GRACE_MS;
+  return new Date(Math.max(opens, new Date(matchCreatedAt).getTime()));
+}
+
+export function reminderDelayDays(): number {
+  return intEnv('REMINDER_DELAY_DAYS', 2);
 }

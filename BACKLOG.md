@@ -23,3 +23,14 @@
 - Avatar BLOP — feito na Fase 3 em SVG (`components/Blop.tsx`), um acessório por categoria.
   Plano B se o protótipo não agradar: uma imagem por categoria em `public/blop/<categoria>.webp`.
 - Ilustrações de estado em `public/blop/`: `looking.webp` (sem matches) e `thinking.webp` (0 em comum, 404).
+
+## Pendências (decididas a 21/10/2026)
+
+- **Imagens do BLOP:** por agora fica o BLOP em SVG; o dono pode mandar mais tarde as 5 imagens
+  (`base`, `music`, `sports`, `food`, `hobbies`, PNG transparente, quadrado, mesmo enquadramento).
+- **E-mails de review a quem saiu do estudo:** não recebem (pode avaliar pelo `/me`). Aprovado.
+- **Review de match com parceiro anonimizado:** permitido, com título genérico. O primeiro nome
+  só desaparece quando a pessoa pede para apagar os dados (anonimização); quem só sai do estudo
+  continua a aparecer pelo primeiro nome.
+- **"Leave the study"** saiu do `/me`: fica no fim da página "About the study" (`/about`),
+  pequeno e sem destaque; link "About the study" no rodapé.
