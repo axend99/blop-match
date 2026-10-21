@@ -125,6 +125,7 @@ const en = {
     // Pre-filled WhatsApp message (sender's language). Names are first names only.
     waHello: (them: string, me: string) => `Hi ${them}! ${me} here, BLOP Match put us together 👋`,
     waTopic: (label: string) => `I saw you'd like to talk about ${label}. Tell me more!`,
+    waTopicShared: (label: string) => `I saw you'd like to talk about ${label}. I'm into ${label} too! Tell me more!`,
     waTopicText: (text: string) => `I saw what you'd like to talk about: “${text}” Tell me more!`,
     waOnlyShared: (list: string) => `We have in common: ${list}. Fancy a chat?`,
     waGeneric: 'Fancy a chat?',

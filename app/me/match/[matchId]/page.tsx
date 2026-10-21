@@ -46,6 +46,7 @@ export default async function MatchPage({ params }: { params: Promise<{ matchId:
         them: match.other_name,
         topic,
         shared: match.shared_items.map((code) => ({ code, label: interestLabel(code, lang) })),
+        myInterests: me.interests,
       }),
     );
 
