@@ -6,11 +6,13 @@ import EmailLayout from './EmailLayout';
 export default function ReviewEmail({
   kind,
   name,
+  partnerName,
   lang,
   url,
 }: {
   kind: 'reviewOpen' | 'reviewReminder';
   name: string;
+  partnerName?: string;
   lang: Lang;
   url: string;
 }) {
@@ -18,7 +20,7 @@ export default function ReviewEmail({
   const copy = t[kind];
 
   return (
-    <EmailLayout lang={lang} preview={copy.subject} buttonLabel={copy.button} buttonUrl={url} footer={t.footer}>
+    <EmailLayout lang={lang} preview={copy.subject(partnerName)} buttonLabel={copy.button} buttonUrl={url} footer={t.footer}>
       <Text style={{ fontSize: 18, fontWeight: 600, margin: '0 0 12px' }}>{copy.greeting(name)}</Text>
       <Text style={{ fontSize: 16, lineHeight: '24px', margin: '0 0 12px' }}>{copy.body}</Text>
     </EmailLayout>

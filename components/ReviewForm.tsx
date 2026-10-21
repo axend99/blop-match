@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useTransition } from 'react';
+import { useRef, useState, useTransition } from 'react';
 import { submitReview } from '@/app/me/review/[matchId]/actions';
 import Scale from '@/components/Scale';
 import type { Dict } from '@/lib/i18n/en';
@@ -17,33 +17,49 @@ export default function ReviewForm({ matchId, t, genericError }: { matchId: stri
   const [errors, setErrors] = useState<ReviewErrors>({});
   const [failed, setFailed] = useState(false);
   const [pending, startTransition] = useTransition();
+  const formRef = useRef<HTMLFormElement>(null);
 
-  const set = (field: ReviewField) => (value: unknown) => setAnswers((a) => ({ ...a, [field]: value }));
+  // Answering a question clears its error; errors of questions that get hidden go too.
+  const set = (field: ReviewField) => (value: unknown) => {
+    setAnswers((a) => ({ ...a, [field]: value }));
+    setErrors((e) => (field === 'contacted' || field === 'talked' ? {} : { ...e, [field]: undefined }));
+  };
+
+  function showErrors(next: ReviewErrors) {
+    setErrors(next);
+    requestAnimationFrame(() => formRef.current?.querySelector<HTMLElement>('[aria-invalid="true"]')?.focus());
+  }
 
   function submit(event: React.FormEvent) {
     event.preventDefault();
     setFailed(false);
     const check = validateReview(answers);
     if (!check.ok) {
-      setErrors(check.errors);
+      showErrors(check.errors);
       return;
     }
     setErrors({});
     startTransition(async () => {
       const result = await submitReview(matchId, answers);
-      if (result?.errors) setErrors(result.errors);
+      if (result?.errors) showErrors(result.errors);
       if (result?.failed) setFailed(true);
     });
   }
 
   const question = (field: ReviewField, label: string, control: React.ReactNode) => (
-    <fieldset key={field} className="space-y-3 rounded-3xl bg-white p-5">
+    <fieldset
+      key={field}
+      tabIndex={-1}
+      aria-invalid={Boolean(errors[field])}
+      aria-describedby={errors[field] ? `err-${field}` : undefined}
+      className="space-y-3 rounded-3xl bg-white p-5 outline-none"
+    >
       <legend id={`q-${field}`} className="float-left mb-3 w-full text-lg font-semibold">
         {label}
       </legend>
       <div className="clear-both">{control}</div>
       {errors[field] && (
-        <p role="alert" className="text-sm text-red-700">
+        <p id={`err-${field}`} className="text-sm text-red-700">
           {t.errors[errors[field]!]}
         </p>
       )}
@@ -51,20 +67,23 @@ export default function ReviewForm({ matchId, t, genericError }: { matchId: stri
   );
 
   const choice = <V extends string | boolean>(field: ReviewField, options: [V, string][]) => (
-    <div role="radiogroup" aria-labelledby={`q-${field}`} className={`grid gap-2 ${options.length === 2 ? 'grid-cols-2' : ''}`}>
+    <div className={`grid gap-2 ${options.length === 2 ? 'grid-cols-2' : ''}`}>
       {options.map(([value, label]) => (
-        <button
+        <label
           key={String(value)}
-          type="button"
-          role="radio"
-          aria-checked={answers[field] === value}
-          onClick={() => set(field)(value)}
-          className={`rounded-2xl border px-4 py-3 text-lg font-medium ${
+          className={`cursor-pointer rounded-2xl border px-4 py-3 text-center text-lg font-medium has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-violet/50 ${
             answers[field] === value ? 'border-violet bg-violet text-white' : 'border-midnight/15 bg-white'
           }`}
         >
+          <input
+            type="radio"
+            name={field}
+            checked={answers[field] === value}
+            onChange={() => set(field)(value)}
+            className="sr-only"
+          />
           {label}
-        </button>
+        </label>
       ))}
     </div>
   );
@@ -76,17 +95,11 @@ export default function ReviewForm({ matchId, t, genericError }: { matchId: stri
     ]);
 
   const scale = (field: ReviewField) => (
-    <Scale
-      value={answers[field] as number | undefined}
-      onChange={set(field)}
-      labelledBy={`q-${field}`}
-      low={t.notAtAll}
-      high={t.veryMuch}
-    />
+    <Scale name={field} value={answers[field] as number | undefined} onChange={set(field)} low={t.notAtAll} high={t.veryMuch} />
   );
 
   return (
-    <form onSubmit={submit} noValidate className="space-y-4">
+    <form ref={formRef} onSubmit={submit} noValidate className="space-y-4">
       {question('contacted', t.contacted, yesNo('contacted'))}
       {question('interest_1_7', t.interest, scale('interest_1_7'))}
 
@@ -124,7 +137,7 @@ export default function ReviewForm({ matchId, t, genericError }: { matchId: stri
         />,
       )}
 
-      {(Object.keys(errors).length > 0 || failed) && (
+      {(Object.values(errors).some(Boolean) || failed) && (
         <p role="alert" className="rounded-2xl bg-pink/40 p-4 text-sm">
           {failed ? genericError : t.fixErrors}
         </p>

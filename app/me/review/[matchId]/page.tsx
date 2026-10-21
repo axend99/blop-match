@@ -18,7 +18,6 @@ export default async function ReviewPage({ params }: { params: Promise<{ matchId
 
   const lang = await getLang();
   const t = getDict(lang);
-  const name = match.other_deleted ? t.me.formerParticipant : match.other_name;
   const opensAt = reviewOpensAt(match.created_at);
   const { title, opensOn, ...formTexts } = t.review;
 
@@ -44,7 +43,7 @@ export default async function ReviewPage({ params }: { params: Promise<{ matchId
     <div className="space-y-6">
       {back}
       <div className="space-y-2">
-        <h1 className="text-3xl font-bold">{title(name)}</h1>
+        <h1 className="text-3xl font-bold">{match.other_deleted ? t.review.titleFormer : title(match.other_name)}</h1>
         <p className="text-midnight/70">{t.review.intro}</p>
       </div>
       <ReviewForm matchId={match.match_id} t={formTexts} genericError={t.common.genericError} />

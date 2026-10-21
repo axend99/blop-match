@@ -96,6 +96,9 @@ export type DueParticipant = { id: string; active: boolean; deleted: boolean; ha
 export type Recipient = { matchId: string; participantId: string };
 
 const DAY = 24 * 60 * 60 * 1000;
+// The Hobby cron fires at any minute within its hour, so cutoffs get an hour of slack
+// (otherwise a send could slip a whole day). reviewOpensAt() uses the same slack.
+export const REVIEW_GRACE_MS = 60 * 60 * 1000;
 
 // People who left, were anonymised or have no email get no review emails;
 // they can still rate from /me.
@@ -113,7 +116,7 @@ export function dueReviewRequests(args: {
   delayDays: number;
 }): Recipient[] {
   const requested = new Set(args.requests.map((r) => `${r.matchId}|${r.participantId}`));
-  const cutoff = args.now.getTime() - args.delayDays * DAY;
+  const cutoff = args.now.getTime() - args.delayDays * DAY + REVIEW_GRACE_MS;
   return args.matches
     .filter((m) => new Date(m.createdAt).getTime() <= cutoff)
     .flatMap((m) => [m.aId, m.bId].map((participantId) => ({ matchId: m.id, participantId })))
@@ -131,7 +134,7 @@ export function dueReminders(args: {
   now: Date;
   reminderDays: number;
 }): Recipient[] {
-  const cutoff = args.now.getTime() - args.reminderDays * DAY;
+  const cutoff = args.now.getTime() - args.reminderDays * DAY + REVIEW_GRACE_MS;
   return args.requests
     .filter(
       (r) =>

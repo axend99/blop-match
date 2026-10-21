@@ -126,6 +126,7 @@ const pt: Dict = {
   },
   review: {
     title: (name: string) => `Como correu com ${name}?`,
+    titleFormer: 'Como correu com o teu match?',
     intro: 'Demora 2 minutos. As tuas respostas são só para a equipa de investigação.',
     opensOn: (date: string) => `Podes avaliar esta interação a partir de ${date}.`,
     alreadyDone: 'Já avaliaste esta interação. Obrigado!',
@@ -208,13 +209,13 @@ const pt: Dict = {
       body: 'O Blop encontrou alguém que devias conhecer. Abre a tua página para veres quem é, o que têm em comum e como falar com essa pessoa.',
     },
     reviewOpen: {
-      subject: 'Como correu com o teu match?',
+      subject: (name?: string) => (name ? `Como correu com ${name}?` : 'Como correu com o teu match?'),
       greeting: (name: string) => `Olá ${name},`,
       body: 'Já passaram alguns dias desde o teu match. Conta-nos como correu: demora 2 minutos e ajuda muito a investigação.',
       button: 'Avaliar esta interação',
     },
     reviewReminder: {
-      subject: 'Lembrete: avalia o teu match',
+      subject: (name?: string) => (name ? `Lembrete: como correu com ${name}?` : 'Lembrete: avalia o teu match'),
       greeting: (name: string) => `Olá ${name},`,
       body: 'Ainda não avaliaste o teu match. A tua resposta conta mesmo que não tenham falado. Demora 2 minutos.',
       button: 'Avaliar esta interação',

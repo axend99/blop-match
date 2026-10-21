@@ -124,6 +124,7 @@ const en = {
   },
   review: {
     title: (name: string) => `How did it go with ${name}?`,
+    titleFormer: 'How did it go with your match?',
     intro: 'It takes 2 minutes. Your answers are only for the research team.',
     opensOn: (date: string) => `You can rate this interaction from ${date}.`,
     alreadyDone: 'You already rated this interaction. Thank you!',
@@ -206,13 +207,13 @@ const en = {
       body: 'Blop found someone you should meet. Open your page to see who it is, what you have in common and how to reach them.',
     },
     reviewOpen: {
-      subject: 'How did it go with your match?',
+      subject: (name?: string) => (name ? `How did it go with ${name}?` : 'How did it go with your match?'),
       greeting: (name: string) => `Hi ${name},`,
       body: 'A few days have passed since your match. Tell us how it went: it takes 2 minutes and helps the research a lot.',
       button: 'Rate this interaction',
     },
     reviewReminder: {
-      subject: 'Reminder: rate your match',
+      subject: (name?: string) => (name ? `Reminder: how did it go with ${name}?` : 'Reminder: rate your match'),
       greeting: (name: string) => `Hi ${name},`,
       body: "You haven't rated your match yet. Your answer counts even if you didn't talk. It takes 2 minutes.",
       button: 'Rate this interaction',

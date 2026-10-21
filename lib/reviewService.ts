@@ -28,6 +28,7 @@ async function loadState() {
     byId,
     participants,
     matches: matches.data!.map((m) => ({ id: m.id, aId: m.a_id, bId: m.b_id, createdAt: m.created_at })),
+    matchById: new Map(matches.data!.map((m) => [m.id, m])),
     requests: requests.data!.map((r) => ({
       matchId: r.match_id,
       participantId: r.participant_id,
@@ -47,13 +48,16 @@ async function send(state: State, kind: Extract<EmailKind, 'review_open' | 'revi
   if (!person?.email) return false;
   const lang = isLang(person.lang) ? person.lang : 'en';
   const copyKey = kind === 'review_open' ? 'reviewOpen' : 'reviewReminder';
+  const match = state.matchById.get(to.matchId);
+  const partner = state.byId.get(match?.a_id === person.id ? match?.b_id : match?.a_id);
+  const partnerName = partner && !partner.deleted_at ? partner.name : undefined;
   const sent = await sendEmail({
     participantId: person.id,
     kind,
     matchId: to.matchId,
     to: person.email,
-    subject: getDict(lang).emails[copyKey].subject,
-    react: createElement(ReviewEmail, { kind: copyKey, name: person.name, lang, url: `${siteUrl()}/me/review/${to.matchId}` }),
+    subject: getDict(lang).emails[copyKey].subject(partnerName),
+    react: createElement(ReviewEmail, { kind: copyKey, name: person.name, partnerName, lang, url: `${siteUrl()}/me/review/${to.matchId}` }),
   });
   if (sent) return true;
   const { data } = await state.supabase
