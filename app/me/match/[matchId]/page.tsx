@@ -5,7 +5,7 @@ import Blop from '@/components/Blop';
 import ReviewStatus from '@/components/ReviewStatus';
 import { getMyParticipant, getUser } from '@/lib/auth';
 import { avatarCategory } from '@/lib/avatar';
-import { whatsappLink, whatsappMessage } from '@/lib/icebreaker';
+import { whatsappLink, whatsappMessage, type Topic } from '@/lib/icebreaker';
 import { getDict, interestLabel } from '@/lib/i18n';
 import type { Dict } from '@/lib/i18n/en';
 import { getLang } from '@/lib/i18n/server';
@@ -28,11 +28,14 @@ export default async function MatchPage({ params }: { params: Promise<{ matchId:
   const shared = new Set(match.shared_items);
   const alsoLikes = match.other_interests.filter((code) => !shared.has(code));
   const age = match.other_age_range ? t.join.ageOptions[match.other_age_range as keyof Dict['join']['ageOptions']] : null;
-  // One of their interests (in the viewer's language) or their own words.
-  const talksAbout = match.other_talk_about_code
-    ? interestLabel(match.other_talk_about_code, lang)
-    : match.other_talk_about && `“${match.other_talk_about}”`;
-  // WhatsApp opens with a ready-made message built around what they want to talk about.
+  // One of their interests (in the viewer's language) or their own words; used both on screen
+  // and to open WhatsApp with a ready-made message built around it.
+  const topic: Topic = match.other_talk_about_code
+    ? { code: match.other_talk_about_code, label: interestLabel(match.other_talk_about_code, lang) }
+    : match.other_talk_about
+      ? { text: match.other_talk_about }
+      : null;
+  const talksAbout = topic && ('code' in topic ? topic.label : `“${topic.text}”`);
   const whatsapp =
     match.other_whatsapp &&
     whatsappLink(
@@ -41,12 +44,8 @@ export default async function MatchPage({ params }: { params: Promise<{ matchId:
         t: t.match,
         me: me.name,
         them: match.other_name,
-        topic: match.other_talk_about_code
-          ? { label: interestLabel(match.other_talk_about_code, lang) }
-          : match.other_talk_about
-            ? { text: match.other_talk_about }
-            : null,
-        shared: match.shared_items.map((code) => interestLabel(code, lang)),
+        topic,
+        shared: match.shared_items.map((code) => ({ code, label: interestLabel(code, lang) })),
       }),
     );
 
