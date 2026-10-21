@@ -186,7 +186,7 @@ for (const p of PEOPLE) {
       // Review not open yet.
       await page.goto(href.replace('/me/match/', '/me/review/'));
       await checkPage(page, who, others);
-      if ((await page.locator('form button[type="submit"]').count()) > 0) finding(who, 'review aberta antes do prazo', href);
+      if ((await page.locator('input[name="contacted"]').count()) > 0) finding(who, 'review aberta antes do prazo', href);
     }
 
     // Curious: someone else's match, the admin, the info pages, language switch, back links.
@@ -200,10 +200,10 @@ for (const p of PEOPLE) {
     await page.goto('/about');
     await checkPage(page, who);
     await page.getByRole('link', { name: p.lang === 'pt' ? 'Os meus matches' : 'My matches' }).first().click();
-    if (!/\/me$/.test(page.url())) finding(who, 'voltar do About não foi para /me', page.url());
+    await page.waitForURL(/\/me$/, { timeout: 10_000 }).catch(() => finding(who, 'voltar do About não foi para /me', page.url()));
     await page.goto('/privacy');
     await checkPage(page, who);
-    await page.getByRole('button', { name: p.lang === 'pt' ? 'en' : 'pt', exact: true }).click();
+    await page.locator('[role="group"] button[aria-pressed="false"]').first().click(); // switch language
     await page.waitForTimeout(1500);
     await checkPage(page, who);
     await page.goBack();
@@ -237,12 +237,13 @@ for (const p of PEOPLE) {
     for (const href of links) {
       const reviewUrl = href.replace('/me/match/', '/me/review/');
       await page.goto(reviewUrl);
-      if ((await page.locator('form button[type="submit"]').count()) === 0) continue; // match with a non-test account
+      if ((await page.locator('input[name="contacted"]').count()) === 0) continue; // not open (match with a non-test account)
+      const send = page.getByRole('button', { name: p.lang === 'pt' ? 'Enviar' : 'Send', exact: true });
       k++;
       const pick = (name: string, n: number) => page.locator(`input[name="${name}"]`).nth(n).check({ force: true });
       // Curious: send without answering.
       if (k === 1) {
-        await page.locator('form button[type="submit"]').click();
+        await send.click();
         if ((await page.getByRole('alert').count()) === 0) finding(who, 'review vazia sem aviso', reviewUrl);
       }
       const path = (p.i + k) % 3; // 0: talked, 1: contacted only, 2: no contact
@@ -260,17 +261,24 @@ for (const p of PEOPLE) {
       }
       if ((await page.locator('input[name="ig_follow"]').count()) > 0) await pick('ig_follow', (p.i + k) % 4);
       await page.locator('textarea').fill(k % 2 ? `E2E review ${p.name} 👍` : '');
-      await page.locator('form button[type="submit"]').click();
+      await send.click();
       await expect(page).toHaveURL(/\/me$/, { timeout: 20_000 });
       // Curious: try to answer again.
       await page.goto(reviewUrl);
-      if ((await page.locator('form button[type="submit"]').count()) > 0) finding(who, 'review pode ser repetida', reviewUrl);
+      if ((await page.locator('input[name="contacted"]').count()) > 0) finding(who, 'review pode ser repetida', reviewUrl);
     }
     await checkPage(page, who);
   });
 }
 
-test('verificar reviews e desativar as contas de teste', async () => {
+// Always runs, even after a failure: the test accounts must never be matched with people who
+// sign up later.
+test.afterAll(async () => {
+  const { error } = await db.from('participants').update({ active: false }).in('email', E2E_EMAILS);
+  if (error) throw error;
+});
+
+test('verificar reviews gravadas', async () => {
   const { data: people } = await db.from('participants').select('id, instagram').in('email', E2E_EMAILS);
   const ids = (people ?? []).map((x) => x.id);
   const withIg = new Set((people ?? []).filter((x) => x.instagram).map((x) => x.id));
@@ -283,6 +291,4 @@ test('verificar reviews e desativar as contas de teste', async () => {
     if (both !== (r.ig_follow !== null)) finding('base de dados', 'ig_follow incoerente com quem tem Instagram', r);
   }
   finding('base de dados', 'reviews gravadas', `${reviews?.length ?? 0} reviews · ${matches?.length ?? 0} matches entre contas de teste`);
-  const { error } = await db.from('participants').update({ active: false }).in('email', E2E_EMAILS);
-  if (error) throw error;
 });

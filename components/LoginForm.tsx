@@ -63,8 +63,12 @@ export default function LoginForm({ t, lang }: { t: Dict['login']; lang: Lang })
         client_id: GOOGLE_CLIENT_ID,
         nonce: await sha256Hex(nonce),
         callback: async ({ credential }: { credential: string }) => {
-          const { error } = await createClient().auth.signInWithIdToken({ provider: 'google', token: credential, nonce });
+          setGoogleBusy(true);
+          const { error } = await createClient()
+            .auth.signInWithIdToken({ provider: 'google', token: credential, nonce })
+            .catch((err: unknown) => ({ error: err }));
           if (error) {
+            setGoogleBusy(false);
             setStatus('googleError');
             setup();
           } else {

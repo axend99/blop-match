@@ -10,7 +10,7 @@ const flag = (code: string) => String.fromCodePoint(...[...code].map((c) => 0x1f
 
 // Built on the server and passed to the form, so names and order never differ at hydration.
 export function countryList(lang: string): Country[] {
-  const names = new Intl.DisplayNames([lang], { type: 'region' });
+  const names = new Intl.DisplayNames([lang === 'pt' ? 'pt-PT' : lang], { type: 'region' });
   const all = getCountries().map((code) => {
     const dial = getCountryCallingCode(code);
     const name = names.of(code) ?? code;
