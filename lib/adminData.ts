@@ -1,0 +1,111 @@
+import 'server-only';
+import type { ReviewRow } from '@/lib/stats';
+import { createServiceClient } from '@/lib/supabase/service';
+
+// Loads whole tables for /admin, 1000 rows per page in a stable order (PostgREST limit).
+// Any query error throws: the panel must never show zeros for missing data.
+async function all<T>(table: string, columns: string): Promise<T[]> {
+  const supabase = createServiceClient();
+  const rows: T[] = [];
+  for (let from = 0; ; from += 1000) {
+    const { data, error } = await supabase.from(table).select(columns).order('id').range(from, from + 999);
+    if (error) throw error;
+    rows.push(...((data ?? []) as T[]));
+    if (!data || data.length < 1000) return rows;
+  }
+}
+
+export type AdminParticipant = {
+  id: string;
+  name: string;
+  email: string | null;
+  whatsapp: string | null;
+  instagram: string | null;
+  city: string;
+  lang: string;
+  age_range: string;
+  time_in_city: string;
+  origin: string;
+  interests: string[];
+  other_text: Record<string, string>;
+  talk_about: string | null;
+  talk_about_code: string | null;
+  active: boolean;
+  deleted_at: string | null;
+  created_at: string;
+};
+
+export type AdminMatch = {
+  id: string;
+  a_id: string;
+  b_id: string;
+  type: 'compatible' | 'control';
+  score: number;
+  shared_items: string[];
+  shared_count: number;
+  shared_by_category: Record<string, number>;
+  created_at: string;
+};
+
+export type AdminReview = Omit<ReviewRow, 'type' | 'shared_count' | 'shared_by_category' | 'shared_items' | 'age_range' | 'time_in_city' | 'origin' | 'city' | 'lang'> & {
+  id: string;
+  reviewer_id: string;
+  who_first: string | null;
+  comment: string | null;
+  created_at: string;
+};
+
+export type AdminFlag = {
+  id: string;
+  participant_id: string;
+  match_id: string | null;
+  field: string;
+  text: string;
+  status: 'flagged' | 'error';
+  category: string | null;
+  reason: string | null;
+  created_at: string;
+  resolved_at: string | null;
+};
+
+export async function loadAdminData() {
+  const [participants, matches, reviews, flags] = await Promise.all([
+    all<AdminParticipant>(
+      'participants',
+      'id, name, email, whatsapp, instagram, city, lang, age_range, time_in_city, origin, interests, other_text, talk_about, talk_about_code, active, deleted_at, created_at',
+    ),
+    all<AdminMatch>('matches', 'id, a_id, b_id, type, score, shared_items, shared_count, shared_by_category, created_at'),
+    all<AdminReview>(
+      'reviews',
+      'id, match_id, reviewer_id, contacted, interest_1_7, who_first, comfort_1_7, why_not, talked, flow_1_7, common_ground_1_7, satisfaction_1_7, meet_again_1_7, met, comment, next_step, created_at',
+    ),
+    all<AdminFlag>('content_flags', 'id, participant_id, match_id, field, text, status, category, reason, created_at, resolved_at'),
+  ]);
+
+  const personById = new Map(participants.map((p) => [p.id, p]));
+  const matchById = new Map(matches.map((m) => [m.id, m]));
+
+  // Each review joined with its match and the profile of the person who answered.
+  const rows: (ReviewRow & { review: AdminReview })[] = reviews.flatMap((r) => {
+    const m = matchById.get(r.match_id);
+    const p = personById.get(r.reviewer_id);
+    if (!m || !p) return [];
+    return [
+      {
+        ...r,
+        review: r,
+        type: m.type,
+        shared_count: m.shared_count,
+        shared_by_category: m.shared_by_category,
+        shared_items: m.shared_items,
+        age_range: p.age_range,
+        time_in_city: p.time_in_city,
+        origin: p.origin,
+        city: p.city,
+        lang: p.lang,
+      },
+    ];
+  });
+
+  return { participants, matches, reviews, flags, rows, personById, matchById };
+}
