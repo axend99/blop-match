@@ -14,7 +14,9 @@ import {
   MIN_N,
   SEGMENTS,
   WHY_NOT,
+  CONTACT_TRACKING_SINCE,
   byCategory,
+  contactClicks,
   byGroup,
   doseResponse,
   funnel,
@@ -108,7 +110,7 @@ function MeanCell({ s }: { s: Stat }) {
   );
 }
 
-function Section({ n, title, children }: { n: number; title: string; children: React.ReactNode }) {
+function Section({ n, title, children }: { n: number | string; title: string; children: React.ReactNode }) {
   return (
     <section className="space-y-3 rounded-3xl bg-white p-4 sm:p-6">
       <h2 className="text-lg font-semibold">
@@ -144,7 +146,7 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
   const { grupo } = await searchParams;
   const segmentGroup: Group | 'all' = grupo === 'compativel' ? 'compatible' : grupo === 'controlo' ? 'control' : 'all';
 
-  const { participants, matches, reviews, flags, rows, personById } = await loadAdminData();
+  const { participants, matches, reviews, flags, clicks, rows, personById } = await loadAdminData();
   const live = participants.filter((p) => !p.deleted_at);
   const o = overview({
     participants: participants.map((p) => ({ active: p.active, deleted: Boolean(p.deleted_at) })),
@@ -246,6 +248,59 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
                 ))}
               </Table>
               <p className="text-xs text-midnight/60">Base: reviews de cada grupo (100%).</p>
+            </>
+          );
+        })()}
+      </Section>
+
+      <Section n="3b" title="Cliques nos botões de contacto (tentativas de contacto)">
+        {(() => {
+          const cc = contactClicks({
+            matches,
+            deleted: new Set(participants.filter((p) => p.deleted_at).map((p) => p.id)),
+            clicks,
+            reviews: rows.map((r) => ({ ...r.review, match_id: r.match_id })),
+          });
+          const cols = [cc.all, cc.compatible, cc.control];
+          const line = (label: string, pick: (x: (typeof cols)[number]) => Stat) => (
+            <tr key={label}>
+              <td className="px-2 py-1.5">{label}</td>
+              {cols.map((c, i) => (
+                <PctCell key={i} s={pick(c)} />
+              ))}
+            </tr>
+          );
+          return (
+            <>
+              <h3 className="text-sm font-semibold">Tentativas (todos os lados de matches, com ou sem review)</h3>
+              <Table head={['', 'Todos', 'Compatível', 'Controlo']}>
+                {line('Tocou em algum botão', (c) => c.clicked)}
+                {line('Tocou no WhatsApp', (c) => c.whatsapp)}
+                {line('Tocou no Instagram', (c) => c.instagram)}
+              </Table>
+              <h3 className="pt-2 text-sm font-semibold">Toque × resposta da review (lados com review; toques antes da review)</h3>
+              <Table head={['', 'Todos', 'Compatível', 'Controlo']}>
+                {line('Tocou e houve contacto', (c) => c.clickedContacted)}
+                {line('Tocou mas não houve contacto (barreira)', (c) => c.clickedNotContacted)}
+                {line('Não tocou, contactou primeiro', (c) => c.notClickedContactedMe)}
+                {line('Não tocou, a outra pessoa contactou', (c) => c.notClickedContactedThem)}
+                {line('Nem tocou nem houve contacto', (c) => c.neither)}
+                {line('De quem tocou: teve conversa', (c) => c.clickedThenTalked)}
+              </Table>
+              <p className="text-sm">
+                Motivos na barreira (todos):{' '}
+                {cc.all.barrierReasons
+                  .filter((b) => b.share.value)
+                  .map((b) => `${WHY_NOT_LABEL[b.reason] ?? b.reason} ${pct(b.share.value)}`)
+                  .join(' · ') || '—'}{' '}
+                <N n={cc.all.barrierReasons[0]?.share.n ?? 0} />
+              </p>
+              <p className="text-xs text-midnight/60">
+                Unidade: lado do match (uma pessoa num match). Só matches criados depois de{' '}
+                {new Date(CONTACT_TRACKING_SINCE).toLocaleString('pt-PT', { timeZone: 'Europe/Lisbon' })} e sem pessoas
+                anonimizadas. Conta toques no botão (é um mínimo: não sabemos se a mensagem foi enviada, e sem JavaScript o
+                toque não fica registado).
+              </p>
             </>
           );
         })()}

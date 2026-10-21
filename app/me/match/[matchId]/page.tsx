@@ -2,6 +2,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
 import Blop from '@/components/Blop';
+import ContactButtons from '@/components/ContactButtons';
 import ReviewStatus from '@/components/ReviewStatus';
 import { getMyParticipant, getUser } from '@/lib/auth';
 import { avatarCategory } from '@/lib/avatar';
@@ -103,28 +104,12 @@ export default async function MatchPage({ params }: { params: Promise<{ matchId:
       )}
 
       {!deleted && (
-        <div className="space-y-3">
-          {whatsapp && (
-            <a
-              href={whatsapp}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="block rounded-full bg-[#25d366] px-6 py-4 text-lg font-semibold text-midnight"
-            >
-              {t.match.whatsapp}
-            </a>
-          )}
-          {match.other_instagram && (
-            <a
-              href={`https://instagram.com/${match.other_instagram.replace(/^@/, '')}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="block rounded-full bg-violet px-6 py-4 text-lg font-semibold text-white"
-            >
-              {t.match.instagram}
-            </a>
-          )}
-        </div>
+        <ContactButtons
+          matchId={match.match_id}
+          whatsapp={whatsapp || null}
+          instagram={match.other_instagram ? `https://instagram.com/${match.other_instagram.replace(/^@/, '')}` : null}
+          labels={{ whatsapp: t.match.whatsapp, instagram: t.match.instagram }}
+        />
       )}
 
       <ReviewStatus t={t.me} lang={lang} createdAt={match.created_at} reviewed={match.reviewed_by_me} matchId={match.match_id} />

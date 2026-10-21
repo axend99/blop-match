@@ -373,3 +373,69 @@ export function otherAnswers(participants: { other_text: Partial<Record<string, 
       .map(([category, text]) => ({ category, text })),
   );
 }
+
+// --- Contact button taps (attempts to start a conversation) ---
+
+// Taps are recorded from this moment (deploy of the tracking); older matches have no data.
+export const CONTACT_TRACKING_SINCE = '2026-10-21T08:00:00Z';
+
+export type ContactClickInput = {
+  matches: { id: string; type: Group; a_id: string; b_id: string; created_at: string }[];
+  deleted: Set<string>; // anonymised participant ids
+  clicks: { match_id: string; participant_id: string; channel: string; created_at: string }[];
+  reviews: {
+    match_id: string;
+    reviewer_id: string;
+    created_at: string;
+    contacted: boolean;
+    talked: boolean | null;
+    who_first: string | null;
+    why_not: string | null;
+  }[];
+  since?: string;
+};
+
+// Unit: one side of a match (a person in a match). Sides of matches created before the
+// tracking started, or with an anonymised person (no buttons shown), are left out. In the
+// comparison with the review, only taps made before the review count.
+export function contactClicks({ matches, deleted, clicks, reviews, since = CONTACT_TRACKING_SINCE }: ContactClickInput) {
+  const sinceMs = new Date(since).getTime();
+  const sides = matches
+    .filter((m) => new Date(m.created_at).getTime() >= sinceMs && !deleted.has(m.a_id) && !deleted.has(m.b_id))
+    .flatMap((m) => [m.a_id, m.b_id].map((person) => ({ match: m.id, person, type: m.type })));
+
+  const tapsOf = (match: string, person: string) => clicks.filter((c) => c.match_id === match && c.participant_id === person);
+  const reviewOf = new Map(reviews.map((r) => [`${r.match_id}|${r.reviewer_id}`, r]));
+
+  const summarize = (group: Group | 'all') => {
+    const own = sides.filter((s) => group === 'all' || s.type === group);
+    const enriched = own.map((s) => {
+      const taps = tapsOf(s.match, s.person);
+      const review = reviewOf.get(`${s.match}|${s.person}`);
+      const tappedBefore = review ? taps.some((t) => new Date(t.created_at) <= new Date(review.created_at)) : false;
+      return { taps, review, tappedBefore };
+    });
+    const reviewed = enriched.filter((e) => e.review);
+    const tappedAndReviewed = reviewed.filter((e) => e.tappedBefore);
+    const tappedNotContacted = reviewed.filter((e) => e.tappedBefore && !e.review!.contacted);
+    return {
+      sides: own.length,
+      clicked: rate(enriched, (e) => e.taps.length > 0),
+      whatsapp: rate(enriched, (e) => e.taps.some((t) => t.channel === 'whatsapp')),
+      instagram: rate(enriched, (e) => e.taps.some((t) => t.channel === 'instagram')),
+      reviewed: reviewed.length,
+      clickedContacted: rate(reviewed, (e) => e.tappedBefore && e.review!.contacted),
+      clickedNotContacted: rate(reviewed, (e) => e.tappedBefore && !e.review!.contacted),
+      notClickedContactedMe: rate(reviewed, (e) => !e.tappedBefore && e.review!.contacted && e.review!.who_first === 'me'),
+      notClickedContactedThem: rate(reviewed, (e) => !e.tappedBefore && e.review!.contacted && e.review!.who_first !== 'me'),
+      neither: rate(reviewed, (e) => !e.tappedBefore && !e.review!.contacted),
+      barrierReasons: WHY_NOT.map((reason) => ({
+        reason,
+        share: rate(tappedNotContacted, (e) => e.review!.why_not === reason),
+      })),
+      clickedThenTalked: rate(tappedAndReviewed, (e) => e.review!.talked === true),
+    };
+  };
+
+  return { all: summarize('all'), compatible: summarize('compatible'), control: summarize('control') };
+}

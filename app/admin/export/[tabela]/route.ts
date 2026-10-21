@@ -12,7 +12,8 @@ export async function GET(_request: Request, { params }: { params: Promise<{ tab
   const { tabela } = await params;
   if (!(await isAdmin()) || !TABLES.includes(tabela as Table)) return new NextResponse('Not found', { status: 404 });
 
-  const { participants, matches, rows, personById } = await loadAdminData();
+  const { participants, matches, rows, personById, tapped } = await loadAdminData();
+  const has = (match: string, person: string, channel: string) => (tapped.get(`${match}|${person}`) ?? []).includes(channel);
   let csv: string;
   if (tabela === 'participantes') {
     csv = toCsv(
@@ -21,8 +22,14 @@ export async function GET(_request: Request, { params }: { params: Promise<{ tab
     );
   } else if (tabela === 'matches') {
     csv = toCsv(
-      ['id', 'a_id', 'a_name', 'b_id', 'b_name', 'type', 'score', 'shared_count', 'shared_items', 'shared_by_category', 'created_at'],
-      matches.map((m) => ({ ...m, a_name: personById.get(m.a_id)?.name, b_name: personById.get(m.b_id)?.name })),
+      ['id', 'a_id', 'a_name', 'a_clicked', 'b_id', 'b_name', 'b_clicked', 'type', 'score', 'shared_count', 'shared_items', 'shared_by_category', 'created_at'],
+      matches.map((m) => ({
+        ...m,
+        a_name: personById.get(m.a_id)?.name,
+        b_name: personById.get(m.b_id)?.name,
+        a_clicked: tapped.get(`${m.id}|${m.a_id}`) ?? [],
+        b_clicked: tapped.get(`${m.id}|${m.b_id}`) ?? [],
+      })),
     );
   } else {
     // Each review with its match and the profile of the person who answered.
@@ -33,8 +40,15 @@ export async function GET(_request: Request, { params }: { params: Promise<{ tab
         'age_range', 'time_in_city', 'origin', 'city', 'lang',
         'contacted', 'interest_1_7', 'who_first', 'comfort_1_7', 'why_not', 'talked', 'flow_1_7',
         'common_ground_1_7', 'satisfaction_1_7', 'meet_again_1_7', 'met', 'next_step', 'comment',
+        'clicked_whatsapp', 'clicked_instagram',
       ],
-      rows.map((r) => ({ ...r, ...r.review, reviewer_name: personById.get(r.review.reviewer_id)?.name })),
+      rows.map((r) => ({
+        ...r,
+        ...r.review,
+        reviewer_name: personById.get(r.review.reviewer_id)?.name,
+        clicked_whatsapp: has(r.match_id, r.review.reviewer_id, 'whatsapp'),
+        clicked_instagram: has(r.match_id, r.review.reviewer_id, 'instagram'),
+      })),
     );
   }
 

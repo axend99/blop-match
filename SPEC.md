@@ -200,6 +200,7 @@ A lógica de cálculo fica em `lib/stats.ts` (funções puras com testes). Cada 
 8. **Motivos de não contacto** (`why_not`) por grupo; **itens mais escolhidos**; respostas "outro".
 9. **Tabelas brutas** com exportação CSV: participantes, matches e reviews (cada review junta os dados do match e do perfil de quem respondeu).
 10. **Alertas de conteúdo** (`content_flags`): textos livres marcados pela verificação automática (ou que ficaram por verificar), com campo, categoria, razão e o texto; botão "marcar como visto" (`resolved_at`). Mostrar o texto e a razão só como texto.
+11. **Cliques nos botões de contacto** (`contact_clicks`, primeiro toque por match, pessoa e canal): % de lados de match que tocaram em WhatsApp/Instagram (todos, por grupo, por canal) e o cruzamento com a review (tocou e contactou; tocou e não contactou = barreira, com motivos; não tocou e contactou, separado por quem tomou a iniciativa; nenhum dos dois; de quem tocou, quantos conversaram). Unidade: lado do match; só matches criados depois do início do rastreio e sem pessoas anonimizadas; só toques anteriores à review entram no cruzamento.
 
 ---
 
@@ -220,7 +221,7 @@ A lógica de cálculo fica em `lib/stats.ts` (funções puras com testes). Cada 
 - Admin, cron e matching usam a service role, só no servidor.
 
 ### Privacidade (`/privacy`, EN/PT)
-Estudo académico do projeto BLOP (MIET 2026). Dados recolhidos: os do perfil e as reviews. Quem os vê: os matches veem o primeiro nome, faixa etária, cidade, interesses, aquilo de que a pessoa quer falar, WhatsApp e Instagram (nunca o e-mail); a equipa vê tudo para análise. Os dados são guardados até ao fim do estudo e depois anonimizados ou apagados. "Leave the study" desativa o perfil; para eliminar os dados, basta escrever para founders@meetblop.com (anonimização: `name='[deleted]'`, `email`, `whatsapp`, `instagram`, `talk_about` e `talk_about_code` a null, `other_text '{}'`, `active=false`, `deleted_at` preenchido, apagam-se as linhas dessa pessoa em `content_flags`; depois apaga-se o utilizador de auth). Os textos livres (`talk_about`, `other_text`, comentário da review) são verificados por IA (Anthropic, `lib/moderationService.ts`) só para gerar alertas no `/admin`; nada é bloqueado. Idade mínima: 18 anos.
+Estudo académico do projeto BLOP (MIET 2026). Dados recolhidos: os do perfil, as reviews e os toques nos botões de contacto (não as mensagens). Quem os vê: os matches veem o primeiro nome, faixa etária, cidade, interesses, aquilo de que a pessoa quer falar, WhatsApp e Instagram (nunca o e-mail); a equipa vê tudo para análise. Os dados são guardados até ao fim do estudo e depois anonimizados ou apagados. "Leave the study" desativa o perfil; para eliminar os dados, basta escrever para founders@meetblop.com (anonimização: `name='[deleted]'`, `email`, `whatsapp`, `instagram`, `talk_about` e `talk_about_code` a null, `other_text '{}'`, `active=false`, `deleted_at` preenchido, apagam-se as linhas dessa pessoa em `content_flags` e `contact_clicks`; depois apaga-se o utilizador de auth). Os textos livres (`talk_about`, `other_text`, comentário da review) são verificados por IA (Anthropic, `lib/moderationService.ts`) só para gerar alertas no `/admin`; nada é bloqueado. Idade mínima: 18 anos.
 
 ---
 
@@ -238,7 +239,7 @@ Estudo académico do projeto BLOP (MIET 2026). Dados recolhidos: os do perfil e 
 **Fase 4 — Cron e reviews:** `/api/cron` + `vercel.json`; `review_open` e `review_reminder`; formulário condicional com escalas 1–7.
 ✓ Com `REVIEW_DELAY_DAYS=0`, chamar o cron envia o pedido, a review fica gravada e não se pode repetir.
 
-**Fase 5 — Admin:** `lib/stats.ts` + testes; `/admin` com os 10 blocos; exportação CSV.
+**Fase 5 — Admin:** `lib/stats.ts` + testes; `/admin` com os 11 blocos; exportação CSV.
 ✓ Com dados de seed, o placar e os cortes mostram valores coerentes.
 
 **Fase 6 — Seed, deploy e teste:** `scripts/seed.ts` com 40 participantes falsos (mesclando perfis parecidos e opostos), matching e reviews aleatórias (compatíveis ligeiramente melhores); comando para limpar o seed; deploy na Vercel; lista final das variáveis de ambiente e passos de configuração (Google OAuth redirect, SMTP no Supabase e na Vercel).

@@ -190,7 +190,7 @@ const en = {
       },
       {
         heading: 'What we collect',
-        body: 'Your profile (first name, email, WhatsApp, Instagram, city, language, age range, time in the city, origin, interests and what you want to talk about) and the reviews you send about your matches.',
+        body: 'Your profile (first name, email, WhatsApp, Instagram, city, language, age range, time in the city, origin, interests and what you want to talk about), the reviews you send about your matches, and when you tap the WhatsApp or Instagram button on a match (not your messages).',
       },
       {
         heading: 'Who sees it',

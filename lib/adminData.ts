@@ -68,8 +68,10 @@ export type AdminFlag = {
   resolved_at: string | null;
 };
 
+export type AdminClick = { match_id: string; participant_id: string; channel: string; created_at: string };
+
 export async function loadAdminData() {
-  const [participants, matches, reviews, flags] = await Promise.all([
+  const [participants, matches, reviews, flags, clicks] = await Promise.all([
     all<AdminParticipant>(
       'participants',
       'id, name, email, whatsapp, instagram, city, lang, age_range, time_in_city, origin, interests, other_text, talk_about, talk_about_code, active, deleted_at, created_at',
@@ -80,6 +82,7 @@ export async function loadAdminData() {
       'id, match_id, reviewer_id, contacted, interest_1_7, who_first, comfort_1_7, why_not, talked, flow_1_7, common_ground_1_7, satisfaction_1_7, meet_again_1_7, met, comment, next_step, created_at',
     ),
     all<AdminFlag>('content_flags', 'id, participant_id, match_id, field, text, status, category, reason, created_at, resolved_at'),
+    all<AdminClick>('contact_clicks', 'match_id, participant_id, channel, created_at'),
   ]);
 
   const personById = new Map(participants.map((p) => [p.id, p]));
@@ -107,5 +110,12 @@ export async function loadAdminData() {
     ];
   });
 
-  return { participants, matches, reviews, flags, rows, personById, matchById };
+  // Channels each person tapped in each match: `${match}|${person}` → channels.
+  const tapped = new Map<string, string[]>();
+  for (const c of clicks) {
+    const key = `${c.match_id}|${c.participant_id}`;
+    tapped.set(key, [...(tapped.get(key) ?? []), c.channel]);
+  }
+
+  return { participants, matches, reviews, flags, clicks, tapped, rows, personById, matchById };
 }
