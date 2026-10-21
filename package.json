@@ -7,7 +7,9 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "test": "vitest run"
+    "test": "vitest run",
+    "seed": "tsx --env-file=.env.local scripts/seed.ts",
+    "seed:clean": "tsx --env-file=.env.local scripts/seed.ts --clean"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.137.0",
@@ -31,6 +33,7 @@
     "eslint": "^9",
     "eslint-config-next": "15.5.28",
     "tailwindcss": "^4",
+    "tsx": "^4.23.15",
     "typescript": "^5",
     "vitest": "^5.0.5"
   }

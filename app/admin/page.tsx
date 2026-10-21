@@ -17,6 +17,8 @@ import {
   CONTACT_TRACKING_SINCE,
   byCategory,
   contactClicks,
+  dataMode,
+  type DataMode,
   byGroup,
   doseResponse,
   funnel,
@@ -141,12 +143,17 @@ function Table({ head, children }: { head: string[]; children: React.ReactNode }
   );
 }
 
-export default async function AdminPage({ searchParams }: { searchParams: Promise<{ grupo?: string }> }) {
+export default async function AdminPage({ searchParams }: { searchParams: Promise<{ grupo?: string; dados?: string }> }) {
   if (!(await isAdmin())) notFound();
-  const { grupo } = await searchParams;
+  const { grupo, dados } = await searchParams;
+  const mode = dataMode(dados);
   const segmentGroup: Group | 'all' = grupo === 'compativel' ? 'compatible' : grupo === 'controlo' ? 'control' : 'all';
 
-  const { participants, matches, reviews, flags, clicks, rows, personById } = await loadAdminData();
+  const { participants, matches, reviews, flags, clicks, rows, personById, seedCount } = await loadAdminData(mode);
+  const seedShown = participants.filter((p) => p.is_seed).length;
+  // Keeps both filters in links.
+  const link = (params: { grupo?: string; dados?: DataMode }, hash = '') =>
+    `/admin?${new URLSearchParams({ dados: params.dados ?? mode, ...(params.grupo ?? grupo ? { grupo: params.grupo ?? grupo! } : {}) })}${hash}`;
   const live = participants.filter((p) => !p.deleted_at);
   const o = overview({
     participants: participants.map((p) => ({ active: p.active, deleted: Boolean(p.deleted_at) })),
@@ -172,6 +179,31 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
           <button className="rounded-full border border-midnight/20 bg-white px-4 py-2 text-sm font-medium">Sair do admin</button>
         </form>
       </div>
+      {(seedCount > 0 || mode !== 'reais') && (
+        <div className="flex flex-wrap items-center gap-2 rounded-2xl bg-lime/40 p-3 text-sm">
+          <span className="font-medium">Dados:</span>
+          {(
+            [
+              ['reais', 'Reais'],
+              ['seed', 'Seed'],
+              ['tudo', 'Tudo'],
+            ] as const
+          ).map(([value, label]) => (
+            <Link
+              key={value}
+              href={link({ dados: value })}
+              className={`rounded-full border px-3 py-1 ${mode === value ? 'border-violet bg-violet text-white' : 'border-midnight/20 bg-white'}`}
+            >
+              {label}
+            </Link>
+          ))}
+          {seedCount > 0 && (
+            <span className="text-midnight/70">
+              Há {seedCount} participantes de seed (dados falsos). Limpe com <code>npm run seed:clean</code> antes de divulgar.
+            </span>
+          )}
+        </div>
+      )}
       {openFlags.length > 0 && (
         <a href="#alertas" className="block rounded-2xl bg-pink/50 p-4 font-medium">
           ⚠️ {openFlags.length} {openFlags.length === 1 ? 'alerta de conteúdo por ver' : 'alertas de conteúdo por ver'}
@@ -212,7 +244,11 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
       <Section n={2} title="Visão geral">
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
           {[
-            ['Participantes', `${o.participants}`, `${o.activeParticipants} ativos`],
+            [
+              'Participantes',
+              `${o.participants}`,
+              `${o.activeParticipants} ativos${seedShown ? ` · ${seedShown} de seed (inativos por desenho)` : ''}`,
+            ],
             ['Matches', `${o.compatibleMatches + o.controlMatches}`, `${o.compatibleMatches} comp. · ${o.controlMatches} ctrl.`],
             ['Reviews', `${o.reviews}`, ''],
             ['Taxa de resposta', pct(o.responseRate.value), `n = ${o.responseRate.n} (matches já abertos × 2)`],
@@ -258,6 +294,7 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
           const cc = contactClicks({
             matches,
             deleted: new Set(participants.filter((p) => p.deleted_at).map((p) => p.id)),
+            seed: new Set(participants.filter((p) => p.is_seed).map((p) => p.id)),
             clicks,
             reviews: rows.map((r) => ({ ...r.review, match_id: r.match_id })),
           });
@@ -298,7 +335,7 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
               <p className="text-xs text-midnight/60">
                 Unidade: lado do match (uma pessoa num match). Só matches criados depois de{' '}
                 {new Date(CONTACT_TRACKING_SINCE).toLocaleString('pt-PT', { timeZone: 'Europe/Lisbon' })} e sem pessoas
-                anonimizadas. Conta toques no botão (é um mínimo: não sabemos se a mensagem foi enviada, e sem JavaScript o
+                anonimizadas (os matches de seed contam sempre). Conta toques no botão (é um mínimo: não sabemos se a mensagem foi enviada, e sem JavaScript o
                 toque não fica registado).
               </p>
             </>
@@ -360,7 +397,7 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
             return (
               <Link
                 key={value}
-                href={`/admin?grupo=${value}#segmentos`}
+                href={link({ grupo: value }, '#segmentos')}
                 className={`rounded-full border px-3 py-1 ${active ? 'border-violet bg-violet text-white' : 'border-midnight/15'}`}
               >
                 {label}
@@ -457,7 +494,7 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
             ['matches', `Matches (${matches.length})`],
             ['reviews', `Reviews (${reviews.length})`],
           ].map(([table, label]) => (
-            <a key={table} href={`/admin/export/${table}`} className="rounded-full bg-violet px-4 py-2 text-sm font-semibold text-white">
+            <a key={table} href={`/admin/export/${table}?dados=${mode}`} className="rounded-full bg-violet px-4 py-2 text-sm font-semibold text-white">
               ⬇ {label}
             </a>
           ))}
