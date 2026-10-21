@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { dueReminders, dueReviewRequests, validateReview, type DueParticipant } from '@/lib/review';
+import { reviewOpensAt } from '@/lib/site';
 
 const TALKED = {
   contacted: true,
@@ -144,5 +145,37 @@ describe('review email selection', () => {
     const due = dueReminders({ requests, reviewKeys: new Set(['m1|b']), participants, now, reminderDays: 2 });
     expect(due).toEqual([{ matchId: 'm1', participantId: 'a' }]);
     expect(dueReminders({ requests, reviewKeys: new Set(), participants, now, reminderDays: 0 })).toHaveLength(3);
+  });
+});
+
+describe('one hour of slack for the hourly cron window', () => {
+  const now = new Date('2026-10-25T09:05:00Z');
+  const minutesAgo = (m: number) => new Date(now.getTime() - m * 60_000).toISOString();
+  const participants = new Map<string, DueParticipant>([
+    ['a', { id: 'a', active: true, deleted: false, hasEmail: true }],
+  ]);
+  const DAY_MIN = 24 * 60;
+
+  it('requests a review up to an hour early, not more', () => {
+    const match = (createdAt: string) => [{ id: 'm', aId: 'a', bId: 'x', createdAt }];
+    const due = (createdAt: string) =>
+      dueReviewRequests({ matches: match(createdAt), requests: [], reviewKeys: new Set(), participants, now, delayDays: 3 });
+    expect(due(minutesAgo(3 * DAY_MIN - 59))).toHaveLength(1);
+    expect(due(minutesAgo(3 * DAY_MIN - 61))).toHaveLength(0);
+  });
+
+  it('reminds up to an hour early, not more', () => {
+    const due = (requestedAt: string) =>
+      dueReminders({ requests: [{ matchId: 'm', participantId: 'a', requestedAt, remindedAt: null }], reviewKeys: new Set(), participants, now, reminderDays: 2 });
+    expect(due(minutesAgo(2 * DAY_MIN - 59))).toHaveLength(1);
+    expect(due(minutesAgo(2 * DAY_MIN - 61))).toHaveLength(0);
+  });
+
+  it('opens the review page with the same slack, never before the match', () => {
+    const created = '2026-10-20T10:00:00Z';
+    expect(reviewOpensAt(created).toISOString()).toBe('2026-10-23T09:00:00.000Z');
+    process.env.REVIEW_DELAY_DAYS = '0';
+    expect(reviewOpensAt(created).toISOString()).toBe('2026-10-20T10:00:00.000Z');
+    delete process.env.REVIEW_DELAY_DAYS;
   });
 });

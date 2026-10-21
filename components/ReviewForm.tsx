@@ -11,6 +11,9 @@ export type ReviewFormTexts = Omit<Dict['review'], 'title' | 'opensOn'>;
 type T = ReviewFormTexts;
 type Answers = Record<string, unknown>;
 
+const TALKED_BRANCH: ReviewField[] = ['flow_1_7', 'common_ground_1_7', 'satisfaction_1_7', 'meet_again_1_7', 'met'];
+const CONTACT_BRANCH: ReviewField[] = ['who_first', 'comfort_1_7', 'talked', 'why_not', ...TALKED_BRANCH];
+
 // One screen; follow-up questions appear according to the answers (SPEC §7).
 export default function ReviewForm({ matchId, t, genericError }: { matchId: string; t: T; genericError: string }) {
   const [answers, setAnswers] = useState<Answers>({});
@@ -22,7 +25,12 @@ export default function ReviewForm({ matchId, t, genericError }: { matchId: stri
   // Answering a question clears its error; errors of questions that get hidden go too.
   const set = (field: ReviewField) => (value: unknown) => {
     setAnswers((a) => ({ ...a, [field]: value }));
-    setErrors((e) => (field === 'contacted' || field === 'talked' ? {} : { ...e, [field]: undefined }));
+    setErrors((e) => {
+      const next = { ...e, [field]: undefined };
+      const hidden = field === 'contacted' ? CONTACT_BRANCH : field === 'talked' ? TALKED_BRANCH : [];
+      for (const f of hidden) next[f] = undefined;
+      return next;
+    });
   };
 
   function showErrors(next: ReviewErrors) {
@@ -52,7 +60,7 @@ export default function ReviewForm({ matchId, t, genericError }: { matchId: stri
       tabIndex={-1}
       aria-invalid={Boolean(errors[field])}
       aria-describedby={errors[field] ? `err-${field}` : undefined}
-      className="space-y-3 rounded-3xl bg-white p-5 outline-none"
+      className="space-y-3 rounded-3xl bg-white p-5 outline-none focus-visible:ring-2 focus-visible:ring-red-700/40 focus:ring-2 focus:ring-red-700/40"
     >
       <legend id={`q-${field}`} className="float-left mb-3 w-full text-lg font-semibold">
         {label}
@@ -95,7 +103,13 @@ export default function ReviewForm({ matchId, t, genericError }: { matchId: stri
     ]);
 
   const scale = (field: ReviewField) => (
-    <Scale name={field} value={answers[field] as number | undefined} onChange={set(field)} low={t.notAtAll} high={t.veryMuch} />
+    <Scale
+      name={field}
+      value={answers[field] as number | undefined}
+      onChange={set(field)}
+      low={t.notAtAll}
+      high={t.veryMuch}
+    />
   );
 
   return (
@@ -129,6 +143,7 @@ export default function ReviewForm({ matchId, t, genericError }: { matchId: stri
         t.comment,
         <textarea
           aria-labelledby="q-comment"
+          aria-invalid={Boolean(errors.comment)}
           rows={3}
           maxLength={MAX_COMMENT}
           value={(answers.comment as string) ?? ''}
