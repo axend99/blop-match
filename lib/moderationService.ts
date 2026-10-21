@@ -34,7 +34,9 @@ async function assess(texts: ModerationText[]): Promise<ModerationResult[] | str
     if (response.stop_reason === 'max_tokens') return 'A resposta da verificação automática ficou incompleta.';
     const text = response.content.find((block) => block.type === 'text');
     if (!text || text.type !== 'text') return 'A verificação automática não devolveu resultado.';
-    return (JSON.parse(text.text) as { results: ModerationResult[] }).results;
+    const parsed = JSON.parse(text.text) as { results?: unknown };
+    if (!Array.isArray(parsed.results)) return 'A verificação automática devolveu um resultado inválido.';
+    return parsed.results as ModerationResult[];
   } catch (err) {
     console.error('[moderation] check failed', err);
     return 'A verificação automática falhou.';
@@ -51,5 +53,5 @@ export async function moderate(participantId: string, texts: ModerationText[], m
   const { error } = await createServiceClient()
     .from('content_flags')
     .insert(rows.map((row) => ({ ...row, participant_id: participantId, match_id: matchId })));
-  if (error) console.error('[moderation] could not store flags', error);
+  if (error) console.error('[moderation] could not store flags', rows.map((r) => `${r.field}:${r.status}`), error);
 }

@@ -44,14 +44,12 @@ export default function JoinForm({ t, lang, genericError }: { t: T; lang: Lang; 
   const counts = countByCategory(interests);
 
   function toggle(code: string, category: Category) {
-    setInterests((current) => {
-      if (current.includes(code)) {
-        if (code === talkAboutCode) setTalkAboutCode(''); // can only talk about an own interest
-        return current.filter((c) => c !== code);
-      }
-      if (counts[category] >= MAX_PER_CATEGORY) return current;
-      return [...current, code];
-    });
+    if (interests.includes(code)) {
+      if (code === talkAboutCode) setTalkAboutCode(''); // can only talk about an own interest
+      setInterests(interests.filter((c) => c !== code));
+    } else if (counts[category] < MAX_PER_CATEGORY) {
+      setInterests([...interests, code]);
+    }
   }
 
   function submit(event: React.FormEvent) {
@@ -182,14 +180,13 @@ export default function JoinForm({ t, lang, genericError }: { t: T; lang: Lang; 
 
       {/* Exactly one: one of the chosen interests, or a line of free text. */}
       <fieldset
-        aria-describedby={errors.talk_about ? 'talk-about-error' : undefined}
+        aria-describedby={errors.talk_about ? 'talk-about-hint talk-about-error' : 'talk-about-hint'}
         className={`space-y-3 rounded-3xl border bg-white p-4 ${errors.talk_about ? 'border-red-600' : 'border-midnight/10'}`}
       >
-        <legend className="sr-only">{t.talkAbout}</legend>
-        <div aria-hidden="true">
-          <p className="font-medium">{t.talkAbout}</p>
-          <p className="text-sm text-midnight/60">{t.talkAboutHint}</p>
-        </div>
+        <legend className="float-left w-full font-medium">{t.talkAbout}</legend>
+        <p id="talk-about-hint" className="clear-both text-sm text-midnight/60">
+          {t.talkAboutHint}
+        </p>
         <p className="text-sm font-medium">{t.talkAboutPick}</p>
         {interests.length === 0 ? (
           <p className="text-sm text-midnight/60">{t.talkAboutPickFirst}</p>

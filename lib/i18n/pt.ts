@@ -67,7 +67,7 @@ const pt: Dict = {
     talkAboutHint: 'Um quebra-gelo para os teus matches. Escolhe só uma coisa.',
     talkAboutPick: 'Escolhe um dos teus interesses',
     talkAboutPickFirst: 'Escolhe primeiro os teus interesses acima.',
-    talkAboutOr: 'ou escreve o teu, p. ex. as melhores praias para surfar perto de Lisboa',
+    talkAboutOr: 'ou escreve tu mesmo, p. ex. as melhores praias para surfar perto de Lisboa',
     consentLink: 'Aviso de privacidade',
     submit: 'Participar',
     submitting: 'A guardar…',
