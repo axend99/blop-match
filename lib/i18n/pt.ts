@@ -124,6 +124,13 @@ const pt: Dict = {
     commonGround: 'O que têm em comum',
     getToKnow: 'Fiquem a conhecer-se!',
     talksAbout: 'Quer falar sobre',
+    // Mensagem pré-preenchida do WhatsApp (idioma de quem envia). Só primeiros nomes.
+    waHello: (them: string, me: string) => `Olá ${them}! ${me} aqui, fizemos match no BLOP Match 👋`,
+    waTopic: (topic: string) => `Vi que queres falar sobre ${topic}. Conta-me mais!`,
+    waShared: (list: string) => `Também temos em comum ${list}.`,
+    waOnlyShared: (list: string) => `Temos em comum ${list}. Vamos conversar?`,
+    waGeneric: 'Vamos conversar?',
+    and: 'e',
     alsoLikes: 'Também gosta de…',
     whatsapp: 'Mandar mensagem no WhatsApp',
     instagram: 'Abrir Instagram',

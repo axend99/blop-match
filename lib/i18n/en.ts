@@ -122,6 +122,13 @@ const en = {
     commonGround: 'Your common ground',
     getToKnow: 'Get to know each other!',
     talksAbout: 'Wants to talk about',
+    // Pre-filled WhatsApp message (sender's language). Names are first names only.
+    waHello: (them: string, me: string) => `Hi ${them}! ${me} here, we matched on BLOP Match 👋`,
+    waTopic: (topic: string) => `I saw you want to talk about ${topic}. Tell me more!`,
+    waShared: (list: string) => `We also have ${list} in common.`,
+    waOnlyShared: (list: string) => `We have ${list} in common. Fancy a chat?`,
+    waGeneric: 'Fancy a chat?',
+    and: 'and',
     alsoLikes: 'Also likes…',
     whatsapp: 'Message on WhatsApp',
     instagram: 'Open Instagram',
