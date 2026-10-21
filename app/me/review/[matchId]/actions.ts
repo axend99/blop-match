@@ -24,7 +24,8 @@ export async function submitReview(matchId: string, input: ReviewInput): Promise
   const match = (await getMyMatches()).find((m) => m.match_id === matchId);
   if (!match || match.reviewed_by_me || reviewOpensAt(match.created_at) > new Date()) redirect('/me');
 
-  const result = validateReview(input);
+  // Asked only when both people have Instagram (the other's is null once anonymised).
+  const result = validateReview(input, { askInstagram: Boolean(me.instagram && match.other_instagram) });
   if (!result.ok) return { errors: result.errors };
 
   const { error } = await createServiceClient()

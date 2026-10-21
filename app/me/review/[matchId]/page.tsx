@@ -14,7 +14,8 @@ export const maxDuration = 60;
 
 export default async function ReviewPage({ params }: { params: Promise<{ matchId: string }> }) {
   if (!(await getUser())) redirect('/login');
-  if (!(await getMyParticipant())) redirect('/join');
+  const me = await getMyParticipant();
+  if (!me) redirect('/join');
   const { matchId } = await params;
   const match = (await getMyMatches()).find((m) => m.match_id === matchId);
   if (!match) notFound();
@@ -49,7 +50,12 @@ export default async function ReviewPage({ params }: { params: Promise<{ matchId
         <h1 className="text-3xl font-bold">{match.other_deleted ? t.review.titleFormer : title(match.other_name)}</h1>
         <p className="text-midnight/70">{t.review.intro}</p>
       </div>
-      <ReviewForm matchId={match.match_id} t={formTexts} genericError={t.common.genericError} />
+      <ReviewForm
+        matchId={match.match_id}
+        t={formTexts}
+        genericError={t.common.genericError}
+        askInstagram={Boolean(me.instagram && match.other_instagram)}
+      />
     </div>
   );
 }

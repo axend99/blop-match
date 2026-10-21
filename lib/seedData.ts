@@ -44,7 +44,7 @@ const OTHERS: Partial<Record<Category, string[]>> = {
   hobbies: ['Board games', 'Jardinagem', 'Cerâmica'],
 };
 
-export type SeedPerson = Profile & { key: string };
+export type SeedPerson = Profile; // whatsapp is a unique fake number
 
 function interestsFor(rng: () => number, tribe: string[]): string[] {
   return CATEGORIES.flatMap((category) => {
@@ -69,8 +69,9 @@ export function seedPeople(n: number, rng: () => number): SeedPerson[] {
     const key = `seed.${name.normalize('NFD').replace(/[^a-zA-Z]/g, '').toLowerCase()}${String(i + 1).padStart(3, '0')}`;
     const input: ProfileInput = {
       name,
-      whatsapp: `+351900${String(100000 + i)}`,
-      instagram: key,
+      // Validated with a real-looking mobile; the stored number is an obviously fake one.
+      whatsapp: '+351912345678',
+      instagram: chance(rng, 0.8) ? key : '', // ~20% without Instagram (optional)
       city: pick(rng, CITIES),
       lang,
       age_range: pick(rng, AGE_RANGES),
@@ -84,7 +85,7 @@ export function seedPeople(n: number, rng: () => number): SeedPerson[] {
     };
     const result = validateProfile(input);
     if (!result.ok) throw new Error(`invalid seed profile ${i}: ${JSON.stringify(result.errors)}`);
-    return { ...result.data, key };
+    return { ...result.data, whatsapp: `+351900${String(100000 + i)}` };
   });
 }
 
@@ -95,7 +96,7 @@ function score(rng: () => number, mean: number): number {
 }
 
 // One review answer. Compatible matches and more shared items do slightly better.
-export function seedReview(rng: () => number, type: 'compatible' | 'control', sharedCount: number): Review {
+export function seedReview(rng: () => number, type: 'compatible' | 'control', sharedCount: number, askInstagram = false): Review {
   const bonus = (type === 'compatible' ? 0.7 : 0) + 0.08 * Math.min(sharedCount, 8);
   const contacted = chance(rng, 0.45 + (type === 'compatible' ? 0.15 : 0) + 0.02 * Math.min(sharedCount, 8));
   const talked = contacted && chance(rng, 0.55 + (type === 'compatible' ? 0.15 : 0));
@@ -111,9 +112,14 @@ export function seedReview(rng: () => number, type: 'compatible' | 'control', sh
     satisfaction_1_7: talked ? score(rng, 4.1 + bonus) : undefined,
     meet_again_1_7: talked ? score(rng, 3.9 + bonus) : undefined,
     met: talked ? pick(rng, ['yes', 'planned', 'no', 'no'] as const) : undefined,
+    ig_follow: askInstagram
+      ? talked
+        ? pick(rng, ['both', 'both', 'me', 'them', 'none'] as const)
+        : pick(rng, ['none', 'none', 'none', 'me', 'them'] as const)
+      : undefined,
     comment: chance(rng, 0.15) ? pick(rng, ['Foi giro!', 'Nice chat', 'Combinámos um café', 'Not much in common']) : '',
   };
-  const result = validateReview(input);
+  const result = validateReview(input, { askInstagram });
   if (!result.ok) throw new Error(`invalid seed review: ${JSON.stringify(result.errors)}`);
   return result.data;
 }

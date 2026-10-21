@@ -20,8 +20,8 @@
 
 ## Identidade visual
 
-- Avatar BLOP — feito na Fase 3 em SVG (`components/Blop.tsx`), um acessório por categoria.
-  Plano B se o protótipo não agradar: uma imagem por categoria em `public/blop/<categoria>.webp`.
+- Avatar BLOP — imagens do dono por categoria em `public/blop/` (música, desporto, passatempos/cinema, simples).
+  **Falta a imagem de comida & bebida** (`food.webp`); até lá usa o BLOP simples.
 - Ilustrações de estado em `public/blop/`: `looking.webp` (sem matches) e `thinking.webp` (0 em comum, 404).
 
 ## Pendências (decididas a 21/10/2026)

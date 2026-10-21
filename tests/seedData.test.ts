@@ -8,7 +8,7 @@ describe('seed data', () => {
     const b = seedPeople(100, mulberry32(42));
     expect(a).toHaveLength(100);
     expect(a).toEqual(b);
-    expect(new Set(a.map((p) => p.key)).size).toBe(100);
+    expect(new Set(a.map((p) => p.whatsapp)).size).toBe(100);
     expect(a.every((p) => (p.talk_about === null) !== (p.talk_about_code === null))).toBe(true);
     expect(a.every((p) => !p.talk_about_code || p.interests.includes(p.talk_about_code))).toBe(true);
   });

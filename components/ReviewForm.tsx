@@ -4,7 +4,7 @@ import { useRef, useState, useTransition } from 'react';
 import { submitReview } from '@/app/me/review/[matchId]/actions';
 import Scale from '@/components/Scale';
 import type { Dict } from '@/lib/i18n/en';
-import { MAX_COMMENT, MET, WHO_FIRST, WHY_NOT, validateReview, type ReviewErrors, type ReviewField } from '@/lib/review';
+import { IG_FOLLOW, MAX_COMMENT, MET, WHO_FIRST, WHY_NOT, validateReview, type ReviewErrors, type ReviewField } from '@/lib/review';
 
 // Only plain strings can cross to a client component.
 export type ReviewFormTexts = Omit<Dict['review'], 'title' | 'opensOn'>;
@@ -15,7 +15,17 @@ const TALKED_BRANCH: ReviewField[] = ['flow_1_7', 'common_ground_1_7', 'satisfac
 const CONTACT_BRANCH: ReviewField[] = ['who_first', 'comfort_1_7', 'talked', 'why_not', ...TALKED_BRANCH];
 
 // One screen; follow-up questions appear according to the answers (SPEC §7).
-export default function ReviewForm({ matchId, t, genericError }: { matchId: string; t: T; genericError: string }) {
+export default function ReviewForm({
+  matchId,
+  t,
+  genericError,
+  askInstagram,
+}: {
+  matchId: string;
+  t: T;
+  genericError: string;
+  askInstagram: boolean;
+}) {
   const [answers, setAnswers] = useState<Answers>({});
   const [errors, setErrors] = useState<ReviewErrors>({});
   const [failed, setFailed] = useState(false);
@@ -41,7 +51,7 @@ export default function ReviewForm({ matchId, t, genericError }: { matchId: stri
   function submit(event: React.FormEvent) {
     event.preventDefault();
     setFailed(false);
-    const check = validateReview(answers);
+    const check = validateReview(answers, { askInstagram });
     if (!check.ok) {
       showErrors(check.errors);
       return;
@@ -137,6 +147,9 @@ export default function ReviewForm({ matchId, t, genericError }: { matchId: stri
           {question('met', t.met, choice('met', MET.map((v) => [v, t.metOptions[v]])))}
         </>
       )}
+
+      {askInstagram &&
+        question('ig_follow', t.igFollow, choice('ig_follow', IG_FOLLOW.map((v) => [v, t.igFollowOptions[v]])))}
 
       {question(
         'comment',

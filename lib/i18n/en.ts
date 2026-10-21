@@ -7,6 +7,8 @@ const en = {
   common: {
     signOut: 'Sign out',
     genericError: 'Something went wrong. Please try again.',
+    backHome: 'Home',
+    backToJoin: 'Back to my profile',
   },
   home: {
     tagline: 'People happen here',
@@ -15,13 +17,13 @@ const en = {
     howTitle: 'How it works',
     steps: [
       'Sign in and tell us a bit about you and your interests (about 5 minutes).',
-      'We email you when you have a match. You will see their first name, what you have in common, their WhatsApp and Instagram.',
+      'We email you when you have a match. You will see their first name, what you have in common, their WhatsApp and Instagram (if they shared it).',
       'Reach out, have a chat and, if it clicks, meet up.',
     ],
     review: (days: number) =>
       `${days} ${days === 1 ? 'day' : 'days'} after each match, we ask you to rate the interaction. It takes 2 minutes.`,
     duration: 'The study runs for about 2 weeks. It is just for friendship.',
-    privacy: 'Only your matches see your profile (first name, age range, city, interests, what you want to talk about) and your WhatsApp and Instagram. Never your email. You can leave at any time.',
+    privacy: 'Only your matches see your profile (first name, age range, city, interests, what you want to talk about), your WhatsApp and your Instagram if you add it. Never your email. You can leave at any time.',
     privacyLink: 'Read the privacy notice',
     cta: 'Join the experiment',
   },
@@ -41,15 +43,17 @@ const en = {
     sendError: 'We could not send the link. Wait a minute and try again.',
     googleError: 'We could not open Google sign-in. Please try again.',
     authError: 'That sign-in link did not work or has expired. Please try again.',
+    inAppHint: 'Google sign-in does not work inside Instagram, WhatsApp or Facebook. Use the email link below, or open this page in your browser.',
   },
   join: {
     title: 'Create your profile',
     subtitle: 'This is what we use to find your matches.',
     name: 'First name',
     whatsapp: 'WhatsApp',
-    whatsappHint: 'With country code, e.g. +351 912 345 678',
-    instagram: 'Instagram',
-    instagramHint: 'Your handle, without @',
+    whatsappHint: 'Pick your country and type your mobile number.',
+    whatsappCountry: 'Country',
+    instagram: 'Instagram (optional)',
+    instagramHint: 'Your handle, without @. Leave it empty if you prefer WhatsApp only.',
     city: 'City',
     cityPlaceholder: 'e.g. Lisbon',
     ageRange: 'Age',
@@ -60,7 +64,7 @@ const en = {
     otherLabel: 'Other (optional)',
     otherPlaceholder: 'Anything we missed?',
     consent:
-      'I agree to share my first name, age range, city, interests, what I want to talk about, WhatsApp and Instagram with my matches, and to take part in this research study. I am 18 or older.',
+      'I agree to share my first name, age range, city, interests, what I want to talk about, WhatsApp and Instagram (if given) with my matches, and to take part in this research study. I am 18 or older.',
     talkAbout: 'What I want to talk about',
     talkAboutHint: 'An icebreaker for your matches. Pick one thing.',
     talkAboutPick: 'Pick one of your interests',
@@ -96,7 +100,7 @@ const en = {
     errors: {
       required: 'This field is required.',
       tooLong: 'This is too long.',
-      whatsapp: 'Include your country code, e.g. +351 912 345 678.',
+      whatsapp: 'Enter a valid mobile number for the country you picked.',
       instagram: 'Use only letters, numbers, dots and underscores.',
       interests: 'Pick 3 to 6.',
       consent: 'You need to agree to take part.',
@@ -165,6 +169,8 @@ const en = {
     meetAgain: 'How likely are you to talk or meet again?',
     met: 'Did you meet in person?',
     metOptions: { yes: 'Yes', planned: "It's planned", no: 'No' },
+    igFollow: 'Do you follow each other on Instagram now?',
+    igFollowOptions: { me: 'I followed them', them: 'They followed me', both: 'Both', none: 'Neither' },
     comment: 'Anything else? (optional)',
     submit: 'Send',
     submitting: 'Sending…',
@@ -190,11 +196,11 @@ const en = {
       },
       {
         heading: 'What we collect',
-        body: 'Your profile (first name, email, WhatsApp, Instagram, city, language, age range, time in the city, origin, interests and what you want to talk about), the reviews you send about your matches, and that you tapped the WhatsApp or Instagram button on a match, and when (not your messages).',
+        body: 'Your profile (first name, email, WhatsApp, Instagram if given, city, language, age range, time in the city, origin, interests and what you want to talk about), the reviews you send about your matches, and that you tapped the WhatsApp or Instagram button on a match, and when (not your messages).',
       },
       {
         heading: 'Who sees it',
-        body: 'Your matches see your first name, age range, city, interests, what you want to talk about, WhatsApp and Instagram. They never see your email. The research team sees everything, for analysis only.',
+        body: 'Your matches see your first name, age range, city, interests, what you want to talk about, WhatsApp and Instagram (if you added it). They never see your email. The research team sees everything, for analysis only.',
       },
       {
         heading: 'Safety checks',

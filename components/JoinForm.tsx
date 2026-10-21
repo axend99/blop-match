@@ -18,15 +18,27 @@ import {
   validateProfile,
   type FieldErrors,
 } from '@/lib/profile';
+import { formatNational, splitInternational, toWhatsapp, type Country } from '@/lib/phone';
 
 type T = Dict['join'];
 
 const inputClass =
   'w-full rounded-2xl border bg-white px-4 py-3 text-lg outline-none focus:border-violet focus:ring-2 focus:ring-violet/30';
 
-export default function JoinForm({ t, lang, genericError }: { t: T; lang: Lang; genericError: string }) {
+export default function JoinForm({
+  t,
+  lang,
+  genericError,
+  countries,
+}: {
+  t: T;
+  lang: Lang;
+  genericError: string;
+  countries: Country[];
+}) {
   const [name, setName] = useState('');
-  const [whatsapp, setWhatsapp] = useState('');
+  const [country, setCountry] = useState<string>(countries[0]?.code ?? 'PT');
+  const [phone, setPhone] = useState('');
   const [instagram, setInstagram] = useState('');
   const [city, setCity] = useState('');
   const [ageRange, setAgeRange] = useState('');
@@ -42,6 +54,25 @@ export default function JoinForm({ t, lang, genericError }: { t: T; lang: Lang; 
   const [pending, startTransition] = useTransition();
 
   const counts = countByCategory(interests);
+  const current = countries.find((c) => c.code === country) ?? countries[0];
+  const dial = current?.dial ?? '';
+
+  // Formats while typing; deleting keeps the raw text, so a space can be erased. A pasted
+  // "+55…" or "0055…" number switches the country.
+  function typePhone(value: string) {
+    const intl = splitInternational(value);
+    if (intl && countries.some((c) => c.code === intl.country)) {
+      setCountry(intl.country);
+      setPhone(formatNational(intl.national, intl.country));
+    } else {
+      setPhone(value.length > phone.length ? formatNational(value, country) : value);
+    }
+  }
+
+  function changeCountry(code: string) {
+    setCountry(code);
+    setPhone(formatNational(phone.replace(/\D/g, ''), code));
+  }
 
   function toggle(code: string, category: Category) {
     if (interests.includes(code)) {
@@ -55,6 +86,8 @@ export default function JoinForm({ t, lang, genericError }: { t: T; lang: Lang; 
   function submit(event: React.FormEvent) {
     event.preventDefault();
     setFailed(false);
+    // Sent in international form; an invalid number keeps the typed text so the error shows.
+    const whatsapp = toWhatsapp(phone, country) ?? (phone.trim() ? `+${dial}${phone.replace(/\D/g, '')}` : '');
     const input = {
       name,
       whatsapp,
@@ -100,8 +133,20 @@ export default function JoinForm({ t, lang, genericError }: { t: T; lang: Lang; 
           {err('name')}
         </Field>
         <Field id="whatsapp" label={t.whatsapp} hint={t.whatsappHint}>
-          <input id="whatsapp" type="tel" inputMode="tel" autoComplete="tel" value={whatsapp} placeholder="+351…"
-            onChange={(e) => setWhatsapp(e.target.value)} className={`${inputClass} ${border('whatsapp')}`} />
+          <div className="flex gap-2">
+            {/* Native select (good on phones) under a compact "flag +code" face. */}
+            <div className={`relative flex w-28 shrink-0 items-center justify-center rounded-2xl border bg-white text-lg focus-within:border-violet focus-within:ring-2 focus-within:ring-violet/30 ${border('whatsapp')}`}>
+              <span aria-hidden="true">{current ? `${current.label.split(' ')[0]} +${dial}` : ''}</span>
+              <select aria-label={t.whatsappCountry} value={country} onChange={(e) => changeCountry(e.target.value)}
+                className="absolute inset-0 cursor-pointer opacity-0">
+                {countries.map((c) => (
+                  <option key={c.code} value={c.code}>{c.label}</option>
+                ))}
+              </select>
+            </div>
+            <input id="whatsapp" type="tel" inputMode="tel" autoComplete="tel-national" value={phone}
+              onChange={(e) => typePhone(e.target.value)} className={`${inputClass} min-w-0 ${border('whatsapp')}`} />
+          </div>
           {err('whatsapp')}
         </Field>
         <Field id="instagram" label={t.instagram} hint={t.instagramHint}>

@@ -3,7 +3,7 @@ import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { hasSupabaseEnv } from '@/lib/supabase/env';
 
-export type MyParticipant = { id: string; name: string; lang: string; active: boolean; interests: string[] };
+export type MyParticipant = { id: string; name: string; lang: string; active: boolean; interests: string[]; instagram: string | null };
 
 export async function getUser() {
   if (!hasSupabaseEnv()) return null;
@@ -19,7 +19,7 @@ export async function getMyParticipant(): Promise<MyParticipant | null> {
   const supabase = await createClient();
   const { data } = await supabase
     .from('participants')
-    .select('id, name, lang, active, interests')
+    .select('id, name, lang, active, interests, instagram')
     .maybeSingle();
   return data;
 }

@@ -7,10 +7,13 @@ import {
   filterAdminData,
   funnel,
   hypotheses,
+  igFollow,
   mean,
   otherAnswers,
   overview,
+  participantMatches,
   rate,
+  sample,
   scores,
   segment,
   spearman,
@@ -423,5 +426,101 @@ describe('filterAdminData', () => {
 
   it('keeps everything', () => {
     expect(filterAdminData(data, 'tudo')).toBe(data);
+  });
+});
+
+describe('Instagram', () => {
+  it('rates Instagram taps only where the other person has Instagram', () => {
+    const matches = [
+      { id: 'm1', type: 'compatible' as const, a_id: 'a', b_id: 'b', created_at: '2026-10-22T00:00:00Z' },
+    ];
+    const result = contactClicks({
+      matches,
+      deleted: new Set(),
+      instagram: new Set(['a']), // b has no Instagram: a never sees the button
+      clicks: [{ match_id: 'm1', participant_id: 'b', channel: 'instagram', created_at: '2026-10-22T01:00:00Z' }],
+      reviews: [],
+      since: '2026-10-21T00:00:00Z',
+    });
+    expect(result.all.instagram).toEqual({ value: 1, n: 1 });
+    expect(result.all.clicked.n).toBe(2);
+  });
+
+  it('splits "who followed whom" by group, over the reviews where it was asked', () => {
+    const rows = [
+      row({ type: 'compatible', ig_follow: 'both' }),
+      row({ type: 'compatible', ig_follow: 'none' }),
+      row({ type: 'compatible', ig_follow: null }),
+      row({ type: 'control', ig_follow: 'me' }),
+    ];
+    const both = igFollow(rows).find((f) => f.option === 'both')!;
+    expect(both.compatible).toEqual({ value: 0.5, n: 2 });
+    expect(both.control).toEqual({ value: 0, n: 1 });
+  });
+});
+
+describe('participantMatches', () => {
+  it("lists each person's matches, newest first, with both reviews and taps", () => {
+    const matches = [
+      { id: 'm1', a_id: 'a', b_id: 'b', created_at: '2026-10-01' },
+      { id: 'm2', a_id: 'a', b_id: 'c', created_at: '2026-10-02' },
+    ];
+    const reviews = [{ match_id: 'm1', reviewer_id: 'b' }];
+    const clicks = [
+      { match_id: 'm1', participant_id: 'a', channel: 'whatsapp' },
+      { match_id: 'm1', participant_id: 'a', channel: 'whatsapp' },
+    ];
+    const byPerson = participantMatches({ matches, reviews, clicks });
+    expect(byPerson.get('a')!.map((x) => x.match.id)).toEqual(['m2', 'm1']);
+    const ab = byPerson.get('a')![1];
+    expect(ab).toMatchObject({ other: 'b', mine: null, theirs: { reviewer_id: 'b' }, myTaps: ['whatsapp'], theirTaps: [] });
+    expect(byPerson.get('b')![0]).toMatchObject({ other: 'a', mine: { reviewer_id: 'b' }, theirTaps: ['whatsapp'] });
+    expect(byPerson.get('d')).toBeUndefined();
+  });
+});
+
+describe('sample', () => {
+  const person = (id: string, patch: Partial<Record<string, unknown>> = {}) => ({
+    id,
+    deleted_at: null as string | null,
+    active: true,
+    age_range: '25-30',
+    time_in_city: '2y+',
+    origin: 'this_city',
+    city: 'Lisbon',
+    lang: 'pt',
+    interests: ['a', 'b'],
+    ...patch,
+  });
+  const m = (a: string, b: string, type: 'compatible' | 'control', byCat: Record<string, number> = {}) => ({
+    a_id: a,
+    b_id: b,
+    type,
+    shared_count: Object.values(byCat).reduce((s, n) => s + n, 0),
+    shared_by_category: byCat,
+  });
+
+  it('counts people, matches between live people and matches per person', () => {
+    const s = sample({
+      participants: [person('a'), person('b', { city: ' lisbon ' }), person('c', { active: false }), person('d', { deleted_at: '2026-10-01' })],
+      matches: [m('a', 'b', 'compatible', { music: 2 }), m('a', 'c', 'control'), m('a', 'd', 'compatible', { music: 1 })],
+      categories: ['music', 'food'],
+    });
+    expect(s).toMatchObject({ people: 3, active: 2, matches: 2, compatible: 1, control: 1 });
+    expect(s.perPersonMean).toBeCloseTo(4 / 3);
+    expect(s.perPerson.map((b) => b.share.value)).toEqual([0, 2 / 3, 1 / 3, 0, 0]);
+    expect(s.composition.find((c) => c.key === 'city')!.values).toEqual([{ value: 'lisbon', share: { value: 1, n: 3 } }]);
+    expect(s.sharedByCategory[0]).toMatchObject({ category: 'music', compatible: { value: 1, n: 1 }, control: { value: 0, n: 1 } });
+    expect(s.sameProfile.find((x) => x.key === 'city')!.compatible).toEqual({ value: 1, n: 1 });
+    expect(s.sharedMean.compatible).toEqual({ value: 2, n: 1 });
+  });
+
+  it('groups small cities and handles an empty sample', () => {
+    const cities = ['A', 'B', 'C', 'D'];
+    const s = sample({ participants: cities.map((c, i) => person(`p${i}`, { city: c })), matches: [], categories: [], cityTop: 2 });
+    expect(s.composition.find((c) => c.key === 'city')!.values.map((v) => v.value)).toEqual(['a', 'b', '__other']);
+    const empty = sample({ participants: [], matches: [], categories: ['music'] });
+    expect(empty.perPersonMean).toBeNull();
+    expect(empty.sharedByCategory[0].compatible).toEqual({ value: null, n: 0 });
   });
 });
