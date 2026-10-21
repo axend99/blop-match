@@ -46,6 +46,7 @@ EMAIL_FROM="BLOP Match <you@gmail.com>"
 NEXT_PUBLIC_SITE_URL=
 CRON_SECRET=
 ADMIN_EMAILS=email1@x.com,email2@x.com
+ADMIN_ACCESS_TOKEN=
 REVIEW_DELAY_DAYS=3
 REMINDER_DELAY_DAYS=2
 MAX_COMPATIBLE=3
@@ -65,7 +66,8 @@ MIN_SHARED_COMPATIBLE=2
 | `/me` | Logado, com perfil | Lista de matches + estado da review de cada um. Sem matches: "We'll email you as soon as you get a match." Link "Leave the study". |
 | `/me/review/[matchId]` | Logado, participante do match | Formulário de review. Bloqueado até `created_at + REVIEW_DELAY_DAYS`, mostrando a data de abertura. |
 | `/privacy` | Público | Texto RGPD (ver 9). |
-| `/admin` | `ADMIN_EMAILS` | Painel (ver 8). Em português. |
+| `/admin` | `ADMIN_EMAILS` (login normal) ou link de acesso | Painel (ver 8). Em português. |
+| `/admin/acesso/<token>` | Quem tem o link | Link partilhado com a equipa: valida `ADMIN_ACCESS_TOKEN` (≥ 32 caracteres), grava um cookie assinado (30 dias) e redireciona para `/admin`. Trocar o token invalida todos os acessos. |
 | `/api/cron` | Header `Authorization: Bearer CRON_SECRET` | Rotina diária (ver 6). |
 
 Regras de navegação: um logado sem perfil vai para `/join`; um logado com perfil vai para `/me`.
@@ -177,7 +179,7 @@ Derivado: `next_step = meet_again_1_7 >= 5 OR met IN ('yes','planned')`.
 
 ## 8. Painel admin (`/admin`, em português)
 
-A lógica de cálculo fica em `lib/stats.ts` (funções puras com testes). Cada percentagem ou média mostra o **n** ao lado. Usar gráficos simples (Recharts) e tabelas.
+A lógica de cálculo fica em `lib/stats.ts` (funções puras com testes). Cada percentagem ou média mostra o **n** ao lado. Unidade de análise: a review (uma pessoa a avaliar um match; cada match dá até 2 reviews). Percentagens sobre todas as reviews do grupo (`talked` nulo conta como "não"); médias ignoram respostas em falta. As metas comparam valores sem arredondar. Taxa de resposta = reviews de matches já abertos ÷ (2 × matches já abertos). H3: reviews dos dois grupos; só contam categorias com n ≥ 15 com e sem item partilhado; o valor é a maior diferença (com sinal); "Dados insuficientes" se nenhuma categoria tiver esse n. Usar gráficos simples (Recharts) e tabelas.
 
 1. **Placar das hipóteses:** um cartão por hipótese com o valor atual, a meta e o estado: "Acima da meta", "Abaixo da meta" ou "Dados insuficientes" (n < 15 em algum grupo).
 
