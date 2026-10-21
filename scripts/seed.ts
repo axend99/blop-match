@@ -42,10 +42,13 @@ async function clean() {
   const seed = new Set(ids);
 
   // Never touch real people: abort if any match mixes a seed and a real participant.
-  const matches: { id: string; a_id: string; b_id: string }[] = [];
+  // A match can come back in two batches (one per side): key by id.
+  const byId = new Map<string, { id: string; a_id: string; b_id: string }>();
   for (const batch of chunks(ids, 50)) {
-    matches.push(...(await must(db.from('matches').select('id, a_id, b_id').or(`a_id.in.(${batch}),b_id.in.(${batch})`))));
+    const rows = await must(db.from('matches').select('id, a_id, b_id').or(`a_id.in.(${batch}),b_id.in.(${batch})`));
+    for (const m of rows) byId.set(m.id, m);
   }
+  const matches = [...byId.values()];
   const mixed = matches.filter((m) => seed.has(m.a_id) !== seed.has(m.b_id));
   if (mixed.length) throw new Error(`Há ${mixed.length} matches entre seed e pessoas reais; nada foi apagado.`);
 
