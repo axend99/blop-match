@@ -98,7 +98,7 @@ export default async function MatchPage({ params }: { params: Promise<{ matchId:
         </div>
       )}
 
-      <ReviewStatus t={t.me} lang={lang} createdAt={match.created_at} reviewed={match.reviewed_by_me} />
+      <ReviewStatus t={t.me} lang={lang} createdAt={match.created_at} reviewed={match.reviewed_by_me} matchId={match.match_id} />
     </article>
   );
 }

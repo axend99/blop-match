@@ -31,3 +31,7 @@ export function formatDate(date: Date, lang: string): string {
 export function reviewOpensAt(matchCreatedAt: string): Date {
   return new Date(new Date(matchCreatedAt).getTime() + reviewDelayDays() * 24 * 60 * 60 * 1000);
 }
+
+export function reminderDelayDays(): number {
+  return intEnv('REMINDER_DELAY_DAYS', 2);
+}
