@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   byCategory,
+  contactClicks,
   doseResponse,
   funnel,
   hypotheses,
@@ -258,5 +259,103 @@ describe('blocks', () => {
       { code: 'food_wine', count: 1, share: 0.5 },
     ]);
     expect(otherAnswers(people)).toEqual([{ category: 'music', text: 'synthwave' }]);
+  });
+});
+
+describe('contactClicks', () => {
+  const since = '2026-10-21T08:00:00Z';
+  const at = (h: number) => new Date(Date.UTC(2026, 9, 22, h)).toISOString();
+  const match = (id: string, type: 'compatible' | 'control', a: string, b: string, created = at(0)) => ({
+    id,
+    type,
+    a_id: a,
+    b_id: b,
+    created_at: created,
+  });
+  const review = (m: string, who: string, created: string, patch: Partial<{ contacted: boolean; talked: boolean | null; who_first: string | null; why_not: string | null }> = {}) => ({
+    match_id: m,
+    reviewer_id: who,
+    created_at: created,
+    contacted: true,
+    talked: true,
+    who_first: 'me',
+    why_not: null,
+    ...patch,
+  });
+  const click = (m: string, who: string, channel: string, created: string) => ({ match_id: m, participant_id: who, channel, created_at: created });
+
+  it('counts each side once, sides independently, per channel and per group', () => {
+    const r = contactClicks({
+      matches: [match('m1', 'compatible', 'a', 'b'), match('m2', 'control', 'c', 'd')],
+      deleted: new Set(),
+      clicks: [click('m1', 'a', 'whatsapp', at(1)), click('m1', 'a', 'instagram', at(2)), click('m2', 'd', 'instagram', at(1))],
+      reviews: [],
+      since,
+    });
+    expect(r.all.clicked).toEqual({ value: 0.5, n: 4 });
+    expect(r.compatible.clicked).toEqual({ value: 0.5, n: 2 });
+    expect(r.compatible.whatsapp).toEqual({ value: 0.5, n: 2 });
+    expect(r.control.instagram).toEqual({ value: 0.5, n: 2 });
+    expect(r.all.reviewed).toBe(0);
+    expect(r.all.clickedContacted).toEqual({ value: null, n: 0 });
+  });
+
+  it('crosses taps made before the review with what the review says', () => {
+    const r = contactClicks({
+      matches: [match('m1', 'compatible', 'a', 'b'), match('m2', 'compatible', 'c', 'd')],
+      deleted: new Set(),
+      clicks: [
+        click('m1', 'a', 'whatsapp', at(1)), // before review: tapped and contacted
+        click('m1', 'b', 'whatsapp', at(1)), // before review: tapped, not contacted (barrier)
+        click('m2', 'c', 'whatsapp', at(9)), // after the review: does not count there
+      ],
+      reviews: [
+        review('m1', 'a', at(5), { talked: true }),
+        review('m1', 'b', at(5), { contacted: false, talked: null, who_first: null, why_not: 'no_reply' }),
+        review('m2', 'c', at(5), { contacted: false, talked: null, who_first: null, why_not: 'shy' }),
+        review('m2', 'd', at(5), { who_first: 'them' }),
+      ],
+      since,
+    });
+    const c = r.compatible;
+    expect(c.clicked).toEqual({ value: 0.75, n: 4 }); // the late tap still counts as a tap
+    expect(c.reviewed).toBe(4);
+    expect(c.clickedContacted).toEqual({ value: 0.25, n: 4 });
+    expect(c.clickedNotContacted).toEqual({ value: 0.25, n: 4 });
+    expect(c.notClickedContactedThem).toEqual({ value: 0.25, n: 4 });
+    expect(c.neither).toEqual({ value: 0.25, n: 4 });
+    expect(c.barrierReasons.find((x) => x.reason === 'no_reply')?.share).toEqual({ value: 1, n: 1 });
+    expect(c.clickedThenTalked).toEqual({ value: 0.5, n: 2 });
+  });
+
+  it('splits contact without a tap by who reached out, and keeps sides without a review out of the comparison', () => {
+    const r = contactClicks({
+      matches: [match('m1', 'control', 'a', 'b'), match('m2', 'control', 'c', 'd')],
+      deleted: new Set(),
+      clicks: [],
+      reviews: [review('m1', 'a', at(5), { who_first: 'me' }), review('m1', 'b', at(5), { who_first: 'them' }), review('m2', 'c', at(5))],
+      since,
+    });
+    expect(r.control.sides).toBe(4);
+    expect(r.control.reviewed).toBe(3); // d has no review
+    expect(r.control.notClickedContactedMe).toEqual({ value: 2 / 3, n: 3 });
+    expect(r.control.notClickedContactedThem).toEqual({ value: 1 / 3, n: 3 });
+  });
+
+  it('leaves out matches before the tracking started and sides with an anonymised person', () => {
+    const r = contactClicks({
+      matches: [
+        match('old', 'compatible', 'a', 'b', '2026-10-20T00:00:00Z'),
+        match('gone', 'compatible', 'c', 'x'),
+        match('ok', 'control', 'e', 'f'),
+      ],
+      deleted: new Set(['x']),
+      clicks: [click('old', 'a', 'whatsapp', at(1))],
+      reviews: [review('old', 'a', at(5)), review('gone', 'c', at(5))],
+      since,
+    });
+    expect(r.all.sides).toBe(2);
+    expect(r.all.reviewed).toBe(0);
+    expect(r.compatible.sides).toBe(0);
   });
 });

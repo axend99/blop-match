@@ -192,7 +192,7 @@ const pt: Dict = {
       },
       {
         heading: 'O que recolhemos',
-        body: 'O teu perfil (primeiro nome, e-mail, WhatsApp, Instagram, cidade, idioma, faixa etária, tempo na cidade, origem, interesses e aquilo de que queres falar) e as avaliações que envias sobre os teus matches.',
+        body: 'O teu perfil (primeiro nome, e-mail, WhatsApp, Instagram, cidade, idioma, faixa etária, tempo na cidade, origem, interesses e aquilo de que queres falar), as avaliações que envias sobre os teus matches e o facto de tocares no botão de WhatsApp ou Instagram de um match, e quando (não as tuas mensagens).',
       },
       {
         heading: 'Quem vê',
