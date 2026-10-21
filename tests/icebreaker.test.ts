@@ -6,41 +6,27 @@ import { whatsappLink, whatsappMessage } from '@/lib/icebreaker';
 const l = (code: string, label: string) => ({ code, label });
 
 describe('whatsappMessage', () => {
-  it('leads with their own words, then up to 3 shared interests', () => {
+  it('talks only about their own words when they wrote a topic', () => {
     expect(
       whatsappMessage({
         t: en.match,
         me: 'Marta',
         them: 'Steven',
         topic: { text: 'Climbing spots around Porto?' },
-        shared: [l('a', 'Rock'), l('b', 'Climbing'), l('c', 'Surf'), l('d', 'Japanese')],
+        shared: [l('a', 'Rock'), l('b', 'Climbing')],
       }),
     ).toBe(
-      'Hi Steven! Marta here, BLOP Match put us together 👋 I saw what you\'d like to talk about: “Climbing spots around Porto?” Tell me more! We also have in common: Rock, Climbing, Surf.',
+      "Hi Steven! Marta here, BLOP Match put us together 👋 I saw what you'd like to talk about: “Climbing spots around Porto?” Tell me more!",
     );
   });
 
-  it('does not repeat the chosen interest in the shared list (PT)', () => {
+  it('talks only about the chosen interest, never the other shared ones (PT)', () => {
     expect(
-      whatsappMessage({
-        t: pt.match,
-        me: 'Marta',
-        them: 'Inês',
-        topic: l('hob_knitting', 'Tricô'),
-        shared: [l('hob_knitting', 'Tricô'), l('music_fado', 'Fado'), l('sports_yoga', 'Yoga e Pilates')],
-      }),
-    ).toBe(
-      'Olá Inês! Marta aqui, o BLOP Match juntou-nos 👋 Vi que queres falar sobre Tricô. Conta-me mais! Também temos em comum: Fado, Yoga e Pilates.',
-    );
+      whatsappMessage({ t: pt.match, me: 'Marta', them: 'Inês', topic: l('hob_knitting', 'Tricô'), shared: [l('music_fado', 'Fado')] }),
+    ).toBe('Olá Inês! Marta aqui, o BLOP Match juntou-nos 👋 Vi que queres falar sobre Tricô. Conta-me mais!');
   });
 
-  it('works with a topic and nothing else in common', () => {
-    expect(whatsappMessage({ t: en.match, me: 'A', them: 'B', topic: l('x', 'Surf'), shared: [l('x', 'Surf')] })).toBe(
-      "Hi B! A here, BLOP Match put us together 👋 I saw you'd like to talk about Surf. Tell me more!",
-    );
-  });
-
-  it('falls back to shared interests, then to a generic invite', () => {
+  it('without a topic (older profiles) falls back to shared interests, then to a generic invite', () => {
     expect(whatsappMessage({ t: en.match, me: 'A', them: 'B', topic: null, shared: [l('r', 'Rock'), l('s', 'Surf')] })).toBe(
       'Hi B! A here, BLOP Match put us together 👋 We have in common: Rock, Surf. Fancy a chat?',
     );
