@@ -280,7 +280,8 @@ for (const p of PEOPLE) {
       if ((await page.locator('input[name="ig_follow"]').count()) > 0) await pick('ig_follow', (p.i + k) % 4);
       await page.locator('textarea').fill(k % 2 ? `E2E review ${p.name} 👍` : '');
       await send.click();
-      await expect(page).toHaveURL(/\/me$/, { timeout: 20_000 });
+      // A lost response (sandbox proxy) leaves the page as is; the review may still be saved.
+      await page.waitForURL(/\/me$/, { timeout: 20_000 }).catch(() => finding(who, 'review enviada sem voltar a /me', reviewUrl));
       // Curious: try to answer again.
       await go(page, reviewUrl);
       if ((await page.locator('input[name="contacted"]').count()) > 0) finding(who, 'review pode ser repetida', reviewUrl);
