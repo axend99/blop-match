@@ -313,7 +313,7 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
             );
           })}
         </div>
-        <div id="segmentos" className="grid gap-4 lg:grid-cols-2">
+        <div id="segmentos" className="grid gap-4 lg:grid-cols-2 [&>*]:min-w-0">
           {SEGMENTS.map(({ key, label }) => (
             <div key={key}>
               <h3 className="mb-1 text-sm font-semibold">{label}</h3>
@@ -354,7 +354,7 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
       </Section>
 
       <Section n={8} title="Motivos, itens e respostas “outro”">
-        <div className="grid gap-4 lg:grid-cols-3">
+        <div className="grid gap-4 lg:grid-cols-3 [&>*]:min-w-0">
           <div>
             <h3 className="mb-1 text-sm font-semibold">Motivos de não contacto</h3>
             <Table head={['Motivo', 'Comp.', 'Ctrl.']}>
