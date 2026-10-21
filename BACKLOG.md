@@ -20,8 +20,8 @@
 
 ## Identidade visual
 
-- Avatar BLOP — imagens do dono por categoria em `public/blop/` (música, desporto, passatempos/cinema, simples).
-  **Falta a imagem de comida & bebida** (`food.webp`); até lá usa o BLOP simples.
+- Avatar BLOP — imagens do dono por categoria em `public/blop/` (música, desporto, passatempos/cinema, simples);
+  `food.webp` foi montada a partir do BLOP simples (chapéu de chef, pizza, ramen). Trocar se houver uma versão melhor.
 - Ilustrações de estado em `public/blop/`: `looking.webp` (sem matches) e `thinking.webp` (0 em comum, 404).
 
 ## Pendências (decididas a 21/10/2026)

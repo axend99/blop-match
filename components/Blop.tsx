@@ -1,13 +1,14 @@
 import Image, { type StaticImageData } from 'next/image';
 import type { Category } from '@/lib/interests';
+import food from '@/public/blop/food.webp';
 import hobbies from '@/public/blop/hobbies.webp';
 import music from '@/public/blop/music.webp';
 import plain from '@/public/blop/plain.webp';
 import sports from '@/public/blop/sports.webp';
 
 // The BLOP mascot. Each participant's Blop is dressed for their top interest category
-// (lib/avatar.ts); null (or a category without its own picture yet: food) shows the plain Blop.
-const PICTURES: Record<Category, StaticImageData> = { music, sports, hobbies, food: plain };
+// (lib/avatar.ts); null shows the plain Blop.
+const PICTURES: Record<Category, StaticImageData> = { music, sports, hobbies, food };
 
 export default function Blop({
   variant,
