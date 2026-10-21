@@ -127,6 +127,7 @@ const pt: Dict = {
     // Mensagem pré-preenchida do WhatsApp (idioma de quem envia). Só primeiros nomes.
     waHello: (them: string, me: string) => `Olá ${them}! ${me} aqui, o BLOP Match juntou-nos 👋`,
     waTopic: (label: string) => `Vi que queres falar sobre ${label}. Conta-me mais!`,
+    waTopicShared: (label: string) => `Vi que queres falar sobre ${label}. Eu também gosto de ${label}! Conta-me mais!`,
     waTopicText: (text: string) => `Vi aquilo de que queres falar: “${text}” Conta-me mais!`,
     waOnlyShared: (list: string) => `Temos em comum: ${list}. Vamos conversar?`,
     waGeneric: 'Vamos conversar?',
