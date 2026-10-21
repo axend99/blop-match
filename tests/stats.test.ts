@@ -328,6 +328,20 @@ describe('contactClicks', () => {
     expect(c.clickedThenTalked).toEqual({ value: 0.5, n: 2 });
   });
 
+  it('splits contact without a tap by who reached out, and keeps sides without a review out of the comparison', () => {
+    const r = contactClicks({
+      matches: [match('m1', 'control', 'a', 'b'), match('m2', 'control', 'c', 'd')],
+      deleted: new Set(),
+      clicks: [],
+      reviews: [review('m1', 'a', at(5), { who_first: 'me' }), review('m1', 'b', at(5), { who_first: 'them' }), review('m2', 'c', at(5))],
+      since,
+    });
+    expect(r.control.sides).toBe(4);
+    expect(r.control.reviewed).toBe(3); // d has no review
+    expect(r.control.notClickedContactedMe).toEqual({ value: 2 / 3, n: 3 });
+    expect(r.control.notClickedContactedThem).toEqual({ value: 1 / 3, n: 3 });
+  });
+
   it('leaves out matches before the tracking started and sides with an anonymised person', () => {
     const r = contactClicks({
       matches: [

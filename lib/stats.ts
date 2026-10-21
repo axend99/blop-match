@@ -376,8 +376,8 @@ export function otherAnswers(participants: { other_text: Partial<Record<string, 
 
 // --- Contact button taps (attempts to start a conversation) ---
 
-// Taps are recorded from this moment (deploy of the tracking); older matches have no data.
-export const CONTACT_TRACKING_SINCE = '2026-10-21T08:00:00Z';
+// Taps are recorded from this moment (just after the tracking went live); older matches have no data.
+export const CONTACT_TRACKING_SINCE = '2026-10-21T07:40:00Z';
 
 export type ContactClickInput = {
   matches: { id: string; type: Group; a_id: string; b_id: string; created_at: string }[];
@@ -427,7 +427,7 @@ export function contactClicks({ matches, deleted, clicks, reviews, since = CONTA
       clickedContacted: rate(reviewed, (e) => e.tappedBefore && e.review!.contacted),
       clickedNotContacted: rate(reviewed, (e) => e.tappedBefore && !e.review!.contacted),
       notClickedContactedMe: rate(reviewed, (e) => !e.tappedBefore && e.review!.contacted && e.review!.who_first === 'me'),
-      notClickedContactedThem: rate(reviewed, (e) => !e.tappedBefore && e.review!.contacted && e.review!.who_first !== 'me'),
+      notClickedContactedThem: rate(reviewed, (e) => !e.tappedBefore && e.review!.contacted && e.review!.who_first === 'them'),
       neither: rate(reviewed, (e) => !e.tappedBefore && !e.review!.contacted),
       barrierReasons: WHY_NOT.map((reason) => ({
         reason,

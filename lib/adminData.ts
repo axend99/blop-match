@@ -110,12 +110,14 @@ export async function loadAdminData() {
     ];
   });
 
-  // Channels each person tapped in each match: `${match}|${person}` → channels.
+  // Channels each person tapped in each match, and their first tap: `${match}|${person}`.
   const tapped = new Map<string, string[]>();
+  const firstTap = new Map<string, string>();
   for (const c of clicks) {
     const key = `${c.match_id}|${c.participant_id}`;
     tapped.set(key, [...(tapped.get(key) ?? []), c.channel]);
+    if (!firstTap.has(key) || c.created_at < firstTap.get(key)!) firstTap.set(key, c.created_at);
   }
 
-  return { participants, matches, reviews, flags, clicks, tapped, rows, personById, matchById };
+  return { participants, matches, reviews, flags, clicks, tapped, firstTap, rows, personById, matchById };
 }
