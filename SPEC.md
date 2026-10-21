@@ -74,7 +74,7 @@ Regras de navegação: um logado sem perfil vai para `/join`; um logado com perf
 
 Cartão de match em `/me`: BLOP da outra pessoa, primeiro nome, até 3 chips dos itens partilhados (ou "Get to know each other!" se nenhum) e o estado da review ("Rate this interaction" ativo só depois do prazo, ou "Reviewed ✓"). Tocar no cartão abre `/me/match/[matchId]` (a "cheat sheet"): "Blop found someone you should meet", BLOP grande, "Nome, faixa etária", "Based in <cidade>", cartão "Wants to talk about" com o texto da pessoa (icebreaker), caixa "Your common ground" com os itens partilhados, "Also likes…" com os outros interesses, botão WhatsApp (`https://wa.me/<número só com dígitos>?text=<mensagem>`, com uma mensagem pré-preenchida no idioma de quem envia: saudação com os primeiros nomes e só o que a outra pessoa quer falar, para a conversa começar nesse tema (se o tema for um interesse que quem envia também marcou, acrescenta "eu também gosto de …"); perfis sem tema usam até 3 interesses em comum; `lib/icebreaker.ts`) e botão Instagram (`https://instagram.com/<handle sem @>`). Nunca mostrar score, tipo do match ou o e-mail da outra pessoa.
 
-Avatar BLOP: cada pessoa tem um BLOP (SVG, `components/Blop.tsx`) com o acessório da categoria em que tem mais interesses (`lib/avatar.ts`).
+Avatar BLOP: cada pessoa tem um BLOP (imagens em `public/blop/<categoria>.webp`, `components/Blop.tsx`) vestido para a categoria em que tem mais interesses (`lib/avatar.ts`); sem categoria (ou comida, até haver imagem) mostra o BLOP simples (`plain.webp`).
 
 Todo o design é mobile-first, simples e limpo, com botões grandes.
 
@@ -85,8 +85,8 @@ Todo o design é mobile-first, simples e limpo, com botões grandes.
 Campos (todos obrigatórios, exceto "outro"):
 
 - `name` (primeiro nome)
-- `whatsapp` (com indicativo, ex.: +351…; validar formato E.164)
-- `instagram` (handle, sem @)
+- `whatsapp`: seletor de país (Portugal e Brasil no topo) + número com máscara ao escrever; tem de ser um telemóvel válido desse país (`lib/phone.ts`, libphonenumber-js `mobile`); gravado em E.164
+- `instagram` (handle, sem @), **opcional**: sem Instagram não há botão de Instagram para os matches nem pergunta de Instagram na review
 - `city` (texto livre)
 - `lang` (`en` | `pt`)
 - `age_range`: `18-24` | `25-30` | `31-35` | `36+`
@@ -95,7 +95,7 @@ Campos (todos obrigatórios, exceto "outro"):
 - `interests`: 3 a 6 itens por categoria (validar no cliente e no servidor)
 - `other_text`: um campo livre opcional por categoria (não entra no matching)
 - "What I want to talk about" (icebreaker mostrado aos matches, obrigatório no cadastro, não editável depois, não entra no matching): **exatamente um** de `talk_about_code` (um dos interesses que a pessoa marcou) ou `talk_about` (texto livre, até 140 caracteres numa linha)
-- `consent`: checkbox obrigatória: "I agree to share my first name, age range, city, interests, WhatsApp and Instagram with my matches, and to take part in this research study. I am 18 or older." + link para `/privacy`
+- `consent`: checkbox obrigatória: "I agree to share my first name, age range, city, interests, what I want to talk about, WhatsApp and Instagram (if given) with my matches, and to take part in this research study. I am 18 or older." + link para `/privacy`
 
 Os interesses são chips clicáveis agrupados por categoria, com um contador "2/6".
 
@@ -171,6 +171,7 @@ Uma review por pessoa por match. É um formulário de um só ecrã, com as pergu
 | `satisfaction_1_7` | Overall, how satisfied are you with this interaction? | 1–7 | talked = sim |
 | `meet_again_1_7` | How likely are you to talk or meet again? | 1–7 | talked = sim |
 | `met` | Did you meet in person? | `yes` / `planned` / `no` | talked = sim |
+| `ig_follow` | Do you follow each other on Instagram now? | `me` / `them` / `both` / `none` | as duas pessoas têm Instagram |
 | `comment` | Anything else? | texto, opcional | sempre |
 
 Derivado: `next_step = meet_again_1_7 >= 5 OR met IN ('yes','planned')`.
@@ -183,7 +184,10 @@ A lógica de cálculo fica em `lib/stats.ts` (funções puras com testes). Cada 
 
 No topo, um filtro **Reais / Seed / Tudo** (`?dados=`, padrão Reais) aplica-se a todos os blocos e às exportações CSV (com colunas `is_seed`); enquanto houver seed, um aviso lembra de o limpar antes de divulgar.
 
-1. **Placar das hipóteses:** um cartão por hipótese com o valor atual, a meta e o estado: "Acima da meta", "Abaixo da meta" ou "Dados insuficientes" (n < 15 em algum grupo).
+Abas: **Painel** e **Participantes** (`/admin/participantes`: cada pessoa com perfil, contactos, estado e os seus matches — com quem, compatível/controlo, itens em comum, review de cada lado e toques; pesquisa por nome/e-mail). No painel, "Como ler este painel" (definições: compatível, controlo, review, n, p.p., ρ, dados insuficientes) e uma linha de descrição em cada bloco; cada hipótese diz em linguagem simples o que testa e como se calcula.
+
+1. **Amostra** (primeiro bloco): participantes (ativos), matches (compatível/controlo), matches por pessoa (média e 0/1/2/3/4+), reviews e taxa de resposta; composição em % por faixa etária, tempo na cidade, origem, cidade e idioma; % de matches com ≥ 1 item em comum por categoria e com o mesmo perfil por característica, compatível vs controlo. Base: pessoas não anonimizadas e os matches entre elas.
+2. **Placar das hipóteses:** um cartão por hipótese com o valor atual, a meta e o estado: "Acima da meta", "Abaixo da meta" ou "Dados insuficientes" (n < 15 em algum grupo).
 
 | # | Métrica | Meta |
 | --- | --- | --- |
@@ -193,7 +197,6 @@ No topo, um filtro **Reais / Seed / Tudo** (`?dados=`, padrão Reais) aplica-se 
 | H3 | Maior diferença de satisfação média (com item partilhado na categoria − sem), entre categorias | ≥ 0,75 ponto |
 | H4 | `common_ground_1_7` compatível − controlo | ≥ 1,0 ponto |
 
-2. **Visão geral:** nº de participantes, de matches (compatível/controlo), de reviews e taxa de resposta.
 3. **Funil por grupo:** match → contacto → conversa → próximo passo → encontro (sim/combinado), em % lado a lado para compatível e controlo.
 4. **Notas médias 1–7 por grupo:** interesse, conforto, fluidez, coisas em comum, satisfação, vontade de repetir.
 5. **Por categoria (H3):** para cada categoria, satisfação média e % de conversa com vs. sem item partilhado nessa categoria, ordenadas pela diferença. Expandir para mostrar o detalhe por item.
@@ -202,7 +205,7 @@ No topo, um filtro **Reais / Seed / Tudo** (`?dados=`, padrão Reais) aplica-se 
 8. **Motivos de não contacto** (`why_not`) por grupo; **itens mais escolhidos**; respostas "outro".
 9. **Tabelas brutas** com exportação CSV: participantes, matches e reviews (cada review junta os dados do match e do perfil de quem respondeu).
 10. **Alertas de conteúdo** (`content_flags`): textos livres marcados pela verificação automática (ou que ficaram por verificar), com campo, categoria, razão e o texto; botão "marcar como visto" (`resolved_at`). Mostrar o texto e a razão só como texto.
-11. **Cliques nos botões de contacto** (mostrado logo a seguir ao funil, como "3b"; `contact_clicks`, primeiro toque por match, pessoa e canal): % de lados de match que tocaram em WhatsApp/Instagram (todos, por grupo, por canal) e o cruzamento com a review (tocou e contactou; tocou e não contactou = barreira, com motivos; não tocou e contactou, separado por quem tomou a iniciativa; nenhum dos dois; de quem tocou, quantos conversaram). Unidade: lado do match; só matches criados depois do início do rastreio e sem pessoas anonimizadas; só toques anteriores à review entram no cruzamento. Os CSV trazem a hora do primeiro toque e se foi antes da review.
+11. **Cliques nos botões de contacto** (mostrado logo a seguir ao funil, como "3b"; `contact_clicks`, primeiro toque por match, pessoa e canal): % de lados de match que tocaram em WhatsApp/Instagram (todos, por grupo, por canal) e o cruzamento com a review (tocou e contactou; tocou e não contactou = barreira, com motivos; não tocou e contactou, separado por quem tomou a iniciativa; nenhum dos dois; de quem tocou, quantos conversaram). Unidade: lado do match; só matches criados depois do início do rastreio e sem pessoas anonimizadas; só toques anteriores à review entram no cruzamento. A % de toques no Instagram conta só os lados em que a outra pessoa tem Instagram. Mostra também "Já se seguem no Instagram?" por grupo. Os CSV trazem a hora do primeiro toque, se foi antes da review e `ig_follow`.
 
 ---
 

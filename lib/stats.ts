@@ -32,6 +32,7 @@ export type ReviewRow = {
   meet_again_1_7: number | null;
   met: string | null;
   next_step: boolean;
+  ig_follow?: string | null; // null when not asked (one of the two has no Instagram)
 };
 
 export type ScoreField =
@@ -383,6 +384,7 @@ export type ContactClickInput = {
   matches: { id: string; type: Group; a_id: string; b_id: string; created_at: string }[];
   deleted: Set<string>; // anonymised participant ids
   seed?: Set<string>; // seed (fake) participant ids: their matches count even if older than the tracking
+  instagram?: Set<string>; // ids of people with Instagram (the button only shows for them); default: all
   clicks: { match_id: string; participant_id: string; channel: string; created_at: string }[];
   reviews: {
     match_id: string;
@@ -399,13 +401,16 @@ export type ContactClickInput = {
 // Unit: one side of a match (a person in a match). Sides of matches created before the
 // tracking started, or with an anonymised person (no buttons shown), are left out. In the
 // comparison with the review, only taps made before the review count.
-export function contactClicks({ matches, deleted, seed = new Set(), clicks, reviews, since = CONTACT_TRACKING_SINCE }: ContactClickInput) {
+export function contactClicks({ matches, deleted, seed = new Set(), instagram, clicks, reviews, since = CONTACT_TRACKING_SINCE }: ContactClickInput) {
   const sinceMs = new Date(since).getTime();
   const tracked = (m: { a_id: string; b_id: string; created_at: string }) =>
     new Date(m.created_at).getTime() >= sinceMs || (seed.has(m.a_id) && seed.has(m.b_id));
   const sides = matches
     .filter((m) => tracked(m) && !deleted.has(m.a_id) && !deleted.has(m.b_id))
-    .flatMap((m) => [m.a_id, m.b_id].map((person) => ({ match: m.id, person, type: m.type })));
+    .flatMap((m) => [
+      { match: m.id, person: m.a_id, other: m.b_id, type: m.type },
+      { match: m.id, person: m.b_id, other: m.a_id, type: m.type },
+    ]);
 
   const tapsOf = (match: string, person: string) => clicks.filter((c) => c.match_id === match && c.participant_id === person);
   const reviewOf = new Map(reviews.map((r) => [`${r.match_id}|${r.reviewer_id}`, r]));
@@ -416,7 +421,7 @@ export function contactClicks({ matches, deleted, seed = new Set(), clicks, revi
       const taps = tapsOf(s.match, s.person);
       const review = reviewOf.get(`${s.match}|${s.person}`);
       const tappedBefore = review ? taps.some((t) => new Date(t.created_at) <= new Date(review.created_at)) : false;
-      return { taps, review, tappedBefore };
+      return { taps, review, tappedBefore, otherHasInstagram: !instagram || instagram.has(s.other) };
     });
     const reviewed = enriched.filter((e) => e.review);
     const tappedAndReviewed = reviewed.filter((e) => e.tappedBefore);
@@ -425,7 +430,11 @@ export function contactClicks({ matches, deleted, seed = new Set(), clicks, revi
       sides: own.length,
       clicked: rate(enriched, (e) => e.taps.length > 0),
       whatsapp: rate(enriched, (e) => e.taps.some((t) => t.channel === 'whatsapp')),
-      instagram: rate(enriched, (e) => e.taps.some((t) => t.channel === 'instagram')),
+      // Only sides where the other person has Instagram (no button otherwise).
+      instagram: rate(
+        enriched.filter((e) => e.otherHasInstagram),
+        (e) => e.taps.some((t) => t.channel === 'instagram'),
+      ),
       reviewed: reviewed.length,
       clickedContacted: rate(reviewed, (e) => e.tappedBefore && e.review!.contacted),
       clickedNotContacted: rate(reviewed, (e) => e.tappedBefore && !e.review!.contacted),
@@ -441,6 +450,18 @@ export function contactClicks({ matches, deleted, seed = new Set(), clicks, revi
   };
 
   return { all: summarize('all'), compatible: summarize('compatible'), control: summarize('control') };
+}
+
+// --- "Do you follow each other on Instagram?" (asked only when both have Instagram) ---
+
+export const IG_FOLLOW_OPTIONS = ['me', 'them', 'both', 'none'] as const;
+
+export function igFollow(rows: ReviewRow[]) {
+  return IG_FOLLOW_OPTIONS.map((option) => ({
+    option,
+    compatible: rate(byGroup(rows, 'compatible').filter((r) => r.ig_follow), (r) => r.ig_follow === option),
+    control: rate(byGroup(rows, 'control').filter((r) => r.ig_follow), (r) => r.ig_follow === option),
+  }));
 }
 
 // --- Admin data filter: real people, seed (fake) data, or everything ---
@@ -467,5 +488,129 @@ export function filterAdminData<
     reviews: data.reviews.filter((r) => keep.has(r.reviewer_id)),
     flags: data.flags.filter((f) => keep.has(f.participant_id)),
     clicks: data.clicks.filter((c) => keep.has(c.participant_id)),
+  };
+}
+
+// --- Participants tab: each person's matches, with both sides' reviews and taps ---
+
+export function participantMatches<
+  M extends { id: string; a_id: string; b_id: string; created_at: string },
+  R extends { match_id: string; reviewer_id: string },
+  C extends { match_id: string; participant_id: string; channel: string },
+>({ matches, reviews, clicks }: { matches: M[]; reviews: R[]; clicks: C[] }) {
+  const reviewOf = new Map(reviews.map((r) => [`${r.match_id}|${r.reviewer_id}`, r]));
+  const tapsOf = new Map<string, string[]>();
+  for (const c of clicks) {
+    const key = `${c.match_id}|${c.participant_id}`;
+    if (!tapsOf.get(key)?.includes(c.channel)) tapsOf.set(key, [...(tapsOf.get(key) ?? []), c.channel]);
+  }
+  const byPerson = new Map<string, { match: M; other: string; mine: R | null; theirs: R | null; myTaps: string[]; theirTaps: string[] }[]>();
+  for (const match of [...matches].sort((a, b) => b.created_at.localeCompare(a.created_at))) {
+    for (const [me, other] of [
+      [match.a_id, match.b_id],
+      [match.b_id, match.a_id],
+    ]) {
+      byPerson.set(me, [
+        ...(byPerson.get(me) ?? []),
+        {
+          match,
+          other,
+          mine: reviewOf.get(`${match.id}|${me}`) ?? null,
+          theirs: reviewOf.get(`${match.id}|${other}`) ?? null,
+          myTaps: tapsOf.get(`${match.id}|${me}`) ?? [],
+          theirTaps: tapsOf.get(`${match.id}|${other}`) ?? [],
+        },
+      ]);
+    }
+  }
+  return byPerson;
+}
+
+// --- Sample overview (block 1): who the participants are and what their matches share ---
+
+export const SAMPLE_FIELDS = [
+  { key: 'age_range', label: 'Faixa etária' },
+  { key: 'time_in_city', label: 'Tempo na cidade' },
+  { key: 'origin', label: 'Origem' },
+  { key: 'city', label: 'Cidade' },
+  { key: 'lang', label: 'Idioma' },
+] as const;
+export type SampleField = (typeof SAMPLE_FIELDS)[number]['key'];
+
+type SamplePerson = { id: string; deleted_at: string | null; active: boolean } & Record<SampleField, string> & {
+    interests: string[];
+  };
+type SampleMatch = { a_id: string; b_id: string; type: Group; shared_count: number; shared_by_category: Partial<Record<string, number>> };
+
+const cityKey = (city: string) => city.trim().toLowerCase(); // same as segment()
+const share = (count: number, total: number): Stat => ({ value: total ? count / total : null, n: total });
+
+// Base: people not anonymised (seed included) and the matches between two of them.
+export function sample({ participants, matches, categories, cityTop = 6 }: {
+  participants: SamplePerson[];
+  matches: SampleMatch[];
+  categories: readonly string[];
+  cityTop?: number;
+}) {
+  const people = participants.filter((p) => !p.deleted_at);
+  const ids = new Set(people.map((p) => p.id));
+  const own = matches.filter((m) => ids.has(m.a_id) && ids.has(m.b_id));
+  const byId = new Map(people.map((p) => [p.id, p]));
+
+  const count = new Map<string, number>();
+  for (const m of own) for (const id of [m.a_id, m.b_id]) count.set(id, (count.get(id) ?? 0) + 1);
+  const perPerson = ['0', '1', '2', '3', '4+'].map((bucket, i) => ({
+    bucket,
+    share: share(people.filter((p) => (i === 4 ? (count.get(p.id) ?? 0) >= 4 : (count.get(p.id) ?? 0) === i)).length, people.length),
+  }));
+
+  const composition = SAMPLE_FIELDS.map(({ key, label }) => {
+    const tally = new Map<string, number>();
+    for (const p of people) {
+      const value = key === 'city' ? cityKey(p.city) : p[key];
+      tally.set(value, (tally.get(value) ?? 0) + 1);
+    }
+    let values = [...tally.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]));
+    if (key === 'city' && values.length > cityTop + 1) {
+      const rest = values.slice(cityTop).reduce((sum, [, n]) => sum + n, 0);
+      values = [...values.slice(0, cityTop), ['__other', rest]];
+    }
+    return { key, label, values: values.map(([value, n]) => ({ value, share: share(n, people.length) })) };
+  });
+
+  const groups = { compatible: own.filter((m) => m.type === 'compatible'), control: own.filter((m) => m.type === 'control') };
+  const perGroup = (pred: (m: SampleMatch) => boolean) => ({
+    compatible: share(groups.compatible.filter(pred).length, groups.compatible.length),
+    control: share(groups.control.filter(pred).length, groups.control.length),
+  });
+  const avg = (ms: SampleMatch[]): Stat => ({
+    value: ms.length ? ms.reduce((s, m) => s + m.shared_count, 0) / ms.length : null,
+    n: ms.length,
+  });
+
+  return {
+    people: people.length,
+    active: people.filter((p) => p.active).length,
+    matches: own.length,
+    compatible: groups.compatible.length,
+    control: groups.control.length,
+    perPersonMean: people.length ? (2 * own.length) / people.length : null,
+    perPerson,
+    interestsMean: people.length ? people.reduce((s, p) => s + p.interests.length, 0) / people.length : null,
+    composition,
+    sharedMean: { compatible: avg(groups.compatible), control: avg(groups.control) },
+    sharedByCategory: categories.map((category) => ({
+      category,
+      ...perGroup((m) => (m.shared_by_category[category] ?? 0) > 0),
+    })),
+    sameProfile: SAMPLE_FIELDS.map(({ key, label }) => ({
+      key,
+      label,
+      ...perGroup((m) => {
+        const a = byId.get(m.a_id)!;
+        const b = byId.get(m.b_id)!;
+        return key === 'city' ? cityKey(a.city) === cityKey(b.city) : a[key] === b[key];
+      }),
+    })),
   };
 }

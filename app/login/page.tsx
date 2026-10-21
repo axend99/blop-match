@@ -9,7 +9,8 @@ export default async function LoginPage({
   searchParams: Promise<{ error?: string }>;
 }) {
   await redirectIfLoggedIn();
-  const t = getDict(await getLang());
+  const lang = await getLang();
+  const t = getDict(lang);
   const { error } = await searchParams;
 
   return (
@@ -23,7 +24,7 @@ export default async function LoginPage({
           {t.login.authError}
         </p>
       )}
-      <LoginForm t={t.login} />
+      <LoginForm t={t.login} lang={lang} />
     </div>
   );
 }

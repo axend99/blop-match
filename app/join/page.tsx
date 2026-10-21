@@ -3,6 +3,7 @@ import JoinForm from '@/components/JoinForm';
 import { getMyParticipant, getUser } from '@/lib/auth';
 import { getDict } from '@/lib/i18n';
 import { getLang } from '@/lib/i18n/server';
+import { countryList } from '@/lib/phone';
 
 // The server action also runs matching and sends emails in after().
 export const maxDuration = 60;
@@ -19,7 +20,7 @@ export default async function JoinPage() {
         <h1 className="text-3xl font-bold">{t.join.title}</h1>
         <p className="text-midnight/70">{t.join.subtitle}</p>
       </div>
-      <JoinForm t={t.join} lang={lang} genericError={t.common.genericError} />
+      <JoinForm t={t.join} lang={lang} genericError={t.common.genericError} countries={countryList(lang)} />
     </div>
   );
 }

@@ -38,8 +38,13 @@ describe('whatsapp', () => {
     expect(normalizeWhatsapp('00351912345678')).toBe('+351912345678');
   });
 
-  it('accepts E.164 only', () => {
+  it('accepts valid mobile numbers in international form only', () => {
     expect(isValidWhatsapp('+351912345678')).toBe(true);
+    expect(isValidWhatsapp('+5511987654321')).toBe(true);
+    expect(isValidWhatsapp('+447911123456')).toBe(true);
+    expect(isValidWhatsapp('+351212345678')).toBe(false); // PT fixed line
+    expect(isValidWhatsapp('+551133334444')).toBe(false); // BR fixed line
+    expect(isValidWhatsapp('+35191234567')).toBe(false); // one digit short
     expect(isValidWhatsapp('912345678')).toBe(false);
     expect(isValidWhatsapp('+0351912345678')).toBe(false);
     expect(isValidWhatsapp('+12345')).toBe(false);
@@ -173,7 +178,21 @@ describe('validateProfile', () => {
       expect(result.errors.name).toBe('required');
       expect(result.errors.city).toBe('tooLong');
       expect(result.errors.whatsapp).toBe('whatsapp');
-      expect(result.errors.instagram).toBe('required');
+      expect(result.errors.instagram).toBeUndefined();
     }
+  });
+});
+
+describe('optional instagram', () => {
+  it('stores an empty handle as null and still checks a given one', () => {
+    const empty = withInput({ instagram: '  ' });
+    expect(empty.ok && empty.data.instagram).toBeNull();
+    const bad = withInput({ instagram: 'ana silva' });
+    expect(bad.ok || bad.errors.instagram).toBe('instagram');
+  });
+
+  it('stores WhatsApp numbers as E.164', () => {
+    const r = withInput({ whatsapp: '0055 (11) 98765-4321' });
+    expect(r.ok && r.data.whatsapp).toBe('+5511987654321');
   });
 });

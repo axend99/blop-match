@@ -6,6 +6,7 @@ import {
   type Category,
 } from '@/lib/interests';
 import { isLang, type Lang } from '@/lib/i18n';
+import { toWhatsapp } from '@/lib/phone';
 
 export const AGE_RANGES = ['18-24', '25-30', '31-35', '36+'] as const;
 export const TIMES_IN_CITY = ['lt6m', '6-24m', '2y+', 'always'] as const;
@@ -20,8 +21,6 @@ export const MAX_CITY = 80;
 export const MAX_OTHER = 100;
 export const MAX_TALK_ABOUT = 140;
 
-// Same rule as the participants.whatsapp check in the migration (E.164).
-const WHATSAPP_RE = /^\+[1-9][0-9]{6,14}$/;
 const INSTAGRAM_RE = /^[a-z0-9._]{1,30}$/;
 
 export type ProfileInput = {
@@ -43,7 +42,7 @@ export type ProfileInput = {
 export type Profile = {
   name: string;
   whatsapp: string;
-  instagram: string;
+  instagram: string | null;
   city: string;
   lang: Lang;
   age_range: AgeRange;
@@ -65,8 +64,9 @@ export function normalizeWhatsapp(value: string): string {
   return compact.startsWith('00') ? `+${compact.slice(2)}` : compact;
 }
 
+// A valid mobile number in international form (stored as E.164, as the DB check requires).
 export function isValidWhatsapp(value: string): boolean {
-  return WHATSAPP_RE.test(value);
+  return value.startsWith('+') && toWhatsapp(value) !== null;
 }
 
 export function normalizeInstagram(value: string): string {
@@ -114,13 +114,14 @@ export function validateProfile(input: ProfileInput): ValidationResult {
   if (!city) errors.city = 'required';
   else if (city.length > MAX_CITY) errors.city = 'tooLong';
 
-  const whatsapp = normalizeWhatsapp(str(input.whatsapp));
-  if (!whatsapp) errors.whatsapp = 'required';
-  else if (!isValidWhatsapp(whatsapp)) errors.whatsapp = 'whatsapp';
+  const typed = normalizeWhatsapp(str(input.whatsapp));
+  const whatsapp = isValidWhatsapp(typed) ? toWhatsapp(typed)! : typed;
+  if (!typed) errors.whatsapp = 'required';
+  else if (!isValidWhatsapp(typed)) errors.whatsapp = 'whatsapp';
 
-  const instagram = normalizeInstagram(str(input.instagram));
-  if (!instagram) errors.instagram = 'required';
-  else if (!isValidInstagram(instagram)) errors.instagram = 'instagram';
+  // Optional: an empty handle is stored as null (no Instagram button, no Instagram question).
+  const instagram = normalizeInstagram(str(input.instagram)) || null;
+  if (instagram && !isValidInstagram(instagram)) errors.instagram = 'instagram';
 
   if (!isLang(input.lang)) errors.lang = 'required';
   if (!oneOf(AGE_RANGES, str(input.age_range))) errors.age_range = 'required';

@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import BackLink from '@/components/BackLink';
 import LeaveStudy from '@/components/LeaveStudy';
 import { getMyParticipant, getUser } from '@/lib/auth';
 import { getDict } from '@/lib/i18n';
@@ -13,6 +14,7 @@ export default async function AboutPage() {
 
   return (
     <article className="space-y-6">
+      <BackLink t={t} />
       <h1 className="text-3xl font-bold">{t.about.title}</h1>
 
       <section className="space-y-1">

@@ -1,4 +1,5 @@
 import 'server-only';
+import { isE2eEmail } from '@/lib/e2eUsers';
 import { filterAdminData, type DataMode, type ReviewRow } from '@/lib/stats';
 import { createServiceClient } from '@/lib/supabase/service';
 
@@ -80,12 +81,13 @@ export async function loadAdminData(mode: DataMode) {
     all<AdminMatch>('matches', 'id, a_id, b_id, type, score, shared_items, shared_count, shared_by_category, created_at'),
     all<AdminReview>(
       'reviews',
-      'id, match_id, reviewer_id, contacted, interest_1_7, who_first, comfort_1_7, why_not, talked, flow_1_7, common_ground_1_7, satisfaction_1_7, meet_again_1_7, met, comment, next_step, created_at',
+      'id, match_id, reviewer_id, contacted, interest_1_7, who_first, comfort_1_7, why_not, talked, flow_1_7, common_ground_1_7, satisfaction_1_7, meet_again_1_7, met, ig_follow, comment, next_step, created_at',
     ),
     all<AdminFlag>('content_flags', 'id, participant_id, match_id, field, text, status, category, reason, created_at, resolved_at'),
     all<AdminClick>('contact_clicks', 'match_id, participant_id, channel, created_at'),
   ]);
   const seedCount = allParticipants.filter((p) => p.is_seed).length;
+  const e2eCount = allParticipants.filter((p) => isE2eEmail(p.email)).length;
   const { participants, matches, reviews, flags, clicks } = filterAdminData(
     { participants: allParticipants, matches: allMatches, reviews: allReviews, flags: allFlags, clicks: allClicks },
     mode,
@@ -125,5 +127,5 @@ export async function loadAdminData(mode: DataMode) {
     if (!firstTap.has(key) || c.created_at < firstTap.get(key)!) firstTap.set(key, c.created_at);
   }
 
-  return { participants, matches, reviews, flags, clicks, tapped, firstTap, rows, personById, matchById, seedCount };
+  return { participants, matches, reviews, flags, clicks, tapped, firstTap, rows, personById, matchById, seedCount, e2eCount };
 }

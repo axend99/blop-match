@@ -21,7 +21,7 @@ describe('validateReview', () => {
     const result = validateReview(TALKED);
     expect(result).toEqual({
       ok: true,
-      data: { ...TALKED, why_not: null, comment: 'Great chat' },
+      data: { ...TALKED, why_not: null, ig_follow: null, comment: 'Great chat' },
     });
   });
 
@@ -55,6 +55,7 @@ describe('validateReview', () => {
       satisfaction_1_7: null,
       meet_again_1_7: null,
       met: null,
+      ig_follow: null,
       comment: null,
     });
   });
@@ -177,5 +178,18 @@ describe('one hour of slack for the hourly cron window', () => {
     process.env.REVIEW_DELAY_DAYS = '0';
     expect(reviewOpensAt(created).toISOString()).toBe('2026-10-20T10:00:00.000Z');
     delete process.env.REVIEW_DELAY_DAYS;
+  });
+});
+
+describe('Instagram question', () => {
+  it('is required only when asked, and dropped otherwise', () => {
+    const missing = validateReview(TALKED, { askInstagram: true });
+    expect(missing.ok || missing.errors.ig_follow).toBe('required');
+    const asked = validateReview({ ...TALKED, ig_follow: 'both' }, { askInstagram: true });
+    expect(asked.ok && asked.data.ig_follow).toBe('both');
+    const notAsked = validateReview({ ...TALKED, ig_follow: 'both' });
+    expect(notAsked.ok && notAsked.data.ig_follow).toBeNull();
+    const bad = validateReview({ ...TALKED, ig_follow: 'maybe' }, { askInstagram: true });
+    expect(bad.ok).toBe(false);
   });
 });

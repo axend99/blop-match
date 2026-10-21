@@ -13,7 +13,7 @@ const PEOPLE = 100;
 const SEED = 2026;
 const DAY = 24 * 60 * 60 * 1000;
 
-const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const url = process.env.NEXT_PUBLIC_SUPABASE_URL?.replace(/\/rest\/v1\/?$/, ''); // some shells export the REST endpoint
 const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
 if (!url || !key) {
   console.error('Faltam NEXT_PUBLIC_SUPABASE_URL e SUPABASE_SERVICE_ROLE_KEY (.env.local).');
@@ -78,9 +78,8 @@ async function seed() {
     db
       .from('participants')
       .insert(
-        people.map(({ key, created, ...p }) => ({
+        people.map(({ created, ...p }) => ({
           ...p,
-          instagram: key,
           is_seed: true,
           active: false,
           user_id: null,
@@ -89,13 +88,14 @@ async function seed() {
           created_at: at(created),
         })),
       )
-      .select('id, instagram, created_at'),
+      .select('id, whatsapp, created_at'),
   );
-  const idOf = new Map(inserted.map((r) => [r.instagram as string, r.id as string]));
+  const idOf = new Map(inserted.map((r) => [r.whatsapp as string, r.id as string])); // fake numbers are unique
+  const hasInstagram = new Set(people.filter((p) => p.instagram).map((p) => idOf.get(p.whatsapp)!));
 
   // 2. Matching with the real rules, only among seed people (active only in memory).
   const pool: Candidate[] = people.map((p) => ({
-    id: idOf.get(p.key)!,
+    id: idOf.get(p.whatsapp)!,
     interests: p.interests,
     active: true,
     createdAt: at(p.created),
@@ -127,8 +127,12 @@ async function seed() {
   for (const m of matches) {
     const created = new Date(m.created_at).getTime();
     const opens = created + delay * DAY - REVIEW_GRACE_MS;
-    for (const person of [m.a_id, m.b_id]) {
-      const answers = rng() < 0.75 ? seedReview(rng, m.type, m.shared_count) : null;
+    for (const [person, other] of [
+      [m.a_id, m.b_id],
+      [m.b_id, m.a_id],
+    ]) {
+      const both = hasInstagram.has(person) && hasInstagram.has(other);
+      const answers = rng() < 0.75 ? seedReview(rng, m.type, m.shared_count, both) : null;
       const reviewedAt = answers ? between(Math.max(opens, created), now - 60_000) : now;
       if (answers) reviews.push({ ...answers, match_id: m.id, reviewer_id: person, created_at: at(reviewedAt) });
       const tapP = answers ? (answers.contacted ? 0.85 : 0.3) : 0.5;
@@ -136,7 +140,7 @@ async function seed() {
         clicks.push({
           match_id: m.id,
           participant_id: person,
-          channel: rng() < 0.75 ? 'whatsapp' : 'instagram',
+          channel: hasInstagram.has(other) && rng() < 0.25 ? 'instagram' : 'whatsapp', // no button without Instagram
           created_at: at(between(created, reviewedAt)),
         });
       }

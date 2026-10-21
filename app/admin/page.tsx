@@ -1,7 +1,8 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { adminSignOut, resolveFlag } from '@/app/admin/actions';
+import { resolveFlag } from '@/app/admin/actions';
+import AdminNav from '@/components/admin/AdminNav';
 import DoseChart from '@/components/admin/DoseChart';
 import FunnelChart from '@/components/admin/FunnelChart';
 import { isAdmin } from '@/lib/admin';
@@ -9,7 +10,8 @@ import { loadAdminData } from '@/lib/adminData';
 import { interestLabel } from '@/lib/i18n';
 import pt from '@/lib/i18n/pt';
 import { REVIEW_GRACE_MS } from '@/lib/review';
-import { reviewDelayDays } from '@/lib/site';
+import { matchingConfig, reviewDelayDays } from '@/lib/site';
+import { CATEGORIES } from '@/lib/interests';
 import {
   MIN_N,
   SEGMENTS,
@@ -23,9 +25,11 @@ import {
   doseResponse,
   funnel,
   hypotheses,
+  igFollow,
   otherAnswers,
   overview,
   scores,
+  sample,
   segment,
   topItems,
   whyNot,
@@ -52,6 +56,7 @@ const SEGMENT_VALUE: Record<string, Record<string, string>> = {
   lang: { en: 'Inglês', pt: 'Português' },
 };
 const WHY_NOT_LABEL: Record<string, string> = pt.review.whyNotOptions;
+const IG_FOLLOW_LABEL: Record<string, string> = pt.review.igFollowOptions;
 const FLAG_CATEGORY: Record<string, string> = {
   sexual: 'sexual',
   obscene: 'obsceno',
@@ -75,13 +80,45 @@ const STATUS: Record<Hypothesis['status'], { label: string; className: string }>
   below: { label: 'Abaixo da meta', className: 'bg-pink/60 text-midnight' },
   insufficient: { label: 'Dados insuficientes', className: 'bg-midnight/10 text-midnight/70' },
 };
-const TARGETS: Record<Hypothesis['id'], { title: string; target: string }> = {
-  H0: { title: 'Taxa de contacto', target: '≥ 40%' },
-  H1: { title: 'Compatível conversa mais e fica mais satisfeito', target: '≥ +15 p.p. e ≥ +1,0 ponto' },
-  H2: { title: 'Mais itens em comum, mais satisfação', target: 'ρ ≥ 0,3' },
-  H3: { title: 'Categoria com mais efeito', target: '≥ +0,75 ponto' },
-  H4: { title: 'Sensação de coisas em comum', target: '≥ +1,0 ponto' },
+// What each hypothesis asks and how its number is computed, in plain words.
+const TARGETS: Record<Hypothesis['id'], { title: string; target: string; question: string; how: string }> = {
+  H0: {
+    title: 'Taxa de contacto',
+    target: '≥ 40%',
+    question: 'As pessoas chegam a falar com o match?',
+    how: '% de todas as reviews (dos dois grupos) em que houve contacto.',
+  },
+  H1: {
+    title: 'Compatível conversa mais e fica mais satisfeito',
+    target: '≥ +15 p.p. e ≥ +1,0 ponto',
+    question: 'Os matches compatíveis funcionam melhor do que os de controlo?',
+    how: 'Diferença compatível − controlo em duas coisas: a % que teve uma conversa (sobre todas as reviews do grupo; sem resposta conta como não) e a satisfação média de 1 a 7 (só de quem conversou).',
+  },
+  H2: {
+    title: 'Mais itens em comum, mais satisfação',
+    target: 'ρ ≥ 0,3',
+    question: 'Quanto mais interesses em comum, maior a satisfação?',
+    how: 'Correlação de Spearman entre o nº de itens em comum e a satisfação, em todas as reviews com satisfação (só quem conversou).',
+  },
+  H3: {
+    title: 'Categoria com mais efeito',
+    target: '≥ +0,75 ponto',
+    question: 'Que tipo de interesse em comum pesa mais?',
+    how: 'Por categoria: satisfação de quem partilha pelo menos um item dessa categoria − de quem não partilha (só quem conversou). Mostra a maior diferença entre as categorias com n ≥ 15 dos dois lados (pode ser negativa).',
+  },
+  H4: {
+    title: 'Sensação de coisas em comum',
+    target: '≥ +1,0 ponto',
+    question: 'Quem tem um match compatível sente que tem mais em comum?',
+    how: 'Diferença compatível − controlo na nota "temos coisas em comum" (1 a 7, só de quem conversou).',
+  },
 };
+
+function compositionLabel(key: string, value: string) {
+  if (value === '__other') return 'Outras';
+  if (key === 'city') return value.charAt(0).toUpperCase() + value.slice(1);
+  return SEGMENT_VALUE[key]?.[value] ?? value;
+}
 
 function hValue(v: Hypothesis['values'][number]) {
   if (v.kind === 'pct') return pct(v.value);
@@ -112,13 +149,26 @@ function MeanCell({ s }: { s: Stat }) {
   );
 }
 
-function Section({ n, title, children }: { n: number | string; title: string; children: React.ReactNode }) {
+function Section({
+  n,
+  title,
+  description,
+  children,
+}: {
+  n: number | string;
+  title: string;
+  description?: string;
+  children: React.ReactNode;
+}) {
   return (
     <section className="space-y-3 rounded-3xl bg-white p-4 sm:p-6">
-      <h2 className="text-lg font-semibold">
-        <span className="mr-2 text-midnight/40">{n}.</span>
-        {title}
-      </h2>
+      <div>
+        <h2 className="text-lg font-semibold">
+          <span className="mr-2 text-midnight/40">{n}.</span>
+          {title}
+        </h2>
+        {description && <p className="text-sm text-midnight/60">{description}</p>}
+      </div>
       {children}
     </section>
   );
@@ -149,7 +199,7 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
   const mode = dataMode(dados);
   const segmentGroup: Group | 'all' = grupo === 'compativel' ? 'compatible' : grupo === 'controlo' ? 'control' : 'all';
 
-  const { participants, matches, reviews, flags, clicks, rows, personById, seedCount } = await loadAdminData(mode);
+  const { participants, matches, reviews, flags, clicks, rows, personById, seedCount, e2eCount } = await loadAdminData(mode);
   const seedShown = participants.filter((p) => p.is_seed).length;
   // Keeps both filters in links.
   const link = (params: { grupo?: string; dados?: DataMode }, hash = '') =>
@@ -163,6 +213,8 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
     delayDays: reviewDelayDays(),
     graceMs: REVIEW_GRACE_MS,
   });
+  const smp = sample({ participants, matches, categories: CATEGORIES });
+  const minShared = matchingConfig().minSharedCompatible;
   const byNewest = (a?: string | null, b?: string | null) => (b ?? '').localeCompare(a ?? '');
   const openFlags = flags.filter((f) => !f.resolved_at).sort((a, b) => byNewest(a.created_at, b.created_at));
   const doneFlags = flags
@@ -173,44 +225,128 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
   return (
     // Wider than the participant layout on desktop.
     <div className="relative left-1/2 w-[calc(100vw-2rem)] max-w-6xl -translate-x-1/2 space-y-6 text-midnight">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-3xl font-bold">Painel do estudo</h1>
-        <form action={adminSignOut}>
-          <button className="rounded-full border border-midnight/20 bg-white px-4 py-2 text-sm font-medium">Sair do admin</button>
-        </form>
-      </div>
-      {(seedCount > 0 || mode !== 'reais') && (
-        <div className="flex flex-wrap items-center gap-2 rounded-2xl bg-lime/40 p-3 text-sm">
-          <span className="font-medium">Dados:</span>
-          {(
-            [
-              ['reais', 'Reais'],
-              ['seed', 'Seed'],
-              ['tudo', 'Tudo'],
-            ] as const
-          ).map(([value, label]) => (
-            <Link
-              key={value}
-              href={link({ dados: value })}
-              className={`rounded-full border px-3 py-1 ${mode === value ? 'border-violet bg-violet text-white' : 'border-midnight/20 bg-white'}`}
-            >
-              {label}
-            </Link>
-          ))}
-          {seedCount > 0 && (
-            <span className="text-midnight/70">
-              Há {seedCount} participantes de seed (dados falsos). Limpe com <code>npm run seed:clean</code> antes de divulgar.
-            </span>
-          )}
-        </div>
-      )}
+      <AdminNav tab="painel" mode={mode} href={(dados) => link({ dados })} seedCount={seedCount} e2eCount={e2eCount} />
       {openFlags.length > 0 && (
         <a href="#alertas" className="block rounded-2xl bg-pink/50 p-4 font-medium">
           ⚠️ {openFlags.length} {openFlags.length === 1 ? 'alerta de conteúdo por ver' : 'alertas de conteúdo por ver'}
         </a>
       )}
 
-      <Section n={1} title="Placar das hipóteses">
+      <details className="rounded-3xl bg-white p-4 text-sm sm:px-6">
+        <summary className="cursor-pointer font-semibold">Como ler este painel</summary>
+        <ul className="mt-3 list-disc space-y-1.5 pl-5 text-midnight/80">
+          <li>
+            <b>Match compatível</b>: a pessoa mais parecida entre as que partilham pelo menos {minShared} interesses. <b>Match de
+            controlo</b>: sorteado entre quem não tem nenhum interesse em comum (se não houver ninguém, a pessoa menos parecida). O
+            controlo serve de comparação: mostra o que acontece sem interesses em comum.
+          </li>
+          <li>
+            <b>Review</b>: uma pessoa a avaliar um match, {reviewDelayDays()} dias depois. Cada match dá até 2 reviews (uma de cada
+            lado).
+          </li>
+          <li>
+            As perguntas de satisfação, fluidez, &quot;coisas em comum&quot; e &quot;voltar a encontrar&quot; (notas de 1 a 7) só
+            são feitas a quem <b>conversou</b>; as médias são só dessas pessoas.
+          </li>
+          <li>
+            <b>n</b>: quantas respostas entram no número. <b>p.p.</b> (pontos percentuais): diferença entre duas percentagens
+            (ex.: 60% − 45% = +15 p.p.).
+          </li>
+          <li>
+            <b>ρ de Spearman</b>: de −1 a 1. Positivo = mais itens em comum anda junto com mais satisfação; 0 = sem relação. A meta é
+            ≥ 0,3.
+          </li>
+          <li>
+            <b>Dados insuficientes</b>: menos de {MIN_N} respostas em alguma das contagens usadas (ver o n de cada cartão).
+          </li>
+        </ul>
+      </details>
+
+      <Section
+        n={1}
+        title="Amostra"
+        description="Quem participa, quantos matches foram criados e o que os pares têm em comum."
+      >
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+          {[
+            ['Participantes', `${smp.people}`, `${smp.active} ativos${mode === 'tudo' && seedShown ? ` · ${seedShown} de seed` : ''}`],
+            ['Matches', `${smp.matches}`, `${smp.compatible} compatíveis · ${smp.control} controlo`],
+            [
+              'Matches por pessoa',
+              num(smp.perPersonMean, 1),
+              'cada match conta para as duas pessoas (máx. 4: 3 compatíveis + 1 controlo)',
+            ],
+            ['Reviews', `${o.reviews}`, `taxa de resposta ${pct(o.responseRate.value)} (n = ${o.responseRate.n}: matches já abertos × 2)`],
+          ].map(([label, value, sub]) => (
+            <div key={label} className="rounded-2xl bg-paper p-3">
+              <p className="text-xs uppercase tracking-wide text-midnight/60">{label}</p>
+              <p className="text-2xl font-bold tabular-nums">{value}</p>
+              <p className="text-xs text-midnight/50">{sub}</p>
+            </div>
+          ))}
+        </div>
+        {smp.people > 0 && (
+          <p className="text-sm">
+            <span className="text-midnight/60">Nº de matches por pessoa: </span>
+            {smp.perPerson.map((b) => `${b.bucket}: ${pct(b.share.value)}`).join(' · ')}
+            <span className="text-midnight/60"> · média de {num(smp.interestsMean, 1)} interesses escolhidos por pessoa</span>
+          </p>
+        )}
+
+        <h3 className="pt-2 text-sm font-semibold">Quem são (% dos participantes)</h3>
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 [&>*]:min-w-0">
+          {smp.composition.map((c) => (
+            <div key={c.key}>
+              <h4 className="mb-1 text-xs font-semibold uppercase tracking-wide text-midnight/60">{c.label}</h4>
+              <Table head={['', '%']}>
+                {c.values.map((v) => (
+                  <tr key={v.value}>
+                    <td className="px-2 py-1">{compositionLabel(c.key, v.value)}</td>
+                    <PctCell s={v.share} />
+                  </tr>
+                ))}
+              </Table>
+            </div>
+          ))}
+        </div>
+
+        <h3 className="pt-2 text-sm font-semibold">O que os pares têm em comum (% dos matches de cada grupo)</h3>
+        <div className="grid gap-4 lg:grid-cols-2 [&>*]:min-w-0">
+          <Table head={['Interesses', 'Compatível', 'Controlo']}>
+            <tr>
+              <td className="px-2 py-1.5">Média de itens em comum</td>
+              <MeanCell s={smp.sharedMean.compatible} />
+              <MeanCell s={smp.sharedMean.control} />
+            </tr>
+            {smp.sharedByCategory.map((c) => (
+              <tr key={c.category}>
+                <td className="px-2 py-1.5">Pelo menos 1 em {CATEGORY_LABEL[c.category]}</td>
+                <PctCell s={c.compatible} />
+                <PctCell s={c.control} />
+              </tr>
+            ))}
+          </Table>
+          <Table head={['Mesmo perfil', 'Compatível', 'Controlo']}>
+            {smp.sameProfile.map((f) => (
+              <tr key={f.key}>
+                <td className="px-2 py-1.5">{f.label}</td>
+                <PctCell s={f.compatible} />
+                <PctCell s={f.control} />
+              </tr>
+            ))}
+          </Table>
+        </div>
+        <p className="text-xs text-midnight/60">
+          Base: participantes não anonimizados e os matches entre eles (matches com pessoas que pediram para apagar os dados não
+          contam aqui). O controlo partilha poucos interesses por desenho; o perfil (idade, cidade…) não entra no matching.
+        </p>
+      </Section>
+
+      <Section
+        n={2}
+        title="Placar das hipóteses"
+        description="As perguntas do estudo. Cada cartão diz o que testa, como se calcula e se já passou a meta."
+      >
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {hypotheses(rows).map((h) => (
             <div key={h.id} className="space-y-2 rounded-2xl border border-midnight/10 p-4">
@@ -222,6 +358,7 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
                   {STATUS[h.status].label}
                 </span>
               </div>
+              <p className="text-sm">{TARGETS[h.id].question}</p>
               {h.category && <p className="text-sm font-medium">{CATEGORY_LABEL[h.category]}</p>}
               {h.values.map((v) => (
                 <p key={v.label}>
@@ -230,6 +367,7 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
                 </p>
               ))}
               <p className="text-sm text-midnight/60">Meta: {TARGETS[h.id].target}</p>
+              <p className="text-xs text-midnight/60">{TARGETS[h.id].how}</p>
               <p className="text-xs text-midnight/50">{h.ns.map((x) => `${x.label}: n = ${x.n}`).join(' · ') || 'n = 0'}</p>
             </div>
           ))}
@@ -241,28 +379,7 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
         </p>
       </Section>
 
-      <Section n={2} title="Visão geral">
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-          {[
-            [
-              'Participantes',
-              `${o.participants}`,
-              `${o.activeParticipants} ativos${seedShown ? ` · ${seedShown} de seed (inativos por desenho)` : ''}`,
-            ],
-            ['Matches', `${o.compatibleMatches + o.controlMatches}`, `${o.compatibleMatches} comp. · ${o.controlMatches} ctrl.`],
-            ['Reviews', `${o.reviews}`, ''],
-            ['Taxa de resposta', pct(o.responseRate.value), `n = ${o.responseRate.n} (matches já abertos × 2)`],
-          ].map(([label, value, sub]) => (
-            <div key={label} className="rounded-2xl bg-paper p-3">
-              <p className="text-xs uppercase tracking-wide text-midnight/60">{label}</p>
-              <p className="text-2xl font-bold tabular-nums">{value}</p>
-              <p className="text-xs text-midnight/50">{sub}</p>
-            </div>
-          ))}
-        </div>
-      </Section>
-
-      <Section n={3} title="Funil por grupo">
+      <Section n={3} title="Funil por grupo" description="De todas as reviews de cada grupo, que % chegou a cada etapa: contacto, conversa, próximo passo (quer voltar a ver ou já combinou) e encontro.">
         {(() => {
           const f = funnel(rows);
           return (
@@ -289,12 +406,13 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
         })()}
       </Section>
 
-      <Section n="3b" title="Cliques nos botões de contacto (tentativas de contacto)">
+      <Section n="3b" title="Cliques nos botões de contacto (tentativas de contacto)" description="Quem tocou no botão de WhatsApp ou Instagram na página do match, e como isso se compara com o que disse na review.">
         {(() => {
           const cc = contactClicks({
             matches,
             deleted: new Set(participants.filter((p) => p.deleted_at).map((p) => p.id)),
             seed: new Set(participants.filter((p) => p.is_seed).map((p) => p.id)),
+            instagram: new Set(participants.filter((p) => p.instagram).map((p) => p.id)),
             clicks,
             reviews: rows.map((r) => ({ ...r.review, match_id: r.match_id })),
           });
@@ -313,7 +431,7 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
               <Table head={['', 'Todos', 'Compatível', 'Controlo']}>
                 {line('Tocou em algum botão', (c) => c.clicked)}
                 {line('Tocou no WhatsApp', (c) => c.whatsapp)}
-                {line('Tocou no Instagram', (c) => c.instagram)}
+                {line('Tocou no Instagram (se a outra pessoa tem)', (c) => c.instagram)}
               </Table>
               <h3 className="pt-2 text-sm font-semibold">Toque × resposta da review (lados com review; toques antes da review)</h3>
               <Table head={['', 'Todos', 'Compatível', 'Controlo']}>
@@ -323,6 +441,16 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
                 {line('Não tocou, a outra pessoa contactou', (c) => c.notClickedContactedThem)}
                 {line('Nem tocou nem houve contacto', (c) => c.neither)}
                 {line('De quem tocou: teve conversa', (c) => c.clickedThenTalked)}
+              </Table>
+              <h3 className="pt-2 text-sm font-semibold">Já se seguem no Instagram? (reviews em que as duas pessoas têm Instagram)</h3>
+              <Table head={['', 'Compatível', 'Controlo']}>
+                {igFollow(rows).map((f) => (
+                  <tr key={f.option}>
+                    <td className="px-2 py-1.5">{IG_FOLLOW_LABEL[f.option]}</td>
+                    <PctCell s={f.compatible} />
+                    <PctCell s={f.control} />
+                  </tr>
+                ))}
               </Table>
               <p className="text-sm">
                 Motivos na barreira (todos):{' '}
@@ -343,7 +471,7 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
         })()}
       </Section>
 
-      <Section n={4} title="Notas médias (1–7) por grupo">
+      <Section n={4} title="Notas médias (1–7) por grupo" description="Média de cada pergunta de 1 (nada) a 7 (muito). As que vêm depois de &quot;conversaram?&quot; são só de quem conversou.">
         <Table head={['Pergunta', 'Compatível', 'Controlo']}>
           {scores(rows).map((s) => (
             <tr key={s.field}>
@@ -355,7 +483,7 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
         </Table>
       </Section>
 
-      <Section n={5} title="Por categoria (H3)">
+      <Section n={5} title="Por categoria (H3)" description="Para cada categoria de interesses: satisfação e % de conversa quando o par partilha pelo menos um item dela, e quando não partilha.">
         <Table head={['Categoria', 'Satisfação com', 'Satisfação sem', 'Diferença', 'Conversa com', 'Conversa sem']}>
           {byCategory(rows).map((c) => (
             <tr key={c.category}>
@@ -386,7 +514,7 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
         <p className="text-xs text-midnight/60">&quot;Com&quot; = o match partilha pelo menos um item da categoria. Toque na categoria para ver o detalhe por item.</p>
       </Section>
 
-      <Section n={6} title="Por segmento">
+      <Section n={6} title="Por segmento" description="Os mesmos números partidos pelo perfil de quem respondeu (idade, tempo na cidade, origem…).">
         <div className="flex flex-wrap gap-2 text-sm">
           {[
             ['todos', 'Todos'],
@@ -426,7 +554,7 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
         </div>
       </Section>
 
-      <Section n={7} title="Dose-resposta (H2): satisfação por nº de itens em comum">
+      <Section n={7} title="Dose-resposta (H2): satisfação por nº de itens em comum" description="Satisfação média (só quem conversou) consoante o nº de interesses que o par tem em comum. Se a hipótese H2 estiver certa, sobe da esquerda para a direita.">
         {(() => {
           const d = doseResponse(rows);
           return (
@@ -445,7 +573,7 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
         })()}
       </Section>
 
-      <Section n={8} title="Motivos, itens e respostas “outro”">
+      <Section n={8} title="Motivos, itens e respostas “outro”" description="Porque é que quem não contactou não o fez, os interesses mais escolhidos e o que as pessoas escreveram em &quot;Outro&quot;.">
         <div className="grid gap-4 lg:grid-cols-3 [&>*]:min-w-0">
           <div>
             <h3 className="mb-1 text-sm font-semibold">Motivos de não contacto</h3>
@@ -487,7 +615,7 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
         </div>
       </Section>
 
-      <Section n={9} title="Tabelas brutas (CSV)">
+      <Section n={9} title="Tabelas brutas (CSV)" description="Os dados completos para abrir no Excel ou noutra ferramenta (respeitam o filtro Reais/Seed/Tudo).">
         <div className="flex flex-wrap gap-2">
           {[
             ['participantes', `Participantes (${participants.length})`],
@@ -503,7 +631,7 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
       </Section>
 
       <section id="alertas">
-        <Section n={10} title={`Alertas de conteúdo (${openFlags.length} por ver)`}>
+        <Section n={10} title={`Alertas de conteúdo (${openFlags.length} por ver)`} description="Textos escritos pelos participantes que a verificação automática (IA) marcou como possivelmente impróprios. Nada é bloqueado; só avisa.">
           {openFlags.length === 0 && <p className="text-sm text-midnight/60">Nenhum alerta por ver.</p>}
           <ul className="space-y-3">
             {openFlags.map((f) => (

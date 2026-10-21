@@ -9,6 +9,8 @@ const pt: Dict = {
   common: {
     signOut: 'Sair',
     genericError: 'Algo correu mal. Tenta outra vez.',
+    backHome: 'Início',
+    backToJoin: 'Voltar ao meu perfil',
   },
   home: {
     tagline: 'People happen here',
@@ -17,13 +19,13 @@ const pt: Dict = {
     howTitle: 'Como funciona',
     steps: [
       'Entra e conta-nos um pouco sobre ti e os teus interesses (cerca de 5 minutos).',
-      'Enviamos-te um e-mail quando tiveres um match. Vais ver o primeiro nome dessa pessoa, o que têm em comum, o WhatsApp e o Instagram.',
+      'Enviamos-te um e-mail quando tiveres um match. Vais ver o primeiro nome dessa pessoa, o que têm em comum, o WhatsApp e o Instagram (se o tiver indicado).',
       'Mete conversa e, se houver química, combinem um encontro.',
     ],
     review: (days: number) =>
       `${days} ${days === 1 ? 'dia' : 'dias'} depois de cada match, pedimos-te que avalies a interação. Demora 2 minutos.`,
     duration: 'O estudo dura cerca de 2 semanas. É só para fazer amigos.',
-    privacy: 'Só os teus matches veem o teu perfil (primeiro nome, faixa etária, cidade, interesses, aquilo de que queres falar), o teu WhatsApp e o teu Instagram. Nunca o teu e-mail. Podes sair quando quiseres.',
+    privacy: 'Só os teus matches veem o teu perfil (primeiro nome, faixa etária, cidade, interesses, aquilo de que queres falar), o teu WhatsApp e o teu Instagram, se o indicares. Nunca o teu e-mail. Podes sair quando quiseres.',
     privacyLink: 'Ler o aviso de privacidade',
     cta: 'Participar na experiência',
   },
@@ -43,15 +45,17 @@ const pt: Dict = {
     sendError: 'Não conseguimos enviar o link. Espera um minuto e tenta outra vez.',
     googleError: 'Não conseguimos abrir o início de sessão com Google. Tenta outra vez.',
     authError: 'Esse link de acesso não funcionou ou expirou. Tenta outra vez.',
+    inAppHint: 'O login com Google não funciona dentro do Instagram, WhatsApp ou Facebook. Usa o link por e-mail abaixo ou abre esta página no navegador.',
   },
   join: {
     title: 'Cria o teu perfil',
     subtitle: 'É com isto que encontramos os teus matches.',
     name: 'Primeiro nome',
     whatsapp: 'WhatsApp',
-    whatsappHint: 'Com indicativo, ex.: +351 912 345 678',
-    instagram: 'Instagram',
-    instagramHint: 'O teu utilizador, sem @',
+    whatsappHint: 'Escolhe o país e escreve o teu número de telemóvel.',
+    whatsappCountry: 'País',
+    instagram: 'Instagram (opcional)',
+    instagramHint: 'O teu utilizador, sem @. Deixa em branco se preferires só WhatsApp.',
     city: 'Cidade',
     cityPlaceholder: 'ex.: Lisboa',
     ageRange: 'Idade',
@@ -62,7 +66,7 @@ const pt: Dict = {
     otherLabel: 'Outro (opcional)',
     otherPlaceholder: 'Faltou alguma coisa?',
     consent:
-      'Aceito partilhar o meu primeiro nome, faixa etária, cidade, interesses, aquilo de que quero falar, WhatsApp e Instagram com os meus matches e participar neste estudo de investigação. Tenho 18 anos ou mais.',
+      'Aceito partilhar o meu primeiro nome, faixa etária, cidade, interesses, aquilo de que quero falar, WhatsApp e Instagram (se indicado) com os meus matches e participar neste estudo de investigação. Tenho 18 anos ou mais.',
     talkAbout: 'Aquilo de que quero falar',
     talkAboutHint: 'Um quebra-gelo para os teus matches. Escolhe só uma coisa.',
     talkAboutPick: 'Escolhe um dos teus interesses',
@@ -98,7 +102,7 @@ const pt: Dict = {
     errors: {
       required: 'Campo obrigatório.',
       tooLong: 'Demasiado longo.',
-      whatsapp: 'Inclui o indicativo do país, ex.: +351 912 345 678.',
+      whatsapp: 'Escreve um número de telemóvel válido para o país escolhido.',
       instagram: 'Usa só letras, números, pontos e underscores.',
       interests: 'Escolhe de 3 a 6.',
       consent: 'Tens de aceitar para participar.',
@@ -167,6 +171,8 @@ const pt: Dict = {
     meetAgain: 'Qual a probabilidade de voltarem a falar ou a encontrar-se?',
     met: 'Encontraram-se pessoalmente?',
     metOptions: { yes: 'Sim', planned: 'Está combinado', no: 'Não' },
+    igFollow: 'Já se seguem no Instagram?',
+    igFollowOptions: { me: 'Eu segui', them: 'A outra pessoa seguiu-me', both: 'Os dois', none: 'Nenhum' },
     comment: 'Mais alguma coisa? (opcional)',
     submit: 'Enviar',
     submitting: 'A enviar…',
@@ -192,11 +198,11 @@ const pt: Dict = {
       },
       {
         heading: 'O que recolhemos',
-        body: 'O teu perfil (primeiro nome, e-mail, WhatsApp, Instagram, cidade, idioma, faixa etária, tempo na cidade, origem, interesses e aquilo de que queres falar), as avaliações que envias sobre os teus matches e o facto de tocares no botão de WhatsApp ou Instagram de um match, e quando (não as tuas mensagens).',
+        body: 'O teu perfil (primeiro nome, e-mail, WhatsApp, Instagram se indicado, cidade, idioma, faixa etária, tempo na cidade, origem, interesses e aquilo de que queres falar), as avaliações que envias sobre os teus matches e o facto de tocares no botão de WhatsApp ou Instagram de um match, e quando (não as tuas mensagens).',
       },
       {
         heading: 'Quem vê',
-        body: 'Os teus matches veem o teu primeiro nome, faixa etária, cidade, interesses, aquilo de que queres falar, WhatsApp e Instagram. Nunca veem o teu e-mail. A equipa de investigação vê tudo, apenas para análise.',
+        body: 'Os teus matches veem o teu primeiro nome, faixa etária, cidade, interesses, aquilo de que queres falar, WhatsApp e Instagram (se o indicaste). Nunca veem o teu e-mail. A equipa de investigação vê tudo, apenas para análise.',
       },
       {
         heading: 'Verificação de segurança',

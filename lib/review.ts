@@ -4,6 +4,7 @@
 export const WHO_FIRST = ['me', 'them'] as const;
 export const WHY_NOT = ['no_time', 'not_interested', 'no_reply', 'shy', 'other'] as const;
 export const MET = ['yes', 'planned', 'no'] as const;
+export const IG_FOLLOW = ['me', 'them', 'both', 'none'] as const;
 export const MAX_COMMENT = 1000;
 
 export type ReviewInput = Record<string, unknown>;
@@ -20,6 +21,7 @@ export type Review = {
   satisfaction_1_7: number | null;
   meet_again_1_7: number | null;
   met: (typeof MET)[number] | null;
+  ig_follow: (typeof IG_FOLLOW)[number] | null;
   comment: string | null;
 };
 
@@ -34,7 +36,11 @@ const isScale = (v: unknown): v is number => Number.isInteger(v) && (v as number
 const oneOf = <T extends string>(options: readonly T[], v: unknown): v is T =>
   typeof v === 'string' && (options as readonly string[]).includes(v);
 
-export function validateReview(input: ReviewInput): { ok: true; data: Review } | { ok: false; errors: ReviewErrors } {
+// `askInstagram`: both people have Instagram, so "who followed whom" is asked (and required).
+export function validateReview(
+  input: ReviewInput,
+  { askInstagram = false }: { askInstagram?: boolean } = {},
+): { ok: true; data: Review } | { ok: false; errors: ReviewErrors } {
   const errors: ReviewErrors = {};
   const data: Review = {
     contacted: false,
@@ -48,6 +54,7 @@ export function validateReview(input: ReviewInput): { ok: true; data: Review } |
     satisfaction_1_7: null,
     meet_again_1_7: null,
     met: null,
+    ig_follow: null,
     comment: null,
   };
 
@@ -77,6 +84,11 @@ export function validateReview(input: ReviewInput): { ok: true; data: Review } |
   } else if (input.contacted === false) {
     if (oneOf(WHY_NOT, input.why_not)) data.why_not = input.why_not;
     else errors.why_not = 'required';
+  }
+
+  if (askInstagram) {
+    if (oneOf(IG_FOLLOW, input.ig_follow)) data.ig_follow = input.ig_follow;
+    else errors.ig_follow = 'required';
   }
 
   if (typeof input.comment === 'string' && input.comment.trim()) {

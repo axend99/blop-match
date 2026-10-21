@@ -16,6 +16,7 @@ Ficam na Vercel (Project → Settings → Environment Variables) e, para correr 
 | `SMTP_USER`, `SMTP_PASS` | Conta `blopmatch@gmail.com` e a **senha de app** (não a senha normal) | Google Account → Security → App passwords |
 | `EMAIL_FROM` | Remetente, ex. `BLOP Match <blopmatch@gmail.com>` | — |
 | `NEXT_PUBLIC_SITE_URL` | `https://blop-match.vercel.app` (links dos e-mails) | — |
+| `NEXT_PUBLIC_GOOGLE_CLIENT_ID` | Client ID do cliente Web do Google (não é segredo). **Só em Production**: ativa o botão oficial do Google no `/login`, que mostra `blop-match.vercel.app` em vez do endereço do Supabase | Google Cloud → Credentials |
 | `CRON_SECRET` | Segredo que a Vercel envia ao chamar `/api/cron` | gerar: `openssl rand -hex 32` |
 | `ADMIN_EMAILS` | E-mails com acesso ao `/admin` (separados por vírgula) | — |
 | `ADMIN_ACCESS_TOKEN` | Token do link de acesso ao `/admin` sem login (≥ 32 caracteres) | gerar: `openssl rand -hex 32` |
@@ -27,7 +28,7 @@ Depois de mudar uma variável na Vercel, é preciso fazer **Redeploy**.
 
 ## 2. Supabase
 
-1. **Migrações**: no SQL Editor, correr por ordem os ficheiros de `supabase/migrations/` (`0001_init` → `0007_seed_flag`). Todas já estão aplicadas em produção.
+1. **Migrações**: no SQL Editor, correr por ordem os ficheiros de `supabase/migrations/` (`0001_init` → `0008_instagram_optional`). Todas já estão aplicadas em produção.
 2. **Authentication → URL Configuration**: Site URL `https://blop-match.vercel.app`; Redirect URLs `https://blop-match.vercel.app/**` e `http://localhost:3000/**`.
 3. **Authentication → Providers → Google**: ativo, com o Client ID e o Client Secret do cliente **Web** do Google Cloud (passo 3).
 4. **Authentication → Emails → SMTP Settings**: Custom SMTP ativo — host `smtp.gmail.com`, porta `465`, utilizador `blopmatch@gmail.com` (atenção a erros como `gmaill.com`), senha de app, remetente `blopmatch@gmail.com`, nome `BLOP Match`.
@@ -38,7 +39,8 @@ Depois de mudar uma variável na Vercel, é preciso fazer **Redeploy**.
 
 1. APIs & Services → Credentials → Create credentials → OAuth client ID → tipo **Web application** (não "Desktop").
 2. Authorized redirect URI: `https://<projeto>.supabase.co/auth/v1/callback` (o URL do Supabase + `/auth/v1/callback`).
-3. OAuth consent screen / Branding: nome "BLOP Match", e-mail de suporte, domínio `blop-match.vercel.app`; **Publish app** (em "Testing" só os utilizadores de teste conseguem entrar).
+3. No mesmo cliente, **Authorized JavaScript origins**: `https://blop-match.vercel.app` e `http://localhost:3000` (para o botão oficial do Google).
+4. OAuth consent screen / Branding: nome "BLOP Match", e-mail de suporte, domínio `blop-match.vercel.app`; **Publish app** (em "Testing" só os utilizadores de teste conseguem entrar).
 
 ## 4. Gmail
 
@@ -85,9 +87,18 @@ returning user_id;
 
 Depois, em Authentication → Users, apagar o utilizador com o `user_id` devolvido. Os matches e as reviews ficam (sem dados pessoais) para a análise.
 
+## 8b. Teste automático com 10 participantes (Playwright)
+
+```bash
+npm run e2e        # 10 contas blopmatch+e2e01…10@gmail.com fazem o percurso completo em produção
+npm run e2e:clean  # apaga essas contas e tudo o que está ligado a elas
+```
+
+Precisa de `NEXT_PUBLIC_SUPABASE_URL` e `SUPABASE_SERVICE_ROLE_KEY` no ambiente. As contas ficam inativas no fim (não recebem matches de quem se inscrever depois). Os números de WhatsApp são fictícios (EUA 555-01xx).
+
 ## 9. Antes de divulgar
 
-1. `npm run seed:clean` e confirmar no `/admin` (filtro Tudo) que já não há aviso de seed.
+1. `npm run seed:clean` e `npm run e2e:clean`, e confirmar no `/admin` (filtro Tudo) que já não há aviso de seed.
 2. Fazer o percurso completo no telemóvel: login com Google e com link mágico, cadastro, e-mail de boas-vindas, ver o match, botões de WhatsApp/Instagram, sair.
 3. Confirmar que os e-mails chegam (e não vão para spam) em Gmail e Outlook.
 4. Confirmar que o Google OAuth está publicado (não em "Testing").
