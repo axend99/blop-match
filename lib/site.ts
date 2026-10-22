@@ -17,7 +17,7 @@ export function matchingConfig() {
   return {
     maxCompatible: intEnv('MAX_COMPATIBLE', 3),
     maxControl: intEnv('MAX_CONTROL', 1),
-    minSharedCompatible: intEnv('MIN_SHARED_COMPATIBLE', 2),
+    minSharedCompatible: intEnv('MIN_SHARED_COMPATIBLE', 3),
   };
 }
 

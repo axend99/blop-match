@@ -22,13 +22,13 @@ Ficam na Vercel (Project → Settings → Environment Variables) e, para correr 
 | `ADMIN_ACCESS_TOKEN` | Token do link de acesso ao `/admin` sem login (≥ 32 caracteres) | gerar: `openssl rand -hex 32` |
 | `REVIEW_DELAY_DAYS` | Dias entre o match e o pedido de review (3) | — |
 | `REMINDER_DELAY_DAYS` | Dias entre o pedido e o lembrete (2) | — |
-| `MAX_COMPATIBLE`, `MAX_CONTROL`, `MIN_SHARED_COMPATIBLE` | Regras do matching (3, 1, 2) | — |
+| `MAX_COMPATIBLE`, `MAX_CONTROL`, `MIN_SHARED_COMPATIBLE` | Regras do matching (3, 1, 3) | — |
 
 Depois de mudar uma variável na Vercel, é preciso fazer **Redeploy**.
 
 ## 2. Supabase
 
-1. **Migrações**: no SQL Editor, correr por ordem os ficheiros de `supabase/migrations/` (`0001_init` → `0008_instagram_optional`). Todas já estão aplicadas em produção.
+1. **Migrações**: no SQL Editor, correr por ordem os ficheiros de `supabase/migrations/` (`0001_init` → `0009_categories_age`). Todas já estão aplicadas em produção.
 2. **Authentication → URL Configuration**: Site URL `https://blop-match.vercel.app`; Redirect URLs `https://blop-match.vercel.app/**` e `http://localhost:3000/**`.
 3. **Authentication → Providers → Google**: ativo, com o Client ID e o Client Secret do cliente **Web** do Google Cloud (passo 3).
 4. **Authentication → Emails → SMTP Settings**: Custom SMTP ativo — host `smtp.gmail.com`, porta `465`, utilizador `blopmatch@gmail.com` (atenção a erros como `gmaill.com`), senha de app, remetente `blopmatch@gmail.com`, nome `BLOP Match`.
@@ -95,6 +95,10 @@ npm run e2e:clean  # apaga essas contas e tudo o que está ligado a elas
 ```
 
 Precisa de `NEXT_PUBLIC_SUPABASE_URL` e `SUPABASE_SERVICE_ROLE_KEY` no ambiente. As contas ficam inativas no fim (não recebem matches de quem se inscrever depois). Os números de WhatsApp são fictícios (EUA 555-01xx).
+
+## 8c. Recomeçar os dados
+
+`npm run reset:data` lista o que seria apagado (todos os participantes, matches, reviews e as contas de login ligadas a eles ou às contas e2e; nunca contas de `ADMIN_EMAILS`) e grava uma cópia em CSV em `reset-backup/` (fora do git). `npm run reset:data -- --apply` apaga. Depois, `npm run seed` se quiser dados de demonstração.
 
 ## 9. Antes de divulgar
 

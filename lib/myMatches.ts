@@ -12,6 +12,7 @@ export type MyMatch = {
   reviewed_by_me: boolean;
   other_deleted: boolean;
   other_age_range: string | null;
+  other_age: number | null;
   other_city: string | null;
   other_interests: string[];
   other_talk_about: string | null;

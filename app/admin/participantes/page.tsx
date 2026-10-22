@@ -81,7 +81,7 @@ export default async function ParticipantsPage({ searchParams }: { searchParams:
                       ['E-mail', p.email ?? '—'],
                       ['WhatsApp', p.whatsapp ?? '—'],
                       ['Instagram', p.instagram ? `@${p.instagram}` : '—'],
-                      ['Idade', pt.join.ageOptions[p.age_range as keyof typeof pt.join.ageOptions] ?? p.age_range],
+                      ['Idade', p.age ? `${p.age} (${p.age_range})` : (pt.join.ageOptions[p.age_range as keyof typeof pt.join.ageOptions] ?? p.age_range)],
                       ['Tempo na cidade', pt.join.timeInCityOptions[p.time_in_city as keyof typeof pt.join.timeInCityOptions] ?? p.time_in_city],
                       ['Origem', pt.join.originOptions[p.origin as keyof typeof pt.join.originOptions] ?? p.origin],
                       ['Idioma', LANG[p.lang] ?? p.lang],

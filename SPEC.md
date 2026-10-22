@@ -51,7 +51,7 @@ REVIEW_DELAY_DAYS=3
 REMINDER_DELAY_DAYS=2
 MAX_COMPATIBLE=3
 MAX_CONTROL=1
-MIN_SHARED_COMPATIBLE=2
+MIN_SHARED_COMPATIBLE=3
 ```
 
 ---
@@ -72,7 +72,7 @@ MIN_SHARED_COMPATIBLE=2
 
 Regras de navegação: um logado sem perfil vai para `/join`; um logado com perfil vai para `/me`.
 
-Cartão de match em `/me`: BLOP da outra pessoa, primeiro nome, até 3 chips dos itens partilhados (ou "Get to know each other!" se nenhum) e o estado da review ("Rate this interaction" ativo só depois do prazo, ou "Reviewed ✓"). Tocar no cartão abre `/me/match/[matchId]` (a "cheat sheet"): "Blop found someone you should meet", BLOP grande, "Nome, faixa etária", "Based in <cidade>", cartão "Wants to talk about" com o texto da pessoa (icebreaker), caixa "Your common ground" com os itens partilhados, "Also likes…" com os outros interesses, botão WhatsApp (`https://wa.me/<número só com dígitos>?text=<mensagem>`, com uma mensagem pré-preenchida no idioma de quem envia: saudação com os primeiros nomes e só o que a outra pessoa quer falar, para a conversa começar nesse tema (se o tema for um interesse que quem envia também marcou, acrescenta "eu também gosto de …"); perfis sem tema usam até 3 interesses em comum; `lib/icebreaker.ts`) e botão Instagram (`https://instagram.com/<handle sem @>`). Nunca mostrar score, tipo do match ou o e-mail da outra pessoa.
+Cartão de match em `/me`: BLOP da outra pessoa, primeiro nome, até 3 chips dos itens partilhados (ou "Get to know each other!" se nenhum) e o estado da review ("Rate this interaction" ativo só depois do prazo, ou "Reviewed ✓"). Tocar no cartão abre `/me/match/[matchId]` (a "cheat sheet"): "Blop found someone you should meet", BLOP grande, "Nome, idade" (perfis antigos sem idade mostram a faixa), "Based in <cidade>", cartão "Wants to talk about" com o texto da pessoa (icebreaker), caixa "Your common ground" com os itens partilhados, "Also likes…" com os outros interesses, botão WhatsApp (`https://wa.me/<número só com dígitos>?text=<mensagem>`, com uma mensagem pré-preenchida no idioma de quem envia: saudação com os primeiros nomes e só o que a outra pessoa quer falar, para a conversa começar nesse tema (se o tema for um interesse que quem envia também marcou, acrescenta "eu também gosto de …"); perfis sem tema usam até 3 interesses em comum; `lib/icebreaker.ts`) e botão Instagram (`https://instagram.com/<handle sem @>`). Nunca mostrar score, tipo do match ou o e-mail da outra pessoa.
 
 Avatar BLOP: cada pessoa tem um BLOP (imagens em `public/blop/<categoria>.webp`, `components/Blop.tsx`) vestido para a categoria em que tem mais interesses (`lib/avatar.ts`); sem categoria mostra o BLOP simples (`plain.webp`).
 
@@ -89,27 +89,35 @@ Campos (todos obrigatórios, exceto "outro"):
 - `instagram` (handle, sem @), **opcional**: sem Instagram não há botão de Instagram para os matches nem pergunta de Instagram na review
 - `city` (texto livre)
 - `lang` (`en` | `pt`)
-- `age_range`: `18-24` | `25-30` | `31-35` | `36+`
+- `age`: número inteiro de 18 a 99 (campo numérico); `age_range` (`18-24` | `25-30` | `31-35` | `36+`) é derivado e gravado para a análise
 - `time_in_city`: `lt6m` | `6-24m` | `2y+` | `always`
 - `origin`: `this_city` | `same_country` | `other_country`
-- `interests`: 3 a 6 itens por categoria (validar no cliente e no servidor)
+- `interests`: sem mínimo por categoria (uma categoria pode ficar vazia), no máximo 5 por categoria, pelo menos 10 no total em pelo menos 3 categorias (validar no cliente e no servidor; contador global no formulário)
 - `other_text`: um campo livre opcional por categoria (não entra no matching)
 - "What I want to talk about" (icebreaker mostrado aos matches, obrigatório no cadastro, não editável depois, não entra no matching): **exatamente um** de `talk_about_code` (um dos interesses que a pessoa marcou) ou `talk_about` (texto livre, até 140 caracteres numa linha)
-- `consent`: checkbox obrigatória: "I agree to share my first name, age range, city, interests, what I want to talk about, WhatsApp and Instagram (if given) with my matches, and to take part in this research study. I am 18 or older." + link para `/privacy`
+- `consent`: checkbox obrigatória: "I agree to share my first name, age, city, interests, what I want to talk about, WhatsApp and Instagram (if given) with my matches, and to take part in this research study. I am 18 or older." + link para `/privacy`
 
-Os interesses são chips clicáveis agrupados por categoria, com um contador "2/6".
+Os interesses são chips clicáveis agrupados por categoria, com um contador "n/5" por categoria e um contador geral fixo ("X escolhidos · pelo menos 10 em 3+ categorias").
 
 ### Catálogo de interesses (`lib/interests.ts`)
 
-Formato: `{ code, category, en, pt }`. As categorias são `music`, `sports`, `food` e `hobbies`.
+Formato: `{ code, category, en, pt }`. As 8 categorias, por esta ordem: `music`, `sports` (praticar ou acompanhar), `fitness` (atividade física), `movies` (filmes e séries, por género), `animals`, `food` (cozinhas sempre com "food"/"Comida …"), `activities` (o que gosta de fazer/sair) e `hobbies` (o que pratica). Prefixos: `music_`, `sports_`, `fit_`, `movies_`, `animals_`, `food_`, `act_`, `hob_`. Rótulos curtos, sem parênteses.
 
-**music:** music_rock Rock/Rock · music_pop Pop/Pop · music_indie Indie/Indie · music_electronic Electronic/Eletrónica · music_hiphop Hip-hop & Rap/Hip-hop e Rap · music_funk Funk/Funk · music_sertanejo Sertanejo/Sertanejo · music_mpb MPB & Samba/MPB e Samba · music_fado Fado/Fado · music_latin Reggaeton & Latin/Reggaeton e Latina · music_jazz Jazz & Blues/Jazz e Blues · music_metal Metal/Metal · music_classical Classical/Clássica · music_kpop K-pop/K-pop
+**music:** music_rock Rock/Rock · music_pop Pop/Pop · music_indie Indie/Indie · music_electronic Electronic/Eletrónica · music_techno Techno & House/Techno e House · music_hiphop Hip-hop & Rap/Hip-hop e Rap · music_rnb R&B & Soul/R&B e Soul · music_reggae Reggae/Reggae · music_latin Reggaeton & Latin/Reggaeton e Latina · music_afro Kizomba & Afrobeats/Kizomba e Afrobeats · music_funk Funk/Funk · music_sertanejo Sertanejo/Sertanejo · music_mpb MPB/MPB · music_samba Samba & Pagode/Samba e Pagode · music_fado Fado/Fado · music_jazz Jazz & Blues/Jazz e Blues · music_metal Metal/Metal · music_classical Classical/Clássica · music_kpop K-pop/K-pop · music_lofi Lo-fi/Lo-fi
 
-**sports:** sports_football Football/Futebol · sports_padel Padel/Padel · sports_tennis Tennis/Ténis · sports_running Running/Corrida · sports_gym Gym/Ginásio · sports_surf Surf/Surf · sports_cycling Cycling/Ciclismo · sports_basketball Basketball/Basquete · sports_volleyball Volleyball/Vólei · sports_swimming Swimming/Natação · sports_climbing Climbing/Escalada · sports_yoga Yoga & Pilates/Yoga e Pilates · sports_martial Martial arts/Artes marciais
+**sports:** sports_football Football/Futebol · sports_basketball Basketball/Basquetebol · sports_volleyball Volleyball/Voleibol · sports_tennis Tennis/Ténis · sports_padel Padel/Padel · sports_surf Surf/Surf · sports_martial Martial arts/Artes marciais · sports_boxing Boxing/Boxe · sports_motorsport Formula 1 & motorsport/Fórmula 1 e desportos motorizados · sports_handball Handball/Andebol · sports_rugby Rugby/Râguebi · sports_skate Skateboarding/Skate
 
-**food:** food_japanese Japanese/Japonesa · food_italian Italian/Italiana · food_brazilian Brazilian/Brasileira · food_portuguese Portuguese/Portuguesa · food_mexican Mexican/Mexicana · food_indian Indian/Indiana · food_veggie Vegetarian & Vegan/Vegetariana e Vegana · food_burgers Burgers/Hambúrguer · food_street Street food/Comida de rua · food_brunch Coffee & Brunch/Café e Brunch · food_wine Wine/Vinho · food_craftbeer Craft beer/Cerveja artesanal
+**fitness:** fit_gym Gym/Ginásio · fit_running Running/Corrida · fit_cycling Cycling/Ciclismo · fit_swimming Swimming/Natação · fit_yoga Yoga & Pilates/Yoga e Pilates · fit_climbing Climbing/Escalada · fit_crossfit CrossFit/CrossFit · fit_walking Walking/Caminhadas · fit_calisthenics Calisthenics/Calistenia
 
-**hobbies:** hob_photo Photography/Fotografia · hob_reading Reading/Leitura · hob_games Video games/Games · hob_travel Travel/Viajar · hob_beach Beach/Praia · hob_hiking Hiking & Nature/Trilhas e natureza · hob_festivals Festivals & Concerts/Festivais e concertos · hob_movies Movies & Series/Cinema e séries · hob_art Art & Museums/Arte e museus · hob_dance Dancing/Dança · hob_instruments Playing music/Tocar instrumentos · hob_volunteer Volunteering/Voluntariado · hob_languages Languages/Idiomas · hob_bars Bars/Bares · hob_clubbing Clubbing/Discoteca · hob_dinners Dinners out/Jantares fora · hob_terraces Terraces & Cafés/Esplanadas · hob_cooking Cooking at home/Cozinhar em casa · hob_knitting Knitting/Tricô
+**movies:** movies_comedy Comedy/Comédia · movies_drama Drama/Drama · movies_thriller Thriller & suspense/Thriller e suspense · movies_horror Horror/Terror · movies_romcom Romantic comedy/Comédia romântica · movies_scifi Sci-fi/Ficção científica · movies_fantasy Fantasy/Fantasia · movies_action Action/Ação · movies_docs Documentaries/Documentários · movies_anime Anime & animation/Anime e animação · movies_truecrime True crime/True crime · movies_kdrama K-dramas/K-dramas · movies_reality Reality shows/Reality shows
+
+**animals:** animals_dogs Dogs/Cães · animals_cats Cats/Gatos · animals_wildlife Wildlife/Animais selvagens · animals_birds Birds/Aves · animals_horses Horses/Cavalos · animals_marine Marine life/Vida marinha · animals_reptiles Reptiles/Répteis · animals_rodents Rabbits & rodents/Coelhos e roedores
+
+**food:** food_japanese Japanese food/Comida japonesa · food_italian Italian food/Comida italiana · food_brazilian Brazilian food/Comida brasileira · food_portuguese Portuguese food/Comida portuguesa · food_mexican Mexican food/Comida mexicana · food_indian Indian food/Comida indiana · food_chinese Chinese food/Comida chinesa · food_thai Thai food/Comida tailandesa · food_middleeastern Middle Eastern food/Comida do Médio Oriente · food_veggie Vegetarian & vegan food/Comida vegetariana e vegana · food_seafood Seafood/Marisco e peixe · food_burgers Burgers/Hambúrgueres · food_street Street food/Comida de rua · food_desserts Desserts & pastries/Doces e pastelaria · food_brunch Coffee & brunch/Café e brunch · food_wine Wine/Vinho · food_craftbeer Craft beer/Cerveja artesanal · food_cocktails Cocktails/Cocktails
+
+**activities:** act_hiking Hiking & nature/Trilhos e natureza · act_beach Beach/Praia · act_travel Travel/Viajar · act_bars Bars/Bares · act_clubbing Clubbing/Discoteca · act_concerts Concerts & festivals/Concertos e festivais · act_stayin Staying in/Ficar em casa · act_gamenights Game nights/Noites de jogos · act_dinners Dinners out/Jantares fora · act_terraces Terraces & cafés/Esplanadas e cafés · act_museums Museums & exhibitions/Museus e exposições · act_theatre Theatre & stand-up/Teatro e stand-up · act_picnics Picnics & parks/Piqueniques e parques · act_roadtrips Road trips/Road trips · act_volunteer Volunteering/Voluntariado
+
+**hobbies:** hob_cooking Cooking/Cozinhar · hob_knitting Knitting & crochet/Tricô e crochet · hob_dancing Dancing/Dançar · hob_instrument Playing an instrument/Tocar um instrumento · hob_singing Singing/Cantar · hob_photo Photography/Fotografia · hob_videogames Video games/Videojogos · hob_boardgames Board games/Jogos de tabuleiro · hob_reading Reading/Leitura · hob_writing Writing/Escrita · hob_drawing Drawing & painting/Desenho e pintura · hob_crafts Crafts & DIY/Artesanato e DIY · hob_gardening Gardening & plants/Jardinagem e plantas · hob_languages Learning languages/Aprender idiomas · hob_pottery Pottery/Cerâmica
 
 ---
 
@@ -120,7 +128,7 @@ Funções puras e testadas; a persistência fica num serviço separado.
 ```
 score(A, B) = |I_A ∩ I_B| / |I_A ∪ I_B|        // Jaccard sobre todos os itens
 shared(A, B) = I_A ∩ I_B
-sharedByCategory(A, B) = { music: n, sports: n, food: n, hobbies: n }
+sharedByCategory(A, B) = { music: n, sports: n, fitness: n, movies: n, animals: n, food: n, activities: n, hobbies: n }
 ```
 
 `runMatchingFor(person)`:
@@ -213,7 +221,7 @@ Abas: **Painel** e **Participantes** (`/admin/participantes`: cada pessoa com pe
 
 ### Tabelas (migração SQL em `supabase/migrations/`)
 
-- `participants`: id uuid pk, user_id uuid unique → auth.users, name, email, whatsapp, instagram, city, lang, age_range, time_in_city, origin, interests text[], other_text jsonb, consent_at timestamptz, active bool default true, is_seed bool default false (dados falsos do `scripts/seed.ts`; nunca têm `user_id` nem `email`), created_at
+- `participants`: id uuid pk, user_id uuid unique → auth.users, name, email, whatsapp, instagram, city, lang, age smallint (18–99), age_range, time_in_city, origin, interests text[], other_text jsonb, consent_at timestamptz, active bool default true, is_seed bool default false (dados falsos do `scripts/seed.ts`; nunca têm `user_id` nem `email`), created_at
 - `matches`: id uuid pk, a_id, b_id → participants, type text check in ('compatible','control'), score numeric, shared_items text[], shared_count int, shared_by_category jsonb, created_at; unique(a_id, b_id), check(a_id < b_id)
 - `review_requests`: match_id, participant_id, requested_at, reminded_at; pk(match_id, participant_id)
 - `reviews`: id uuid pk, match_id, reviewer_id, os campos da secção 7, created_at; unique(match_id, reviewer_id)
@@ -221,12 +229,12 @@ Abas: **Painel** e **Participantes** (`/admin/participantes`: cada pessoa com pe
 
 ### RLS
 - Um participante lê e atualiza só a própria linha em `participants`.
-- Dos seus matches, lê apenas: `name`, `whatsapp`, `instagram`, `age_range`, `city`, `interests`, `talk_about`, `talk_about_code` e `shared_items` da outra pessoa (nada disto se ela tiver sido anonimizada). Implementar via view ou função `get_my_matches()` com `security definer`, nunca expondo `type` nem `score`.
+- Dos seus matches, lê apenas: `name`, `whatsapp`, `instagram`, `age`, `age_range`, `city`, `interests`, `talk_about`, `talk_about_code` e `shared_items` da outra pessoa (nada disto se ela tiver sido anonimizada). Implementar via view ou função `get_my_matches()` com `security definer`, nunca expondo `type` nem `score`.
 - Insere a review apenas dos seus próprios matches e apenas depois do prazo (validar também no servidor).
 - Admin, cron e matching usam a service role, só no servidor.
 
 ### Privacidade (`/privacy`, EN/PT)
-Estudo académico do projeto BLOP (MIET 2026). Dados recolhidos: os do perfil, as reviews e os toques nos botões de contacto (não as mensagens). Quem os vê: os matches veem o primeiro nome, faixa etária, cidade, interesses, aquilo de que a pessoa quer falar, WhatsApp e Instagram (nunca o e-mail); a equipa vê tudo para análise. Os dados são guardados até ao fim do estudo e depois anonimizados ou apagados. "Leave the study" desativa o perfil; para eliminar os dados, basta escrever para founders@meetblop.com (anonimização: `name='[deleted]'`, `email`, `whatsapp`, `instagram`, `talk_about` e `talk_about_code` a null, `other_text '{}'`, `active=false`, `deleted_at` preenchido, apagam-se as linhas dessa pessoa em `content_flags` e `contact_clicks`; depois apaga-se o utilizador de auth). Os textos livres (`talk_about`, `other_text`, comentário da review) são verificados por IA (Anthropic, `lib/moderationService.ts`) só para gerar alertas no `/admin`; nada é bloqueado. Idade mínima: 18 anos.
+Estudo académico do projeto BLOP (MIET 2026). Dados recolhidos: os do perfil, as reviews e os toques nos botões de contacto (não as mensagens). Quem os vê: os matches veem o primeiro nome, idade, cidade, interesses, aquilo de que a pessoa quer falar, WhatsApp e Instagram (nunca o e-mail); a equipa vê tudo para análise. Os dados são guardados até ao fim do estudo e depois anonimizados ou apagados. "Leave the study" desativa o perfil; para eliminar os dados, basta escrever para founders@meetblop.com (anonimização: `name='[deleted]'`, `email`, `whatsapp`, `instagram`, `talk_about` e `talk_about_code` a null, `other_text '{}'`, `active=false`, `deleted_at` preenchido, apagam-se as linhas dessa pessoa em `content_flags` e `contact_clicks`; depois apaga-se o utilizador de auth). Os textos livres (`talk_about`, `other_text`, comentário da review) são verificados por IA (Anthropic, `lib/moderationService.ts`) só para gerar alertas no `/admin`; nada é bloqueado. Idade mínima: 18 anos.
 
 ---
 

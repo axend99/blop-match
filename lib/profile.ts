@@ -1,7 +1,8 @@
 import {
   CATEGORIES,
   MAX_PER_CATEGORY,
-  MIN_PER_CATEGORY,
+  MIN_CATEGORIES,
+  MIN_TOTAL,
   interestByCode,
   type Category,
 } from '@/lib/interests';
@@ -13,6 +14,13 @@ export const TIMES_IN_CITY = ['lt6m', '6-24m', '2y+', 'always'] as const;
 export const ORIGINS = ['this_city', 'same_country', 'other_country'] as const;
 
 export type AgeRange = (typeof AGE_RANGES)[number];
+export const MIN_AGE = 18;
+export const MAX_AGE = 99;
+
+// Age bands kept for the analysis (segments, admin, CSV); the profile stores the exact age.
+export function ageRange(age: number): AgeRange {
+  return age <= 24 ? '18-24' : age <= 30 ? '25-30' : age <= 35 ? '31-35' : '36+';
+}
 export type TimeInCity = (typeof TIMES_IN_CITY)[number];
 export type Origin = (typeof ORIGINS)[number];
 
@@ -29,7 +37,7 @@ export type ProfileInput = {
   instagram: string;
   city: string;
   lang: string;
-  age_range: string;
+  age: string | number;
   time_in_city: string;
   origin: string;
   interests: string[];
@@ -45,6 +53,7 @@ export type Profile = {
   instagram: string | null;
   city: string;
   lang: Lang;
+  age: number;
   age_range: AgeRange;
   time_in_city: TimeInCity;
   origin: Origin;
@@ -54,8 +63,10 @@ export type Profile = {
   talk_about_code: string | null;
 };
 
-export type ErrorKey = 'required' | 'tooLong' | 'whatsapp' | 'instagram' | 'interests' | 'consent';
-export type FieldErrors = Partial<Record<Exclude<keyof ProfileInput, 'interests'> | Category, ErrorKey>>;
+export type ErrorKey = 'required' | 'tooLong' | 'whatsapp' | 'instagram' | 'age' | 'interests' | 'interestsTotal' | 'consent';
+// `interestsTotal`: the overall rule (MIN_TOTAL items in MIN_CATEGORIES categories); a
+// category key: more than MAX_PER_CATEGORY in it.
+export type FieldErrors = Partial<Record<Exclude<keyof ProfileInput, 'interests'> | Category | 'interestsTotal', ErrorKey>>;
 
 export type ValidationResult = { ok: true; data: Profile } | { ok: false; errors: FieldErrors };
 
@@ -86,7 +97,7 @@ export function isValidInstagram(value: string): boolean {
 }
 
 export function countByCategory(codes: string[]): Record<Category, number> {
-  const counts: Record<Category, number> = { music: 0, sports: 0, food: 0, hobbies: 0 };
+  const counts = Object.fromEntries(CATEGORIES.map((c) => [c, 0])) as Record<Category, number>;
   for (const code of codes) {
     const interest = interestByCode(code);
     if (interest) counts[interest.category]++;
@@ -124,7 +135,10 @@ export function validateProfile(input: ProfileInput): ValidationResult {
   if (instagram && !isValidInstagram(instagram)) errors.instagram = 'instagram';
 
   if (!isLang(input.lang)) errors.lang = 'required';
-  if (!oneOf(AGE_RANGES, str(input.age_range))) errors.age_range = 'required';
+  const ageText = String(input.age ?? '').trim();
+  const age = /^\d{1,2}$/.test(ageText) ? Number(ageText) : NaN;
+  if (!ageText) errors.age = 'required';
+  else if (!(age >= MIN_AGE && age <= MAX_AGE)) errors.age = 'age';
   if (!oneOf(TIMES_IN_CITY, str(input.time_in_city))) errors.time_in_city = 'required';
   if (!oneOf(ORIGINS, str(input.origin))) errors.origin = 'required';
 
@@ -133,9 +147,10 @@ export function validateProfile(input: ProfileInput): ValidationResult {
   const unknown = interests.some((code) => !interestByCode(code));
   const counts = countByCategory(interests);
   for (const category of CATEGORIES) {
-    const n = counts[category];
-    if (unknown || n < MIN_PER_CATEGORY || n > MAX_PER_CATEGORY) errors[category] = 'interests';
+    if (counts[category] > MAX_PER_CATEGORY) errors[category] = 'interests';
   }
+  const used = CATEGORIES.filter((c) => counts[c] > 0).length;
+  if (unknown || interests.length < MIN_TOTAL || used < MIN_CATEGORIES) errors.interestsTotal = 'interestsTotal';
 
   const other_text: Partial<Record<Category, string>> = {};
   const other = input.other_text && typeof input.other_text === 'object' ? input.other_text : {};
@@ -173,7 +188,8 @@ export function validateProfile(input: ProfileInput): ValidationResult {
       instagram,
       city,
       lang: input.lang as Lang,
-      age_range: input.age_range as AgeRange,
+      age,
+      age_range: ageRange(age),
       time_in_city: input.time_in_city as TimeInCity,
       origin: input.origin as Origin,
       interests,

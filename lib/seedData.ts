@@ -1,5 +1,5 @@
-import { CATEGORIES, interestsByCategory, type Category } from '@/lib/interests';
-import { AGE_RANGES, ORIGINS, TIMES_IN_CITY, validateProfile, type Profile, type ProfileInput } from '@/lib/profile';
+import { CATEGORIES, MAX_PER_CATEGORY, MIN_TOTAL, interestByCode, interestsByCategory, type Category } from '@/lib/interests';
+import { ORIGINS, TIMES_IN_CITY, validateProfile, type Profile, type ProfileInput } from '@/lib/profile';
 import { validateReview, type Review } from '@/lib/review';
 
 // Pure generators for the fake study data (scripts/seed.ts). Same seed → same profiles,
@@ -21,12 +21,12 @@ const chance = (rng: () => number, p: number) => rng() < p;
 
 // Taste "tribes": similar profiles inside a tribe, opposite ones across tribes.
 const TRIBES: string[][] = [
-  ['music_electronic', 'music_pop', 'music_latin', 'sports_gym', 'food_street', 'food_burgers', 'hob_clubbing', 'hob_festivals', 'hob_bars'],
-  ['music_indie', 'music_rock', 'sports_climbing', 'sports_running', 'sports_cycling', 'food_veggie', 'food_brunch', 'hob_hiking', 'hob_photo', 'hob_travel'],
-  ['music_fado', 'music_jazz', 'music_classical', 'sports_yoga', 'food_portuguese', 'food_wine', 'hob_art', 'hob_reading', 'hob_terraces'],
-  ['music_mpb', 'music_sertanejo', 'music_funk', 'sports_football', 'sports_volleyball', 'food_brazilian', 'food_japanese', 'hob_dinners', 'hob_dance', 'hob_beach'],
-  ['music_metal', 'music_kpop', 'music_hiphop', 'sports_martial', 'sports_basketball', 'food_mexican', 'food_craftbeer', 'hob_games', 'hob_movies', 'hob_instruments'],
-  ['music_pop', 'music_indie', 'sports_surf', 'sports_swimming', 'sports_padel', 'food_italian', 'food_indian', 'hob_beach', 'hob_languages', 'hob_volunteer', 'hob_cooking', 'hob_knitting'],
+  ['music_electronic', 'music_techno', 'music_pop', 'music_latin', 'fit_gym', 'food_street', 'food_burgers', 'food_cocktails', 'act_clubbing', 'act_concerts', 'act_bars', 'movies_action', 'movies_reality'],
+  ['music_indie', 'music_rock', 'music_lofi', 'fit_climbing', 'fit_running', 'fit_cycling', 'food_veggie', 'food_brunch', 'act_hiking', 'act_travel', 'hob_photo', 'animals_wildlife', 'movies_docs'],
+  ['music_fado', 'music_jazz', 'music_classical', 'fit_yoga', 'food_portuguese', 'food_wine', 'act_museums', 'act_theatre', 'act_terraces', 'hob_reading', 'hob_writing', 'movies_drama', 'animals_cats'],
+  ['music_mpb', 'music_samba', 'music_sertanejo', 'music_funk', 'sports_football', 'sports_volleyball', 'food_brazilian', 'food_japanese', 'act_dinners', 'act_beach', 'hob_dancing', 'movies_comedy', 'animals_dogs'],
+  ['music_metal', 'music_kpop', 'music_hiphop', 'sports_martial', 'sports_boxing', 'sports_basketball', 'food_mexican', 'food_craftbeer', 'hob_videogames', 'hob_boardgames', 'act_gamenights', 'movies_anime', 'movies_horror', 'movies_scifi'],
+  ['music_reggae', 'music_afro', 'music_rnb', 'sports_surf', 'fit_swimming', 'sports_padel', 'food_italian', 'food_indian', 'act_beach', 'act_volunteer', 'hob_languages', 'hob_cooking', 'hob_knitting', 'hob_gardening', 'animals_marine', 'animals_horses', 'movies_romcom'],
 ];
 
 const NAMES = [
@@ -41,20 +41,28 @@ const TOPICS = {
 };
 const OTHERS: Partial<Record<Category, string[]>> = {
   music: ['Synthwave', 'Bossa nova', 'Afrobeat'],
-  hobbies: ['Board games', 'Jardinagem', 'Cerâmica'],
+  hobbies: ['Origami', 'Xadrez', 'Magic tricks'],
 };
 
 export type SeedPerson = Profile; // whatsapp is a unique fake number
 
+// 10–20 interests in 3–6 categories (at most 5 per category), weighted towards the tribe.
 function interestsFor(rng: () => number, tribe: string[]): string[] {
-  return CATEGORIES.flatMap((category) => {
+  const tribeCategories = [...new Set(tribe.map((code) => interestByCode(code)!.category))];
+  const extra = CATEGORIES.filter((c) => !tribeCategories.includes(c));
+  const categories = [...tribeCategories].sort(() => rng() - 0.5).slice(0, 3 + Math.floor(rng() * 3));
+  if (extra.length && chance(rng, 0.4)) categories.push(pick(rng, extra));
+  const want = Math.min(MIN_TOTAL + Math.floor(rng() * 11), categories.length * MAX_PER_CATEGORY);
+  const chosen = new Set<string>();
+  for (let guard = 0; chosen.size < want && guard < 500; guard++) {
+    // Every chosen category gets at least one item first.
+    const category = guard < categories.length ? categories[guard] : pick(rng, categories);
     const all = interestsByCategory(category).map((i) => i.code);
-    const preferred = all.filter((c) => tribe.includes(c));
-    const want = 3 + Math.floor(rng() * 4); // 3–6 per category
-    const chosen = new Set<string>();
-    while (chosen.size < want) chosen.add(chance(rng, 0.75) && preferred.length ? pick(rng, preferred) : pick(rng, all));
-    return [...chosen];
-  });
+    if (all.filter((code) => chosen.has(code)).length >= MAX_PER_CATEGORY) continue;
+    const preferred = all.filter((code) => tribe.includes(code) && !chosen.has(code));
+    chosen.add(chance(rng, 0.7) && preferred.length ? pick(rng, preferred) : pick(rng, all));
+  }
+  return [...chosen];
 }
 
 // `n` valid fake profiles (checked with the same validation as sign-up).
@@ -74,7 +82,7 @@ export function seedPeople(n: number, rng: () => number): SeedPerson[] {
       instagram: chance(rng, 0.8) ? key : '', // ~20% without Instagram (optional)
       city: pick(rng, CITIES),
       lang,
-      age_range: pick(rng, AGE_RANGES),
+      age: 18 + Math.floor(rng() * rng() * 30), // mostly in their twenties
       time_in_city: pick(rng, TIMES_IN_CITY),
       origin: pick(rng, ORIGINS),
       interests,
