@@ -12,6 +12,7 @@ import { E2E_EMAILS } from '@/lib/e2eUsers';
 const db = adminDb();
 const apply = process.argv.includes('--apply');
 const admins = (process.env.ADMIN_EMAILS ?? '').split(',').map((e) => e.trim().toLowerCase()).filter(Boolean);
+// Default: reset-backup/ in the folder npm runs from (the repo root, where it is git-ignored).
 const backupDir = process.env.RESET_BACKUP_DIR ?? 'reset-backup';
 
 async function must<T>(promise: PromiseLike<{ data: T | null; error: unknown }>): Promise<T> {
@@ -73,6 +74,8 @@ async function main() {
   console.log(`Cópia de segurança em ${backupDir}/ (dados pessoais: não partilhar nem pôr no git).`);
 
   if (!apply) return console.log('\nNada foi apagado. Para apagar: npm run reset:data -- --apply');
+  // Without the admin list, admin logins could not be told apart: never delete then.
+  if (admins.length === 0) throw new Error('ADMIN_EMAILS vazio: nada foi apagado.');
 
   const ids = participants.map((p) => p.id as string);
   const matchIds = matches.map((m) => m.id as string);

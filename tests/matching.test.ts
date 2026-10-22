@@ -27,9 +27,9 @@ function person(interests: string[], patch: Partial<Candidate> = {}): Candidate 
   };
 }
 
-const ROCK = ['music_rock', 'music_pop', 'music_indie', 'sports_gym', 'food_wine', 'hob_beach'];
+const ROCK = ['music_rock', 'music_pop', 'music_indie', 'fit_gym', 'food_wine', 'act_beach'];
 const ROCK_LIKE = ['music_rock', 'music_pop', 'music_jazz', 'sports_surf', 'food_brunch', 'hob_reading'];
-const OPPOSITE = ['music_fado', 'music_kpop', 'music_metal', 'sports_padel', 'food_indian', 'hob_games'];
+const OPPOSITE = ['music_fado', 'music_kpop', 'music_metal', 'sports_padel', 'food_indian', 'hob_videogames'];
 
 describe('score and shared', () => {
   it('computes Jaccard over all items', () => {
@@ -70,7 +70,7 @@ describe('planMatches', () => {
 
   it('requires the minimum shared items for a compatible match', () => {
     const me = person(ROCK);
-    const one = person(['music_rock', 'music_fado', 'music_kpop', 'sports_padel', 'food_indian', 'hob_games']);
+    const one = person(['music_rock', 'music_fado', 'music_kpop', 'sports_padel', 'food_indian', 'hob_videogames']);
     const proposals = planMatches(me, [me, one], CONFIG, seeded());
     expect(proposals.every((p) => p.type === 'control')).toBe(true);
   });
@@ -78,7 +78,7 @@ describe('planMatches', () => {
   it('falls back to the lowest score for control when nobody has 0 shared, and stores the real count', () => {
     const me = person(ROCK);
     const close = person(ROCK);
-    const far = person(['music_rock', 'music_fado', 'music_kpop', 'sports_padel', 'food_indian', 'hob_games']);
+    const far = person(['music_rock', 'music_fado', 'music_kpop', 'sports_padel', 'food_indian', 'hob_videogames']);
     const tight = { ...CONFIG, maxCompatible: 0 };
     const [proposal] = planMatches(me, [me, close, far], tight, seeded());
     expect(proposal.type).toBe('control');

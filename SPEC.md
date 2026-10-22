@@ -95,9 +95,9 @@ Campos (todos obrigatórios, exceto "outro"):
 - `interests`: sem mínimo por categoria (uma categoria pode ficar vazia), no máximo 5 por categoria, pelo menos 10 no total em pelo menos 3 categorias (validar no cliente e no servidor; contador global no formulário)
 - `other_text`: um campo livre opcional por categoria (não entra no matching)
 - "What I want to talk about" (icebreaker mostrado aos matches, obrigatório no cadastro, não editável depois, não entra no matching): **exatamente um** de `talk_about_code` (um dos interesses que a pessoa marcou) ou `talk_about` (texto livre, até 140 caracteres numa linha)
-- `consent`: checkbox obrigatória: "I agree to share my first name, age range, city, interests, what I want to talk about, WhatsApp and Instagram (if given) with my matches, and to take part in this research study. I am 18 or older." + link para `/privacy`
+- `consent`: checkbox obrigatória: "I agree to share my first name, age, city, interests, what I want to talk about, WhatsApp and Instagram (if given) with my matches, and to take part in this research study. I am 18 or older." + link para `/privacy`
 
-Os interesses são chips clicáveis agrupados por categoria, com um contador "2/6".
+Os interesses são chips clicáveis agrupados por categoria, com um contador "n/5" por categoria e um contador geral fixo ("X escolhidos · pelo menos 10 em 3+ categorias").
 
 ### Catálogo de interesses (`lib/interests.ts`)
 
