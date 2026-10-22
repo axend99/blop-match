@@ -60,9 +60,15 @@ const en = {
     timeInCity: 'How long have you lived in this city?',
     origin: 'Where are you from?',
     interestsTitle: 'Your interests',
-    interestsHint: 'Pick what really describes you: up to 5 per category, at least 10 in total from 3 or more categories. You can skip categories.',
+    interestsHint: 'Pick what really describes you. You need at least 10 interests, from at least 3 categories (up to 5 per category). You can leave categories empty.',
     // Plain string (the form is a client component): {n} items, {c} categories.
-    interestsCount: '{n} selected · {c} of 3+ categories · at least 10 in total',
+    // Two checkpoints shown while picking (plain strings: the form is a client component).
+    checkCategories: 'Categories: {n} of 3',
+    checkInterests: 'Interests: {n} of 10',
+    needCategories: 'Pick from {k} more categories.',
+    needCategory: 'Pick from 1 more category.',
+    needInterests: 'Pick {k} more interests.',
+    needInterest: 'Pick 1 more interest.',
     otherAdd: '+ Other',
     otherLabel: 'Other (optional)',
     otherPlaceholder: 'Anything we missed?',

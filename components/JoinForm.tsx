@@ -234,12 +234,30 @@ export default function JoinForm({
           );
         })}
         {err('other_text')}
-        {/* Overall rule, always in view while picking. */}
-        <div role="status" className={`sticky bottom-2 z-10 rounded-2xl border px-4 py-3 text-sm font-medium shadow-sm ${
-          enough ? 'border-lime bg-lime text-midnight' : errors.interestsTotal ? 'border-red-600 bg-white text-red-700' : 'border-midnight/10 bg-white'
+        {/* Overall rule as two checkpoints, always in view while picking. */}
+        <div role="status" className={`sticky bottom-2 z-10 space-y-1.5 rounded-2xl border bg-white px-4 py-3 text-sm shadow-sm ${
+          errors.interestsTotal && !enough ? 'border-red-600' : 'border-midnight/10'
         }`}>
-          {t.interestsCount.replace('{n}', String(interests.length)).replace('{c}', String(usedCategories))}
-          {errors.interestsTotal && !enough && <span className="block font-normal">{t.errors.interestsTotal}</span>}
+          {[
+            { label: t.checkCategories, have: usedCategories, need: MIN_CATEGORIES, one: t.needCategory, many: t.needCategories },
+            { label: t.checkInterests, have: interests.length, need: MIN_TOTAL, one: t.needInterest, many: t.needInterests },
+          ].map(({ label, have, need, one, many }) => {
+            const ok = have >= need;
+            const missing = need - have;
+            return (
+              <p key={label} className="flex flex-wrap items-center gap-x-2">
+                <span aria-hidden="true" className={`grid size-5 place-items-center rounded-full text-xs font-bold ${ok ? 'bg-lime text-midnight' : 'bg-midnight/10 text-midnight/50'}`}>
+                  {ok ? '✓' : ''}
+                </span>
+                <span className="font-semibold">{label.replace('{n}', String(Math.min(have, need)))}</span>
+                {!ok && (
+                  <span className={errors.interestsTotal ? 'text-red-700' : 'text-midnight/60'}>
+                    {missing === 1 ? one : many.replace('{k}', String(missing))}
+                  </span>
+                )}
+              </p>
+            );
+          })}
         </div>
       </div>
 
