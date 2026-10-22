@@ -19,7 +19,7 @@ export default async function ProfilePage() {
   // RLS: a participant can only read their own row.
   const { data: me } = await (await createClient())
     .from('participants')
-    .select('name, email, whatsapp, instagram, city, lang, age_range, time_in_city, origin, interests, other_text, talk_about, talk_about_code')
+    .select('name, email, whatsapp, instagram, city, lang, age, age_range, time_in_city, origin, interests, other_text, talk_about, talk_about_code')
     .maybeSingle();
   if (!me) redirect('/join');
 
@@ -30,7 +30,7 @@ export default async function ProfilePage() {
     [j.whatsapp, me.whatsapp ?? '—'],
     [j.instagram.replace(/\s*\(.*\)$/, ''), me.instagram ? `@${me.instagram}` : t.profile.notGiven],
     [j.city, me.city],
-    [j.ageRange, j.ageOptions[me.age_range as keyof Dict['join']['ageOptions']] ?? me.age_range],
+    [j.age, me.age ? String(me.age) : (j.ageOptions[me.age_range as keyof Dict['join']['ageOptions']] ?? me.age_range)],
     [j.timeInCity, j.timeInCityOptions[me.time_in_city as keyof Dict['join']['timeInCityOptions']] ?? me.time_in_city],
     [j.origin, j.originOptions[me.origin as keyof Dict['join']['originOptions']] ?? me.origin],
     [t.profile.language, t.profile.languages[me.lang as Lang] ?? me.lang],
@@ -71,6 +71,7 @@ export default async function ProfilePage() {
         <h2 className="text-xl font-semibold">{j.interestsTitle}</h2>
         {CATEGORIES.map((category) => {
           const codes = me.interests.filter((code: string) => interestByCode(code)?.category === category);
+          if (codes.length === 0 && !other[category]) return null; // categories can stay empty
           return (
             <div key={category} className="space-y-2">
               <h3 className="font-semibold">{j.categories[category]}</h3>

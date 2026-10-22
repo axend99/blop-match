@@ -130,13 +130,15 @@ for (const p of PEOPLE) {
       finding(who, 'colar +1 não mudou o país para EUA', await page.locator('select[aria-label]').inputValue());
     await page.locator('#instagram').fill(p.instagram);
     await page.locator('#city').fill(p.i % 3 ? 'Lisbon' : 'Porto');
-    for (const name of ['age_range', 'time_in_city', 'origin']) {
+    await page.locator('#age').fill(String(20 + p.i * 3));
+    for (const name of ['time_in_city', 'origin']) {
       await page.locator(`input[name="${name}"]`).nth(p.i % 3).check({ force: true });
     }
     const groups = page.locator('fieldset:has(button[aria-pressed])');
     for (let c = 0; c < 4; c++) {
       const buttons = groups.nth(c).locator('button[aria-pressed]');
-      for (const k of TASTES[p.i - 1]) await buttons.nth((k + c) % 11).click();
+      const n = await buttons.count();
+      for (const k of TASTES[p.i - 1]) await buttons.nth((k + c) % n).click();
     }
     if (p.i % 2) {
       await page.locator('fieldset').last().locator('button[aria-pressed]').first().click(); // talk about an interest
@@ -156,13 +158,14 @@ for (const p of PEOPLE) {
 }
 
 test('perfis gravados corretamente', async () => {
-  const { data, error } = await db.from('participants').select('email, whatsapp, instagram, active').in('email', E2E_EMAILS);
+  const { data, error } = await db.from('participants').select('email, whatsapp, instagram, age, active').in('email', E2E_EMAILS);
   if (error) throw error;
   if (data.length !== 10) finding('base de dados', 'faltam perfis', `${data.length}/10`);
   for (const row of data) {
     const p = PEOPLE.find((x) => x.email === row.email)!;
     if (row.whatsapp !== p.phone.replace(/\s/g, '')) finding(p.name, 'WhatsApp gravado diferente', row.whatsapp);
     if ((row.instagram ?? '') !== p.instagram) finding(p.name, 'Instagram gravado diferente', row.instagram);
+    if (row.age !== 20 + p.i * 3) finding(p.name, 'idade gravada diferente', row.age);
   }
 });
 

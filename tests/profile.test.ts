@@ -14,14 +14,14 @@ const VALID: ProfileInput = {
   instagram: '@Ana.Silva',
   city: ' Lisbon ',
   lang: 'pt',
-  age_range: '25-30',
+  age: '27',
   time_in_city: '2y+',
   origin: 'other_country',
   interests: [
     'music_rock', 'music_pop', 'music_indie',
-    'sports_gym', 'sports_surf', 'sports_padel',
+    'fit_gym', 'sports_surf', 'sports_padel',
     'food_japanese', 'food_wine', 'food_brunch',
-    'hob_beach', 'hob_bars', 'hob_travel',
+    'act_beach', 'act_bars', 'act_travel',
   ],
   other_text: { music: '  80s synth ', sports: '   ' },
   talk_about: '  The best surf spots\n\n near Lisbon ',
@@ -78,6 +78,8 @@ describe('validateProfile', () => {
       whatsapp: '+351912345678',
       instagram: 'ana.silva',
       lang: 'pt',
+      age: 27,
+      age_range: '25-30',
     });
     expect(result.data.interests).toHaveLength(12);
     expect(result.data.other_text).toEqual({ music: '80s synth' });
@@ -85,44 +87,56 @@ describe('validateProfile', () => {
     expect(result.data.talk_about_code).toBeNull();
   });
 
-  it('requires 3 to 6 interests in every category', () => {
-    const two = withInput({ interests: VALID.interests.filter((c) => c !== 'music_indie') });
-    expect(two.ok).toBe(false);
-    if (!two.ok) expect(two.errors.music).toBe('interests');
+  it('needs at least 10 interests from 3 categories, at most 5 per category', () => {
+    const nine = withInput({ interests: VALID.interests.slice(0, 9) });
+    expect(nine.ok || nine.errors.interestsTotal).toBe('interestsTotal');
 
-    const seven = withInput({
-      interests: [...VALID.interests, 'sports_tennis', 'sports_running', 'sports_cycling', 'sports_yoga'],
+    const twoCategories = withInput({
+      interests: ['music_rock', 'music_pop', 'music_indie', 'music_jazz', 'music_fado', 'food_japanese', 'food_wine', 'food_brunch', 'food_thai', 'food_seafood'],
     });
-    expect(seven.ok).toBe(false);
-    if (!seven.ok) {
-      expect(seven.errors.sports).toBe('interests');
-      expect(seven.errors.music).toBeUndefined();
+    expect(twoCategories.ok || twoCategories.errors.interestsTotal).toBe('interestsTotal');
+
+    // A category can stay empty: no animals, movies or hobbies here.
+    expect(withInput({}).ok).toBe(true);
+
+    const six = withInput({ interests: [...VALID.interests, 'music_jazz', 'music_fado', 'music_metal'] });
+    expect(six.ok).toBe(false);
+    if (!six.ok) {
+      expect(six.errors.music).toBe('interests');
+      expect(six.errors.food).toBeUndefined();
     }
   });
 
   it('does not count duplicates', () => {
-    const result = withInput({
-      interests: [...VALID.interests.filter((c) => c !== 'music_indie'), 'music_rock'],
-    });
+    const result = withInput({ interests: [...VALID.interests.slice(0, 9), 'music_rock'] });
     expect(result.ok).toBe(false);
   });
 
-  it('rejects unknown codes and codes counted in the wrong category', () => {
+  it('rejects unknown codes', () => {
     expect(withInput({ interests: [...VALID.interests, 'music_polka'] }).ok).toBe(false);
-    // A food item does not fill the music quota.
-    const swapped = withInput({
-      interests: [...VALID.interests.filter((c) => c !== 'music_indie'), 'food_indian'],
-    });
-    expect(swapped.ok).toBe(false);
-    if (!swapped.ok) expect(swapped.errors.music).toBe('interests');
+  });
+
+  it('needs an age between 18 and 99 and stores its band', () => {
+    const err = (age: unknown) => {
+      const r = validateProfile({ ...VALID, age } as ProfileInput);
+      return r.ok ? undefined : r.errors.age;
+    };
+    expect(err('')).toBe('required');
+    expect(err('17')).toBe('age');
+    expect(err('100')).toBe('age');
+    expect(err('2.5')).toBe('age');
+    expect(err('abc')).toBe('age');
+    expect(err('18')).toBeUndefined();
+    expect(err(99)).toBeUndefined();
+    const r = withInput({ age: '36' });
+    expect(r.ok && r.data.age_range).toBe('36+');
   });
 
   it('requires consent and the enum fields', () => {
-    const result = withInput({ consent: false, age_range: '17', origin: '', lang: 'fr' });
+    const result = withInput({ consent: false, origin: '', lang: 'fr' });
     expect(result.ok).toBe(false);
     if (!result.ok) {
       expect(result.errors.consent).toBe('consent');
-      expect(result.errors.age_range).toBe('required');
       expect(result.errors.origin).toBe('required');
       expect(result.errors.lang).toBe('required');
     }

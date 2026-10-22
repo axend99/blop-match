@@ -11,7 +11,7 @@ describe('avatarCategory', () => {
   });
 
   it('picks the category with the most interests', () => {
-    const interests = [...pick('music', 3), ...pick('sports', 3), ...pick('food', 6), ...pick('hobbies', 4)];
+    const interests = [...pick('music', 3), ...pick('sports', 3), ...pick('food', 5), ...pick('hobbies', 4)];
     expect(avatarCategory(interests)).toBe('food');
   });
 
@@ -20,10 +20,15 @@ describe('avatarCategory', () => {
     expect(avatarCategory([...interests].reverse())).toBe(avatarCategory(interests));
   });
 
+  it('prefers a category with its own picture over animals on ties', () => {
+    expect(avatarCategory([...pick('animals', 4), ...pick('music', 4), ...pick('food', 2)])).toBe('music');
+    expect(avatarCategory([...pick('animals', 5), ...pick('music', 4), ...pick('food', 2)])).toBe('animals');
+  });
+
   it('does not always pick the first category on ties', () => {
     const results = new Set<Category | null>();
     for (let offset = 0; offset < 8; offset++) {
-      const interests = (['music', 'sports', 'food', 'hobbies'] as Category[]).flatMap((c) => pick(c, 3, offset));
+      const interests = (['music', 'sports', 'fitness', 'movies', 'food', 'activities', 'hobbies'] as Category[]).flatMap((c) => pick(c, 3, offset));
       results.add(avatarCategory(interests));
     }
     expect(results.size).toBeGreaterThan(1);

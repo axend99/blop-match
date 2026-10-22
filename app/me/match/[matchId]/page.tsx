@@ -28,7 +28,10 @@ export default async function MatchPage({ params }: { params: Promise<{ matchId:
   const name = deleted ? t.me.formerParticipant : match.other_name;
   const shared = new Set(match.shared_items);
   const alsoLikes = match.other_interests.filter((code) => !shared.has(code));
-  const age = match.other_age_range ? t.join.ageOptions[match.other_age_range as keyof Dict['join']['ageOptions']] : null;
+  // Exact age; profiles created before ages were asked only have the band.
+  const age =
+    match.other_age ??
+    (match.other_age_range ? t.join.ageOptions[match.other_age_range as keyof Dict['join']['ageOptions']] : null);
   // One of their interests (in the viewer's language) or their own words; used both on screen
   // and to open WhatsApp with a ready-made message built around it.
   const topic: Topic = match.other_talk_about_code

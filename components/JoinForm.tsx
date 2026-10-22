@@ -5,9 +5,8 @@ import { useState, useTransition } from 'react';
 import { createProfile } from '@/app/join/actions';
 import { interestLabel, type Lang } from '@/lib/i18n';
 import type { Dict } from '@/lib/i18n/en';
-import { CATEGORIES, MAX_PER_CATEGORY, MIN_PER_CATEGORY, interestsByCategory, type Category } from '@/lib/interests';
+import { CATEGORIES, MAX_PER_CATEGORY, MIN_CATEGORIES, MIN_TOTAL, interestsByCategory, type Category } from '@/lib/interests';
 import {
-  AGE_RANGES,
   MAX_CITY,
   MAX_NAME,
   MAX_OTHER,
@@ -41,11 +40,12 @@ export default function JoinForm({
   const [phone, setPhone] = useState('');
   const [instagram, setInstagram] = useState('');
   const [city, setCity] = useState('');
-  const [ageRange, setAgeRange] = useState('');
+  const [age, setAge] = useState('');
   const [timeInCity, setTimeInCity] = useState('');
   const [origin, setOrigin] = useState('');
   const [interests, setInterests] = useState<string[]>([]);
   const [otherText, setOtherText] = useState<Partial<Record<Category, string>>>({});
+  const [otherOpen, setOtherOpen] = useState<Partial<Record<Category, boolean>>>({});
   const [talkAbout, setTalkAbout] = useState('');
   const [talkAboutCode, setTalkAboutCode] = useState('');
   const [consent, setConsent] = useState(false);
@@ -54,6 +54,8 @@ export default function JoinForm({
   const [pending, startTransition] = useTransition();
 
   const counts = countByCategory(interests);
+  const usedCategories = CATEGORIES.filter((c) => counts[c] > 0).length;
+  const enough = interests.length >= MIN_TOTAL && usedCategories >= MIN_CATEGORIES;
   const current = countries.find((c) => c.code === country) ?? countries[0];
   const dial = current?.dial ?? '';
 
@@ -93,7 +95,7 @@ export default function JoinForm({
       whatsapp,
       instagram,
       city,
-      age_range: ageRange,
+      age,
       time_in_city: timeInCity,
       origin,
       interests,
@@ -161,8 +163,11 @@ export default function JoinForm({
         </Field>
       </div>
 
-      <Choice legend={t.ageRange} name="age_range" value={ageRange} onChange={setAgeRange}
-        options={AGE_RANGES.map((v) => [v, t.ageOptions[v]])} error={err('age_range')} columns />
+      <Field id="age" label={t.age}>
+        <input id="age" type="text" inputMode="numeric" pattern="[0-9]*" maxLength={2} value={age}
+          onChange={(e) => setAge(e.target.value.replace(/\D/g, ''))} className={`${inputClass} w-28 ${border('age')}`} />
+        {err('age')}
+      </Field>
       <Choice legend={t.timeInCity} name="time_in_city" value={timeInCity} onChange={setTimeInCity}
         options={TIMES_IN_CITY.map((v) => [v, t.timeInCityOptions[v]])} error={err('time_in_city')} />
       <Choice legend={t.origin} name="origin" value={origin} onChange={setOrigin}
@@ -175,13 +180,13 @@ export default function JoinForm({
         </div>
         {CATEGORIES.map((category) => {
           const n = counts[category];
-          const done = n >= MIN_PER_CATEGORY;
+          const showOther = otherOpen[category] || Boolean(otherText[category]);
           return (
             <fieldset key={category} className="space-y-3">
               <legend className="flex w-full items-center justify-between">
                 <span className="font-semibold">{t.categories[category]}</span>
                 <span
-                  className={`rounded-full px-2.5 py-0.5 text-sm font-semibold ${done ? 'bg-lime text-midnight' : 'bg-midnight/10 text-midnight/70'}`}
+                  className={`rounded-full px-2.5 py-0.5 text-sm font-semibold ${n > 0 ? 'bg-lime text-midnight' : 'bg-midnight/10 text-midnight/70'}`}
                 >
                   {n}/{MAX_PER_CATEGORY}
                 </span>
@@ -209,18 +214,33 @@ export default function JoinForm({
                 })}
               </div>
               {err(category)}
-              <input
-                aria-label={`${t.categories[category]}: ${t.otherLabel}`}
-                value={otherText[category] ?? ''}
-                maxLength={MAX_OTHER}
-                placeholder={`${t.otherLabel} · ${t.otherPlaceholder}`}
-                onChange={(e) => setOtherText((o) => ({ ...o, [category]: e.target.value }))}
-                className={`${inputClass} border-midnight/15 text-base`}
-              />
+              {showOther ? (
+                <input
+                  aria-label={`${t.categories[category]}: ${t.otherLabel}`}
+                  value={otherText[category] ?? ''}
+                  maxLength={MAX_OTHER}
+                  placeholder={`${t.otherLabel} · ${t.otherPlaceholder}`}
+                  autoFocus={otherOpen[category] && !otherText[category]}
+                  onChange={(e) => setOtherText((o) => ({ ...o, [category]: e.target.value }))}
+                  className={`${inputClass} border-midnight/15 text-base`}
+                />
+              ) : (
+                <button type="button" onClick={() => setOtherOpen((o) => ({ ...o, [category]: true }))}
+                  className="text-sm font-medium text-violet">
+                  {t.otherAdd}
+                </button>
+              )}
             </fieldset>
           );
         })}
         {err('other_text')}
+        {/* Overall rule, always in view while picking. */}
+        <div role="status" className={`sticky bottom-2 z-10 rounded-2xl border px-4 py-3 text-sm font-medium shadow-sm ${
+          enough ? 'border-lime bg-lime text-midnight' : errors.interestsTotal ? 'border-red-600 bg-white text-red-700' : 'border-midnight/10 bg-white'
+        }`}>
+          {t.interestsCount(interests.length, usedCategories)}
+          {errors.interestsTotal && !enough && <span className="block font-normal">{t.errors.interestsTotal}</span>}
+        </div>
       </div>
 
       {/* Exactly one: one of the chosen interests, or a line of free text. */}

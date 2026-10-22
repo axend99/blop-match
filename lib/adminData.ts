@@ -24,6 +24,7 @@ export type AdminParticipant = {
   instagram: string | null;
   city: string;
   lang: string;
+  age: number | null;
   age_range: string;
   time_in_city: string;
   origin: string;
@@ -76,7 +77,7 @@ export async function loadAdminData(mode: DataMode) {
   const [allParticipants, allMatches, allReviews, allFlags, allClicks] = await Promise.all([
     all<AdminParticipant>(
       'participants',
-      'id, name, email, whatsapp, instagram, city, lang, age_range, time_in_city, origin, interests, other_text, talk_about, talk_about_code, active, deleted_at, is_seed, created_at',
+      'id, name, email, whatsapp, instagram, city, lang, age, age_range, time_in_city, origin, interests, other_text, talk_about, talk_about_code, active, deleted_at, is_seed, created_at',
     ),
     all<AdminMatch>('matches', 'id, a_id, b_id, type, score, shared_items, shared_count, shared_by_category, created_at'),
     all<AdminReview>(

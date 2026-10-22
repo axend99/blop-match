@@ -46,7 +46,7 @@ describe('score and shared', () => {
       'music_pop',
       'food_wine',
     ]);
-    expect(sharedByCategory(ROCK, ROCK_LIKE)).toEqual({ music: 2, sports: 0, food: 0, hobbies: 0 });
+    expect(sharedByCategory(ROCK, ROCK_LIKE)).toEqual({ music: 2, sports: 0, fitness: 0, movies: 0, animals: 0, food: 0, activities: 0, hobbies: 0 });
   });
 });
 
