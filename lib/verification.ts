@@ -12,26 +12,45 @@ import { createServiceClient } from '@/lib/supabase/service';
 // being checked, when the check flagged something or failed, and when they were reported.
 // Everything here runs with the service role, on the server only.
 
-// Banned if the address or its canonical form (no +tag, no Gmail dots) was banned.
+// Only the exact banned address is refused outright (login and sign-up).
 export async function isBanned(email: string | null | undefined): Promise<boolean> {
   if (!email) return false;
-  const forms = [...new Set([email.trim().toLowerCase(), canonicalEmail(email)])];
-  const { data, error } = await createServiceClient().from('banned_emails').select('email').in('email', forms).limit(1);
+  const { data, error } = await createServiceClient()
+    .from('banned_emails')
+    .select('email')
+    .eq('email', email.trim().toLowerCase())
+    .maybeSingle();
   if (error) throw error;
-  return Boolean(data?.length);
+  return Boolean(data);
 }
 
-// Another live profile already uses this mailbox (e.g. ana+2@gmail.com when ana@gmail.com
-// joined). Seed and anonymised rows have no e-mail; the test accounts keep their own form.
-export async function emailInUse(email: string, userId: string): Promise<boolean> {
+// Same mailbox as a banned address or as another live profile (e.g. ana.silva+2@gmail.com
+// vs anasilva@gmail.com): not refused, but the new profile waits for an admin, with the reason.
+// Returned as profile alerts (field "email"), which hold the person like any other alert.
+export async function mailboxAlerts(email: string, userId: string) {
   const canonical = canonicalEmail(email);
-  const { data, error } = await createServiceClient()
-    .from('participants')
-    .select('email, user_id')
-    .not('email', 'is', null)
-    .is('deleted_at', null);
-  if (error) throw error;
-  return (data ?? []).some((p) => p.user_id !== userId && canonicalEmail(p.email as string) === canonical);
+  const supabase = createServiceClient();
+  const [banned, people] = await Promise.all([
+    supabase.from('banned_emails').select('email'),
+    supabase.from('participants').select('name, email, user_id').not('email', 'is', null).is('deleted_at', null),
+  ]);
+  if (banned.error) throw banned.error;
+  if (people.error) throw people.error;
+  const alerts: { field: string; text: string; status: 'flagged'; category: string; reason: string }[] = [];
+  if ((banned.data ?? []).some((b) => canonicalEmail(b.email) === canonical)) {
+    alerts.push({ field: 'email', text: email, status: 'flagged', category: 'banned_mailbox', reason: 'Mesma caixa de e-mail que uma conta banida.' });
+  }
+  const same = (people.data ?? []).filter((p) => p.user_id !== userId && canonicalEmail(p.email as string) === canonical);
+  if (same.length) {
+    alerts.push({
+      field: 'email',
+      text: email,
+      status: 'flagged',
+      category: 'same_mailbox',
+      reason: `Mesma caixa de e-mail que outro perfil: ${same.map((p) => p.name).join(', ')}.`,
+    });
+  }
+  return alerts;
 }
 
 // The one rule to let someone back in: no open report against them and no unseen alert on
@@ -82,13 +101,16 @@ export async function verifyNewProfile(participantId: string, profile: Parameter
   if (outcome === 'clean') await resumeIfClear(participantId);
 }
 
-async function resolveProfileFlags(participantId: string) {
-  const { error } = await createServiceClient()
+// `keepEmail`: leave the mailbox alerts open (only Aprovar clears them, never a new AI check).
+async function resolveProfileFlags(participantId: string, keepEmail = false) {
+  let query = createServiceClient()
     .from('content_flags')
     .update({ resolved_at: new Date().toISOString() })
     .eq('participant_id', participantId)
     .is('match_id', null)
     .is('resolved_at', null);
+  if (keepEmail) query = query.neq('field', 'email');
+  const { error } = await query;
   if (error) throw error;
 }
 
@@ -108,7 +130,7 @@ export async function recheckProfile(participantId: string): Promise<ResumeResul
     .maybeSingle();
   if (error) throw error;
   if (!p || p.deleted_at) return 'unchanged';
-  await resolveProfileFlags(participantId);
+  await resolveProfileFlags(participantId, true);
   const outcome = await moderate(participantId, profileTexts({ name: p.name, talk_about: p.talk_about, other_text: p.other_text ?? {} }));
   return outcome === 'clean' ? resumeIfClear(participantId) : outcome;
 }
@@ -122,15 +144,6 @@ export async function banParticipant(participantId: string, reason: string): Pro
   if (!p?.email || p.is_seed || isAdminEmail(p.email)) return false;
   const { data: userId, error: banError } = await supabase.rpc('ban_participant', { p_id: participantId, p_reason: reason });
   if (banError) throw banError;
-  // Also block the mailbox behind the address (its +tag and Gmail-dot variants), unless that
-  // mailbox is an admin's (the test accounts share the team's Gmail).
-  const canonical = canonicalEmail(p.email);
-  if (!adminEmails().some((a) => canonicalEmail(a) === canonical)) {
-    const { error: canonError } = await supabase
-      .from('banned_emails')
-      .upsert({ email: canonical, reason }, { onConflict: 'email', ignoreDuplicates: true });
-    if (canonError) console.error('[ban] canonical e-mail not stored', canonError);
-  }
   if (userId) {
     const { error: authError } = await supabase.auth.admin.deleteUser(userId as string);
     if (authError) console.error('[ban] auth user not deleted (e-mail still blocked)', authError);

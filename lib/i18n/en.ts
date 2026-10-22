@@ -84,7 +84,6 @@ const en = {
     submit: 'Join',
     submitting: 'Saving…',
     fixErrors: 'Please check the highlighted fields.',
-    duplicateAccount: 'This email address already has a profile in the study. Sign in with it to see your matches.',
     categories: {
       music: 'Music',
       sports: 'Sports',

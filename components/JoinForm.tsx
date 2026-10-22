@@ -51,7 +51,6 @@ export default function JoinForm({
   const [consent, setConsent] = useState(false);
   const [errors, setErrors] = useState<FieldErrors>({});
   const [failed, setFailed] = useState(false);
-  const [duplicate, setDuplicate] = useState(false);
   const [pending, startTransition] = useTransition();
 
   const counts = countByCategory(interests);
@@ -89,7 +88,6 @@ export default function JoinForm({
   function submit(event: React.FormEvent) {
     event.preventDefault();
     setFailed(false);
-    setDuplicate(false);
     // Sent in international form; an invalid number keeps the typed text so the error shows.
     const whatsapp = toWhatsapp(phone, country) ?? (phone.trim() ? `+${dial}${phone.replace(/\D/g, '')}` : '');
     const input = {
@@ -116,7 +114,6 @@ export default function JoinForm({
       const result = await createProfile(input);
       if (result?.errors) setErrors(result.errors);
       if (result?.failed) setFailed(true);
-      if (result?.duplicate) setDuplicate(true);
     });
   }
 
@@ -335,11 +332,6 @@ export default function JoinForm({
       </div>
 
       <div className="space-y-3">
-        {duplicate && (
-          <p role="alert" className="rounded-2xl bg-pink/40 p-4 text-sm">
-            {t.duplicateAccount}
-          </p>
-        )}
         {(hasErrors || failed) && (
           <p role="alert" className="rounded-2xl bg-pink/40 p-4 text-sm">
             {failed ? genericError : t.fixErrors}
