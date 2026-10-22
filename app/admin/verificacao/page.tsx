@@ -5,7 +5,7 @@ import { notFound } from 'next/navigation';
 import { approve, archiveReport, recheck } from '@/app/admin/actions';
 import AdminNav from '@/components/admin/AdminNav';
 import BanForm from '@/components/admin/BanForm';
-import { isAdmin } from '@/lib/admin';
+import { isAdmin, isAdminEmail } from '@/lib/admin';
 import { FLAG_CATEGORY, REPORT_REASON, flagField } from '@/lib/adminLabels';
 import { loadAdminData } from '@/lib/adminData';
 import { interestLabel } from '@/lib/i18n';
@@ -91,7 +91,7 @@ export default async function VerificationPage() {
                     <input type="hidden" name="participantId" value={p.id} />
                     <button className="rounded-full border border-midnight/20 px-4 py-1.5 font-medium">Verificar de novo</button>
                   </form>
-                  <BanForm participantId={p.id} name={p.name} />
+                  {!isAdminEmail(p.email ?? undefined) && <BanForm participantId={p.id} name={p.name} />}
                 </div>
               </li>
             );

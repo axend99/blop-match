@@ -55,6 +55,11 @@ export async function resumeIfClear(participantId: string): Promise<ResumeResult
     .select('id');
   if (error) throw error;
   if (!data?.length) return 'unchanged';
+  // A report filed between the check and the update holds the person again.
+  if (!(await canResume(participantId)).ok) {
+    await createServiceClient().from('participants').update({ pending_review: true }).eq('id', participantId);
+    return 'held';
+  }
   await runMatchingFor(participantId);
   return 'resumed';
 }

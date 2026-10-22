@@ -95,6 +95,7 @@ declare
   v_email text;
   v_user uuid;
   v_seed boolean;
+  v_matches uuid[];
 begin
   select lower(email), user_id, is_seed into v_email, v_user, v_seed
   from public.participants where id = p_id for update;
@@ -108,15 +109,14 @@ begin
   update public.reports set resolution = 'banned', resolved_at = now()
   where reported_id = p_id and resolved_at is null;
 
-  create temp table ban_matches on commit drop as
-    select id from public.matches where p_id in (a_id, b_id);
+  v_matches := array(select id from public.matches where p_id in (a_id, b_id));
 
-  delete from public.content_flags where participant_id = p_id or match_id in (select id from ban_matches);
-  delete from public.contact_clicks where participant_id = p_id or match_id in (select id from ban_matches);
-  delete from public.reviews where reviewer_id = p_id or match_id in (select id from ban_matches);
-  delete from public.review_requests where participant_id = p_id or match_id in (select id from ban_matches);
-  delete from public.email_log where participant_id = p_id or match_id in (select id from ban_matches);
-  delete from public.matches where id in (select id from ban_matches);
+  delete from public.content_flags where participant_id = p_id or match_id = any(v_matches);
+  delete from public.contact_clicks where participant_id = p_id or match_id = any(v_matches);
+  delete from public.reviews where reviewer_id = p_id or match_id = any(v_matches);
+  delete from public.review_requests where participant_id = p_id or match_id = any(v_matches);
+  delete from public.email_log where participant_id = p_id or match_id = any(v_matches);
+  delete from public.matches where id = any(v_matches);
   delete from public.participants where id = p_id;
 
   return v_user;

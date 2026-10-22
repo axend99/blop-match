@@ -90,8 +90,8 @@ export async function ban(formData: FormData): Promise<void> {
     revalidatePath('/admin', 'layout');
     return;
   }
-  const reason = String(formData.get('reason') ?? '').slice(0, 200) || null;
-  const done = await banParticipant(id, reason ?? '');
+  const reason = String(formData.get('reason') ?? '').trim().slice(0, 200);
+  const done = await banParticipant(id, reason);
   await notice(done ? 'Conta banida: e-mail bloqueado e dados removidos.' : 'Não é possível banir esta conta (admin, seed ou já removida).');
   revalidatePath('/admin', 'layout');
 }

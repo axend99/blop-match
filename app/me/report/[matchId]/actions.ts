@@ -18,7 +18,8 @@ export async function submitReport(matchId: string, formData: FormData): Promise
   if (!match || match.other_deleted) redirect('/me');
 
   const reason = String(formData.get('reason') ?? '');
-  const details = String(formData.get('details') ?? '').trim();
+  // Browsers send line breaks as \r\n; count them as one character, like the form does.
+  const details = String(formData.get('details') ?? '').replace(/\r\n/g, '\n').trim();
   const base = `/me/report/${matchId}`;
   if (!(REPORT_REASONS as readonly string[]).includes(reason)) redirect(`${base}?error=reason`);
   if (details.length > MAX_REPORT_DETAILS) redirect(`${base}?error=long`);
