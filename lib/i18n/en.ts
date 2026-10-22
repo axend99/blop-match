@@ -61,7 +61,8 @@ const en = {
     origin: 'Where are you from?',
     interestsTitle: 'Your interests',
     interestsHint: 'Pick what really describes you: up to 5 per category, at least 10 in total from 3 or more categories. You can skip categories.',
-    interestsCount: (n: number, cats: number) => `${n} selected in ${cats} ${cats === 1 ? 'category' : 'categories'} · at least 10 from 3+ categories`,
+    // Plain string (the form is a client component): {n} items, {c} categories.
+    interestsCount: '{n} selected · {c} of 3+ categories · at least 10 in total',
     otherAdd: '+ Other',
     otherLabel: 'Other (optional)',
     otherPlaceholder: 'Anything we missed?',

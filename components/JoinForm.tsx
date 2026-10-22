@@ -165,7 +165,7 @@ export default function JoinForm({
 
       <Field id="age" label={t.age}>
         <input id="age" type="text" inputMode="numeric" pattern="[0-9]*" maxLength={2} value={age}
-          onChange={(e) => setAge(e.target.value.replace(/\D/g, ''))} className={`${inputClass} w-28 ${border('age')}`} />
+          onChange={(e) => setAge(e.target.value.replace(/\D/g, ''))} className={`${inputClass.replace('w-full', 'w-28')} ${border('age')}`} />
         {err('age')}
       </Field>
       <Choice legend={t.timeInCity} name="time_in_city" value={timeInCity} onChange={setTimeInCity}
@@ -238,7 +238,7 @@ export default function JoinForm({
         <div role="status" className={`sticky bottom-2 z-10 rounded-2xl border px-4 py-3 text-sm font-medium shadow-sm ${
           enough ? 'border-lime bg-lime text-midnight' : errors.interestsTotal ? 'border-red-600 bg-white text-red-700' : 'border-midnight/10 bg-white'
         }`}>
-          {t.interestsCount(interests.length, usedCategories)}
+          {t.interestsCount.replace('{n}', String(interests.length)).replace('{c}', String(usedCategories))}
           {errors.interestsTotal && !enough && <span className="block font-normal">{t.errors.interestsTotal}</span>}
         </div>
       </div>

@@ -63,7 +63,7 @@ const pt: Dict = {
     origin: 'De onde és?',
     interestsTitle: 'Os teus interesses',
     interestsHint: 'Escolhe o que te descreve mesmo: até 5 por categoria, pelo menos 10 no total em 3 ou mais categorias. Podes saltar categorias.',
-    interestsCount: (n: number, cats: number) => `${n} escolhidos em ${cats} ${cats === 1 ? 'categoria' : 'categorias'} · pelo menos 10 em 3+ categorias`,
+    interestsCount: '{n} escolhidos · {c} de 3+ categorias · pelo menos 10 no total',
     otherAdd: '+ Outro',
     otherLabel: 'Outro (opcional)',
     otherPlaceholder: 'Faltou alguma coisa?',
