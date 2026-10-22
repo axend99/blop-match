@@ -12,9 +12,9 @@ import { validateProfile, type FieldErrors, type ProfileInput } from '@/lib/prof
 import { siteUrl } from '@/lib/site';
 import { createClient } from '@/lib/supabase/server';
 import { createServiceClient } from '@/lib/supabase/service';
-import { emailInUse, isBanned, verifyNewProfile } from '@/lib/verification';
+import { isBanned, mailboxAlerts, verifyNewProfile } from '@/lib/verification';
 
-export type JoinState = { errors?: FieldErrors; failed?: boolean; duplicate?: boolean };
+export type JoinState = { errors?: FieldErrors; failed?: boolean };
 
 export async function createProfile(input: Omit<ProfileInput, 'lang'>): Promise<JoinState> {
   const lang = await getLang();
@@ -29,8 +29,8 @@ export async function createProfile(input: Omit<ProfileInput, 'lang'>): Promise<
     await (await createClient()).auth.signOut();
     redirect('/login?error=banned');
   }
-  // One profile per mailbox: the same Gmail with +tags or dots counts as the same person.
-  if (await emailInUse(user.email, user.id)) return { duplicate: true };
+  // Same mailbox as a banned address or another profile: joins, but waits for an admin.
+  const mailbox = await mailboxAlerts(user.email, user.id);
 
   const profile = result.data;
   const supabase = createServiceClient();
@@ -46,6 +46,13 @@ export async function createProfile(input: Omit<ProfileInput, 'lang'>): Promise<
     if (error.code === '23505') redirect('/me');
     console.error('[join] insert failed', error);
     return { failed: true };
+  }
+
+  if (mailbox.length) {
+    const { error: flagError } = await supabase
+      .from('content_flags')
+      .insert(mailbox.map((row) => ({ ...row, participant_id: participant.id, match_id: null })));
+    if (flagError) console.error('[join] mailbox alerts not stored', flagError);
   }
 
   try {

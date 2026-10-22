@@ -13,11 +13,15 @@ export const FLAG_CATEGORY: Record<string, string> = {
   spam: 'spam/publicidade',
   personal_data: 'dados de contacto',
   not_a_name: 'não parece um nome',
+  banned_mailbox: 'variação de um e-mail banido',
+  same_mailbox: 'mesma caixa de e-mail que outro perfil',
 };
 
 export const flagField = (field: string) =>
   field === 'name'
     ? 'Nome'
+    : field === 'email'
+      ? 'E-mail'
     : field === 'talk_about'
       ? 'Quero falar sobre'
       : field === 'review_comment'

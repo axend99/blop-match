@@ -84,7 +84,6 @@ const pt: Dict = {
     submit: 'Participar',
     submitting: 'A guardar…',
     fixErrors: 'Revê os campos assinalados.',
-    duplicateAccount: 'Este endereço de e-mail já tem um perfil no estudo. Entra com ele para ver os teus matches.',
     categories: {
       music: 'Música',
       sports: 'Desporto',
