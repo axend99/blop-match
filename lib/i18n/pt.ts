@@ -120,7 +120,18 @@ const pt: Dict = {
     rate: 'Avaliar esta interação',
     reviewed: 'Avaliado ✓',
     formerParticipant: 'Ex-participante',
+    profileLink: 'Ver o meu perfil',
     leftNotice: 'Saíste do estudo. Não vais receber novos matches.',
+  },
+  profile: {
+    title: 'O meu perfil',
+    intro: 'Isto é o que partilhaste ao entrar. Os teus matches veem tudo o que está aqui, exceto o teu e-mail, há quanto tempo vives na cidade, de onde és, o idioma e as respostas em "Outro".',
+    email: 'E-mail',
+    language: 'Idioma',
+    languages: { en: 'English', pt: 'Português' },
+    notGiven: 'Não indicado',
+    other: 'Outro',
+    readOnly: 'O perfil não pode ser alterado durante o estudo. Se alguma coisa estiver errada, escreve para founders@meetblop.com.',
   },
   match: {
     intro: 'O Blop encontrou alguém que devias conhecer',
