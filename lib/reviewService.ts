@@ -124,6 +124,20 @@ async function sendReviewReminders(state: State, deadline: number): Promise<numb
   return sent;
 }
 
+// Admin shortcut for testers: moves the match back so its review is open now, then sends the
+// "rate this interaction" e-mail to both sides right away (same rules as the cron: active, with
+// e-mail, not yet asked, not yet answered). Returns how many e-mails went out.
+export async function openReviewNow(matchId: string): Promise<number> {
+  const supabase = createServiceClient();
+  const createdAt = new Date(Date.now() - reviewDelayDays() * 24 * 60 * 60 * 1000 - 60_000).toISOString();
+  const { data, error } = await supabase.from('matches').update({ created_at: createdAt }).eq('id', matchId).select('id');
+  if (error) throw error;
+  if (!data?.length) return 0;
+  const state = await loadState();
+  state.matches = state.matches.filter((m) => m.id === matchId);
+  return sendReviewRequests(state, Date.now() + 30_000);
+}
+
 export async function runReviewEmails(deadlines: { requests: number; reminders: number }) {
   const state = await loadState();
   const reviewOpen = await sendReviewRequests(state, deadlines.requests);

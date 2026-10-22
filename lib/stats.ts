@@ -377,8 +377,9 @@ export function otherAnswers(participants: { other_text: Partial<Record<string, 
 
 // --- Contact button taps (attempts to start a conversation) ---
 
-// Taps are recorded from this moment (just after the tracking went live); older matches have no data.
-export const CONTACT_TRACKING_SINCE = '2026-10-21T07:40:00Z';
+// Taps are recorded since 21/10; the data was restarted on 22/10, so every match counts
+// (including matches moved back by "Abrir avaliação agora").
+export const CONTACT_TRACKING_SINCE = '2026-01-01T00:00:00Z';
 
 export type ContactClickInput = {
   matches: { id: string; type: Group; a_id: string; b_id: string; created_at: string }[];

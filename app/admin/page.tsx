@@ -16,7 +16,6 @@ import {
   MIN_N,
   SEGMENTS,
   WHY_NOT,
-  CONTACT_TRACKING_SINCE,
   byCategory,
   contactClicks,
   dataMode,
@@ -461,9 +460,7 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
                 <N n={cc.all.barrierReasons[0]?.share.n ?? 0} />
               </p>
               <p className="text-xs text-midnight/60">
-                Unidade: lado do match (uma pessoa num match). Só matches criados depois de{' '}
-                {new Date(CONTACT_TRACKING_SINCE).toLocaleString('pt-PT', { timeZone: 'Europe/Lisbon' })} e sem pessoas
-                anonimizadas (os matches de seed contam sempre). Conta toques no botão (é um mínimo: não sabemos se a mensagem foi enviada, e sem JavaScript o
+                Unidade: lado do match (uma pessoa num match). Sem pessoas anonimizadas. Conta toques no botão (é um mínimo: não sabemos se a mensagem foi enviada, e sem JavaScript o
                 toque não fica registado).
               </p>
             </>

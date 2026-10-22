@@ -1,14 +1,18 @@
 import type { Metadata } from 'next';
+import { cookies } from 'next/headers';
 import { notFound } from 'next/navigation';
+import { openReview } from '@/app/admin/actions';
 import AdminNav from '@/components/admin/AdminNav';
 import { isAdmin } from '@/lib/admin';
 import { loadAdminData, type AdminParticipant, type AdminReview } from '@/lib/adminData';
 import { interestLabel } from '@/lib/i18n';
 import pt from '@/lib/i18n/pt';
+import { reviewOpensAt } from '@/lib/site';
 import { dataMode, participantMatches, type DataMode } from '@/lib/stats';
 
 // Who the participants are and each one's matches (admin, in Portuguese).
 export const dynamic = 'force-dynamic';
+export const maxDuration = 60; // "Abrir avaliação agora" sends e-mails
 export const metadata: Metadata = { title: 'BLOP Match · Participantes', robots: { index: false, follow: false } };
 
 const when = (iso: string) => new Date(iso).toLocaleString('pt-PT', { timeZone: 'Europe/Lisbon', dateStyle: 'short', timeStyle: 'short' });
@@ -32,6 +36,7 @@ export default async function ParticipantsPage({ searchParams }: { searchParams:
   if (!(await isAdmin())) notFound();
   const { dados, q = '' } = await searchParams;
   const mode = dataMode(dados);
+  const notice = (await cookies()).get('admin_notice')?.value;
   const { participants, matches, reviews, clicks, personById, seedCount, e2eCount } = await loadAdminData(mode);
 
   const query = q.trim().toLowerCase();
@@ -46,6 +51,8 @@ export default async function ParticipantsPage({ searchParams }: { searchParams:
     // Wider than the participant layout on desktop.
     <div className="relative left-1/2 w-[calc(100vw-2rem)] max-w-6xl -translate-x-1/2 space-y-6 text-midnight">
       <AdminNav tab="participantes" mode={mode} href={(dados) => href({ dados })} seedCount={seedCount} e2eCount={e2eCount} />
+
+      {notice && <p className="rounded-2xl bg-lime/60 p-3 text-sm font-medium">{notice}</p>}
 
       <form action="/admin/participantes" className="flex gap-2">
         <input type="hidden" name="dados" value={mode} />
@@ -119,6 +126,18 @@ export default async function ParticipantsPage({ searchParams }: { searchParams:
                             </span>
                             <span className="text-midnight/60">{when(match.created_at)}</span>
                           </p>
+                          {(!mine || !theirs) &&
+                            !p.is_seed &&
+                            (reviewOpensAt(match.created_at) > new Date() ? (
+                              <form action={openReview}>
+                                <input type="hidden" name="matchId" value={match.id} />
+                                <button className="rounded-full border border-violet px-3 py-1 text-xs font-semibold text-violet">
+                                  Abrir avaliação agora e enviar o e-mail
+                                </button>
+                              </form>
+                            ) : (
+                              <p className="text-xs text-midnight/60">Avaliação aberta.</p>
+                            ))}
                           <p className="break-words">
                             <span className="text-midnight/60">Em comum ({match.shared_count}): </span>
                             {match.shared_items.map((code) => interestLabel(code, 'pt')).join(' · ') || '—'}
