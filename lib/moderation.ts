@@ -1,8 +1,10 @@
 import type { Profile } from '@/lib/profile';
 import type { Review } from '@/lib/review';
 
-// Free-text moderation (pure parts). The AI never blocks anything: it only records
-// alerts for /admin. Only `{ field, text }` pairs are ever sent to it.
+// Moderation (pure parts). The AI checks the first name and the free texts; only `{ field,
+// text }` pairs are sent (never e-mail, contacts or ids). Results are alerts for /admin; for a
+// new profile, any alert (or a failed check) keeps it out of matching until an admin approves.
+// `not_a_name` applies only to the `name` field.
 
 export const CATEGORIES = [
   'sexual',
@@ -13,6 +15,7 @@ export const CATEGORIES = [
   'self_harm',
   'spam',
   'personal_data',
+  'not_a_name',
   'none',
 ] as const;
 
@@ -20,8 +23,8 @@ export type ModerationText = { field: string; text: string };
 export type ModerationResult = { field: string; flagged: boolean; category: string; reason: string };
 export type FlagRow = { field: string; text: string; status: 'flagged' | 'error'; category: string | null; reason: string };
 
-export function profileTexts(profile: Pick<Profile, 'talk_about' | 'other_text'>): ModerationText[] {
-  const texts: ModerationText[] = [];
+export function profileTexts(profile: Pick<Profile, 'name' | 'talk_about' | 'other_text'>): ModerationText[] {
+  const texts: ModerationText[] = [{ field: 'name', text: profile.name }];
   if (profile.talk_about) texts.push({ field: 'talk_about', text: profile.talk_about });
   for (const [category, text] of Object.entries(profile.other_text)) {
     if (text) texts.push({ field: `other_text.${category}`, text });
@@ -72,4 +75,12 @@ export function flagsFrom(texts: ModerationText[], results: ModerationResult[]):
 // Every text marked as not verified (no key, API error, refusal, invalid answer).
 export function errorFlags(texts: ModerationText[], reason: string): FlagRow[] {
   return texts.map(({ field, text }) => ({ field, text, status: 'error', category: null, reason }));
+}
+
+// What a check means for a new profile: clean (nothing to store), flagged or error.
+export type ModerationOutcome = 'clean' | 'flagged' | 'error';
+
+export function moderationOutcome(rows: FlagRow[]): ModerationOutcome {
+  if (rows.some((r) => r.status === 'flagged')) return 'flagged';
+  return rows.length ? 'error' : 'clean';
 }

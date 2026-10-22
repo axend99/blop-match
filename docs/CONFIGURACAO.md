@@ -28,7 +28,7 @@ Depois de mudar uma variável na Vercel, é preciso fazer **Redeploy**.
 
 ## 2. Supabase
 
-1. **Migrações**: no SQL Editor, correr por ordem os ficheiros de `supabase/migrations/` (`0001_init` → `0009_categories_age`). Todas já estão aplicadas em produção.
+1. **Migrações**: no SQL Editor, correr por ordem os ficheiros de `supabase/migrations/` (`0001_init` → `0010_pending_bans_reports`). Todas já estão aplicadas em produção.
 2. **Authentication → URL Configuration**: Site URL `https://blop-match.vercel.app`; Redirect URLs `https://blop-match.vercel.app/**` e `http://localhost:3000/**`.
 3. **Authentication → Providers → Google**: ativo, com o Client ID e o Client Secret do cliente **Web** do Google Cloud (passo 3).
 4. **Authentication → Emails → SMTP Settings**: Custom SMTP ativo — host `smtp.gmail.com`, porta `465`, utilizador `blopmatch@gmail.com` (atenção a erros como `gmaill.com`), senha de app, remetente `blopmatch@gmail.com`, nome `BLOP Match`.
@@ -85,7 +85,9 @@ where id in (select id from p)
 returning user_id;
 ```
 
-Depois, em Authentication → Users, apagar o utilizador com o `user_id` devolvido. Os matches e as reviews ficam (sem dados pessoais) para a análise.
+Depois, em Authentication → Users, apagar o utilizador com o `user_id` devolvido. Os matches e as reviews ficam (sem dados pessoais) para a análise; as denúncias que a pessoa fez ou recebeu também ficam (só a equipa as vê).
+
+**Banir** (alguém com comportamento abusivo) é diferente: faz-se no `/admin` (aba Verificação, ficha em Participantes ou alerta), apaga a pessoa e os matches dela e bloqueia o e-mail durante o estudo.
 
 ## 8b. Teste automático com 10 participantes (Playwright)
 

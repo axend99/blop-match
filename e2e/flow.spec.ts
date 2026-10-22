@@ -169,8 +169,20 @@ test('perfis gravados corretamente', async () => {
   }
 });
 
-test('esperar pelo matching', async () => {
-  await new Promise((r) => setTimeout(r, 15_000));
+// New profiles are held until the AI check of the name and texts comes back clean; then the
+// matching runs. Waits for that (up to 2 minutes) instead of a fixed pause.
+test('esperar pela verificação e pelo matching', async () => {
+  const deadline = Date.now() + 120_000;
+  let held: string[] = [];
+  while (Date.now() < deadline) {
+    const { data, error } = await db.from('participants').select('name, pending_review').in('email', E2E_EMAILS);
+    if (error) throw error;
+    held = (data ?? []).filter((p) => p.pending_review).map((p) => p.name);
+    if (held.length === 0) break;
+    await new Promise((r) => setTimeout(r, 3000));
+  }
+  if (held.length) finding('verificação', 'perfis ainda pendentes (a IA marcou ou falhou)', held.join(', '));
+  await new Promise((r) => setTimeout(r, 5000)); // last matches and e-mails
 });
 
 for (const p of PEOPLE) {

@@ -57,7 +57,14 @@ async function send(state: State, kind: Extract<EmailKind, 'review_open' | 'revi
     matchId: to.matchId,
     to: person.email,
     subject: getDict(lang).emails[copyKey].subject(partnerName),
-    react: createElement(ReviewEmail, { kind: copyKey, name: person.name, partnerName, lang, url: `${siteUrl()}/me/review/${to.matchId}` }),
+    react: createElement(ReviewEmail, {
+      kind: copyKey,
+      name: person.name,
+      partnerName,
+      lang,
+      url: `${siteUrl()}/me/review/${to.matchId}`,
+      reportUrl: partnerName ? `${siteUrl()}/login?next=/me/report/${to.matchId}` : undefined,
+    }),
   });
   if (sent) return true;
   const { data } = await state.supabase

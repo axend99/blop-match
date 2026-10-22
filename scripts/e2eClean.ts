@@ -20,6 +20,7 @@ async function main() {
     : [];
   const matchIds = matches.map((m) => m.id as string);
 
+  if (ids.length) await must(db.from('reports').delete().or(`reporter_id.in.(${ids}),reported_id.in.(${ids})`));
   if (matchIds.length) {
     await must(db.from('content_flags').delete().in('match_id', matchIds));
     await must(db.from('contact_clicks').delete().in('match_id', matchIds));

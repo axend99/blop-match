@@ -33,6 +33,7 @@ export type AdminParticipant = {
   talk_about: string | null;
   talk_about_code: string | null;
   active: boolean;
+  pending_review: boolean;
   deleted_at: string | null;
   is_seed: boolean;
   created_at: string;
@@ -73,11 +74,23 @@ export type AdminFlag = {
 
 export type AdminClick = { match_id: string; participant_id: string; channel: string; created_at: string };
 
+export type AdminReport = {
+  id: string;
+  match_id: string | null;
+  reporter_id: string | null;
+  reported_id: string | null;
+  reason: string;
+  details: string | null;
+  created_at: string;
+  resolved_at: string | null;
+  resolution: string | null;
+};
+
 export async function loadAdminData(mode: DataMode) {
-  const [allParticipants, allMatches, allReviews, allFlags, allClicks] = await Promise.all([
+  const [allParticipants, allMatches, allReviews, allFlags, allClicks, reports] = await Promise.all([
     all<AdminParticipant>(
       'participants',
-      'id, name, email, whatsapp, instagram, city, lang, age, age_range, time_in_city, origin, interests, other_text, talk_about, talk_about_code, active, deleted_at, is_seed, created_at',
+      'id, name, email, whatsapp, instagram, city, lang, age, age_range, time_in_city, origin, interests, other_text, talk_about, talk_about_code, active, pending_review, deleted_at, is_seed, created_at',
     ),
     all<AdminMatch>('matches', 'id, a_id, b_id, type, score, shared_items, shared_count, shared_by_category, created_at'),
     all<AdminReview>(
@@ -86,9 +99,14 @@ export async function loadAdminData(mode: DataMode) {
     ),
     all<AdminFlag>('content_flags', 'id, participant_id, match_id, field, text, status, category, reason, created_at, resolved_at'),
     all<AdminClick>('contact_clicks', 'match_id, participant_id, channel, created_at'),
+    all<AdminReport>('reports', 'id, match_id, reporter_id, reported_id, reason, details, created_at, resolved_at, resolution'),
   ]);
   const seedCount = allParticipants.filter((p) => p.is_seed).length;
   const e2eCount = allParticipants.filter((p) => isE2eEmail(p.email)).length;
+  // Whole base (not filtered): what waits for an admin in the Verificação tab.
+  const pendingCount = allParticipants.filter((p) => p.pending_review && !p.deleted_at && !p.is_seed).length;
+  const openReports = reports.filter((r) => !r.resolved_at).length;
+  const allPeople = new Map(allParticipants.map((p) => [p.id, p]));
   const { participants, matches, reviews, flags, clicks } = filterAdminData(
     { participants: allParticipants, matches: allMatches, reviews: allReviews, flags: allFlags, clicks: allClicks },
     mode,
@@ -128,5 +146,23 @@ export async function loadAdminData(mode: DataMode) {
     if (!firstTap.has(key) || c.created_at < firstTap.get(key)!) firstTap.set(key, c.created_at);
   }
 
-  return { participants, matches, reviews, flags, clicks, tapped, firstTap, rows, personById, matchById, seedCount, e2eCount };
+  return {
+    participants,
+    matches,
+    reviews,
+    flags,
+    clicks,
+    tapped,
+    firstTap,
+    rows,
+    personById,
+    matchById,
+    seedCount,
+    e2eCount,
+    pendingCount,
+    openReports,
+    reports,
+    allPeople,
+    allFlags,
+  };
 }

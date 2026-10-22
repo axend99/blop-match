@@ -1,13 +1,14 @@
 import { describe, expect, it } from 'vitest';
-import { errorFlags, flagsFrom, profileTexts, resultSchema, reviewTexts } from '@/lib/moderation';
+import { errorFlags, flagsFrom, moderationOutcome, profileTexts, resultSchema, reviewTexts } from '@/lib/moderation';
 
 describe('moderation inputs', () => {
-  it('collects only non-empty free text from the profile', () => {
-    expect(profileTexts({ talk_about: 'surf', other_text: { music: 'synthwave', food: '' } })).toEqual([
+  it('collects the first name and only non-empty free text from the profile', () => {
+    expect(profileTexts({ name: 'Ana', talk_about: 'surf', other_text: { music: 'synthwave', food: '' } })).toEqual([
+      { field: 'name', text: 'Ana' },
       { field: 'talk_about', text: 'surf' },
       { field: 'other_text.music', text: 'synthwave' },
     ]);
-    expect(profileTexts({ talk_about: null, other_text: {} })).toEqual([]);
+    expect(profileTexts({ name: 'Ana', talk_about: null, other_text: {} })).toEqual([{ field: 'name', text: 'Ana' }]);
   });
 
   it('collects the review comment when present', () => {
@@ -44,5 +45,14 @@ describe('flagsFrom', () => {
     expect(errorFlags(texts.slice(0, 1), 'falhou')).toEqual([
       { field: 'talk_about', text: 'a', status: 'error', category: null, reason: 'falhou' },
     ]);
+  });
+});
+
+describe('moderationOutcome', () => {
+  const row = (status: 'flagged' | 'error') => ({ field: 'name', text: 'x', status, category: null, reason: '' });
+  it('is clean without alerts, flagged if anything is flagged, error otherwise', () => {
+    expect(moderationOutcome([])).toBe('clean');
+    expect(moderationOutcome([row('error')])).toBe('error');
+    expect(moderationOutcome([row('error'), row('flagged')])).toBe('flagged');
   });
 });

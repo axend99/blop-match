@@ -25,8 +25,9 @@ export async function getMyParticipant(): Promise<MyParticipant | null> {
 }
 
 // Navigation rule (SPEC §3): logged in without profile → /join; with profile → /me.
-export async function redirectIfLoggedIn(): Promise<void> {
+// `next`: a safe /me/... path to go to instead of /me (e.g. a report link from an e-mail).
+export async function redirectIfLoggedIn(next?: string | null): Promise<void> {
   const user = await getUser();
   if (!user) return;
-  redirect((await getMyParticipant()) ? '/me' : '/join');
+  redirect((await getMyParticipant()) ? (next ?? '/me') : '/join');
 }

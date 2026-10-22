@@ -5,7 +5,9 @@ import { resolveFlag } from '@/app/admin/actions';
 import AdminNav from '@/components/admin/AdminNav';
 import DoseChart from '@/components/admin/DoseChart';
 import FunnelChart from '@/components/admin/FunnelChart';
-import { isAdmin } from '@/lib/admin';
+import { isAdmin, isAdminEmail } from '@/lib/admin';
+import BanForm from '@/components/admin/BanForm';
+import { FLAG_CATEGORY, flagField } from '@/lib/adminLabels';
 import { loadAdminData } from '@/lib/adminData';
 import { interestLabel } from '@/lib/i18n';
 import pt from '@/lib/i18n/pt';
@@ -56,24 +58,6 @@ const SEGMENT_VALUE: Record<string, Record<string, string>> = {
 };
 const WHY_NOT_LABEL: Record<string, string> = pt.review.whyNotOptions;
 const IG_FOLLOW_LABEL: Record<string, string> = pt.review.igFollowOptions;
-const FLAG_CATEGORY: Record<string, string> = {
-  sexual: 'sexual',
-  obscene: 'obsceno',
-  harassment: 'assédio/insulto',
-  hate: 'ódio',
-  violence: 'violência',
-  self_harm: 'autolesão',
-  spam: 'spam/publicidade',
-  personal_data: 'dados de contacto',
-};
-const flagField = (field: string) =>
-  field === 'talk_about'
-    ? 'Quero falar sobre'
-    : field === 'review_comment'
-      ? 'Comentário da review'
-      : field.startsWith('other_text.')
-        ? `Outro (${CATEGORY_LABEL[field.slice(11)] ?? field.slice(11)})`
-        : field;
 const STATUS: Record<Hypothesis['status'], { label: string; className: string }> = {
   above: { label: 'Acima da meta', className: 'bg-lime text-midnight' },
   below: { label: 'Abaixo da meta', className: 'bg-pink/60 text-midnight' },
@@ -198,7 +182,7 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
   const mode = dataMode(dados);
   const segmentGroup: Group | 'all' = grupo === 'compativel' ? 'compatible' : grupo === 'controlo' ? 'control' : 'all';
 
-  const { participants, matches, reviews, flags, clicks, rows, personById, seedCount, e2eCount } = await loadAdminData(mode);
+  const { participants, matches, reviews, flags, clicks, rows, personById, seedCount, e2eCount, pendingCount, openReports } = await loadAdminData(mode);
   const seedShown = participants.filter((p) => p.is_seed).length;
   // Keeps both filters in links.
   const link = (params: { grupo?: string; dados?: DataMode }, hash = '') =>
@@ -212,7 +196,8 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
     delayDays: reviewDelayDays(),
     graceMs: REVIEW_GRACE_MS,
   });
-  const smp = sample({ participants, matches, categories: CATEGORIES });
+  // Pending people (being verified or reported) do not count as active.
+  const smp = sample({ participants: participants.map((p) => ({ ...p, active: p.active && !p.pending_review })), matches, categories: CATEGORIES });
   const minShared = matchingConfig().minSharedCompatible;
   const byNewest = (a?: string | null, b?: string | null) => (b ?? '').localeCompare(a ?? '');
   const openFlags = flags.filter((f) => !f.resolved_at).sort((a, b) => byNewest(a.created_at, b.created_at));
@@ -224,7 +209,7 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
   return (
     // Wider than the participant layout on desktop.
     <div className="relative left-1/2 w-[calc(100vw-2rem)] max-w-6xl -translate-x-1/2 space-y-6 text-midnight">
-      <AdminNav tab="painel" mode={mode} href={(dados) => link({ dados })} seedCount={seedCount} e2eCount={e2eCount} />
+      <AdminNav tab="painel" mode={mode} href={(dados) => link({ dados })} seedCount={seedCount} e2eCount={e2eCount} toReview={pendingCount + openReports} />
       {openFlags.length > 0 && (
         <a href="#alertas" className="block rounded-2xl bg-pink/50 p-4 font-medium">
           ⚠️ {openFlags.length} {openFlags.length === 1 ? 'alerta de conteúdo por ver' : 'alertas de conteúdo por ver'}
@@ -628,7 +613,7 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
       </Section>
 
       <section id="alertas">
-        <Section n={10} title={`Alertas de conteúdo (${openFlags.length} por ver)`} description="Textos escritos pelos participantes que a verificação automática (IA) marcou como possivelmente impróprios. Nada é bloqueado; só avisa.">
+        <Section n={10} title={`Alertas de conteúdo (${openFlags.length} por ver)`} description="Nomes e textos que a verificação automática (IA) marcou. Os de perfis novos também estão na aba Verificação (esses perfis só entram no matching depois de aprovados); os comentários de reviews só avisam.">
           {openFlags.length === 0 && <p className="text-sm text-midnight/60">Nenhum alerta por ver.</p>}
           <ul className="space-y-3">
             {openFlags.map((f) => (
@@ -643,10 +628,18 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
                 </div>
                 <p className="whitespace-pre-wrap break-words rounded-xl bg-paper p-2 text-sm">{f.text}</p>
                 {f.reason && <p className="text-sm text-midnight/70">{f.reason}</p>}
-                <form action={resolveFlag}>
-                  <input type="hidden" name="id" value={f.id} />
-                  <button className="rounded-full border border-midnight/20 px-3 py-1 text-sm font-medium">Marcar como visto</button>
-                </form>
+                <div className="flex flex-wrap items-start gap-2">
+                  <form action={resolveFlag}>
+                    <input type="hidden" name="id" value={f.id} />
+                    <button className="rounded-full border border-midnight/20 px-3 py-1 text-sm font-medium">Marcar como visto</button>
+                  </form>
+                  {(() => {
+                    const person = personById.get(f.participant_id);
+                    return person && !person.is_seed && person.email && !isAdminEmail(person.email) ? (
+                      <BanForm participantId={person.id} name={person.name} />
+                    ) : null;
+                  })()}
+                </div>
               </li>
             ))}
           </ul>
