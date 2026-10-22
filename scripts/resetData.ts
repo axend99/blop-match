@@ -79,6 +79,7 @@ async function main() {
 
   const ids = participants.map((p) => p.id as string);
   const matchIds = matches.map((m) => m.id as string);
+  await must(db.from('reports').delete().not('id', 'is', null)); // reports keep only ids; all go with the participants
   for (const table of ['content_flags', 'contact_clicks', 'reviews', 'review_requests', 'email_log']) {
     for (const batch of chunks(matchIds, 100)) await must(db.from(table).delete().in('match_id', batch));
     const column = table === 'reviews' ? 'reviewer_id' : 'participant_id';

@@ -14,6 +14,7 @@ type Participant = {
   lang: string;
   interests: string[];
   active: boolean;
+  pending_review: boolean;
   created_at: string;
   deleted_at: string | null;
 };
@@ -24,7 +25,7 @@ type MatchRow = { id: string; a_id: string; b_id: string; type: 'compatible' | '
 async function loadState() {
   const supabase = createServiceClient();
   const [people, matches] = await Promise.all([
-    supabase.from('participants').select('id, name, email, lang, interests, active, created_at, deleted_at'),
+    supabase.from('participants').select('id, name, email, lang, interests, active, pending_review, created_at, deleted_at'),
     supabase.from('matches').select('id, a_id, b_id, type'),
   ]);
   if (people.error) throw people.error;
@@ -38,7 +39,8 @@ async function loadState() {
       {
         id: p.id,
         interests: p.interests,
-        active: p.active && !p.deleted_at,
+        // Pending people (being verified, or reported) get no new matches.
+        active: p.active && !p.deleted_at && !p.pending_review,
         createdAt: p.created_at,
         compatibleCount: 0,
         controlCount: 0,
@@ -67,7 +69,12 @@ async function notify(participant: Participant | undefined, matchId: string): Pr
     matchId,
     to: participant.email,
     subject: getDict(lang).emails.newMatch.subject,
-    react: createElement(NewMatchEmail, { name: participant.name, lang, url: `${siteUrl()}/me` }),
+    react: createElement(NewMatchEmail, {
+      name: participant.name,
+      lang,
+      url: `${siteUrl()}/me`,
+      reportUrl: `${siteUrl()}/login?next=/me/report/${matchId}`,
+    }),
   });
 }
 

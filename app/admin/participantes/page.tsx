@@ -3,7 +3,8 @@ import { cookies } from 'next/headers';
 import { notFound } from 'next/navigation';
 import { openReview } from '@/app/admin/actions';
 import AdminNav from '@/components/admin/AdminNav';
-import { isAdmin } from '@/lib/admin';
+import BanForm from '@/components/admin/BanForm';
+import { isAdmin, isAdminEmail } from '@/lib/admin';
 import { loadAdminData, type AdminParticipant, type AdminReview } from '@/lib/adminData';
 import { interestLabel } from '@/lib/i18n';
 import pt from '@/lib/i18n/pt';
@@ -22,6 +23,7 @@ const CHANNEL: Record<string, string> = { whatsapp: 'WhatsApp', instagram: 'Inst
 function state(p: AdminParticipant) {
   if (p.deleted_at) return ['anonimizado', 'bg-midnight/10'];
   if (p.is_seed) return ['seed', 'bg-lime/60'];
+  if (p.pending_review) return ['pendente', 'bg-pink/70'];
   return p.active ? ['ativo', 'bg-violet/15'] : ['inativo', 'bg-pink/50'];
 }
 
@@ -37,7 +39,7 @@ export default async function ParticipantsPage({ searchParams }: { searchParams:
   const { dados, q = '' } = await searchParams;
   const mode = dataMode(dados);
   const notice = (await cookies()).get('admin_notice')?.value;
-  const { participants, matches, reviews, clicks, personById, seedCount, e2eCount } = await loadAdminData(mode);
+  const { participants, matches, reviews, clicks, personById, seedCount, e2eCount, pendingCount, openReports } = await loadAdminData(mode);
 
   const query = q.trim().toLowerCase();
   const shown = participants
@@ -50,7 +52,7 @@ export default async function ParticipantsPage({ searchParams }: { searchParams:
   return (
     // Wider than the participant layout on desktop.
     <div className="relative left-1/2 w-[calc(100vw-2rem)] max-w-6xl -translate-x-1/2 space-y-6 text-midnight">
-      <AdminNav tab="participantes" mode={mode} href={(dados) => href({ dados })} seedCount={seedCount} e2eCount={e2eCount} />
+      <AdminNav tab="participantes" mode={mode} href={(dados) => href({ dados })} seedCount={seedCount} e2eCount={e2eCount} toReview={pendingCount + openReports} />
 
       {notice && <p className="rounded-2xl bg-lime/60 p-3 text-sm font-medium">{notice}</p>}
 
@@ -107,6 +109,8 @@ export default async function ParticipantsPage({ searchParams }: { searchParams:
                       <span className="text-midnight/60"> · Outro: {Object.values(p.other_text).join(' · ')}</span>
                     )}
                   </p>
+
+                  {!p.is_seed && !p.deleted_at && p.email && !isAdminEmail(p.email) && <BanForm participantId={p.id} name={p.name} />}
 
                   <div className="space-y-2">
                     <h3 className="font-semibold">Matches</h3>

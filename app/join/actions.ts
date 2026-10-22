@@ -6,14 +6,13 @@ import { createElement } from 'react';
 import WelcomeEmail from '@/emails/WelcomeEmail';
 import { getMyParticipant, getUser } from '@/lib/auth';
 import { sendEmail } from '@/lib/email';
-import { profileTexts } from '@/lib/moderation';
-import { runMatchingFor } from '@/lib/matchingService';
-import { moderate } from '@/lib/moderationService';
 import { getDict } from '@/lib/i18n';
 import { getLang, setLang } from '@/lib/i18n/server';
 import { validateProfile, type FieldErrors, type ProfileInput } from '@/lib/profile';
 import { siteUrl } from '@/lib/site';
+import { createClient } from '@/lib/supabase/server';
 import { createServiceClient } from '@/lib/supabase/service';
+import { isBanned, verifyNewProfile } from '@/lib/verification';
 
 export type JoinState = { errors?: FieldErrors; failed?: boolean };
 
@@ -26,12 +25,17 @@ export async function createProfile(input: Omit<ProfileInput, 'lang'>): Promise<
   if (!user) redirect('/login');
   if (await getMyParticipant()) redirect('/me');
   if (!user.email) return { failed: true };
+  if (await isBanned(user.email)) {
+    await (await createClient()).auth.signOut();
+    redirect('/login?error=banned');
+  }
 
   const profile = result.data;
   const supabase = createServiceClient();
   const { data: participant, error } = await supabase
     .from('participants')
-    .insert({ ...profile, user_id: user.id, email: user.email, consent_at: new Date().toISOString() })
+    // Held until the AI check of the name and texts comes back clean (lib/verification.ts).
+    .insert({ ...profile, user_id: user.id, email: user.email, consent_at: new Date().toISOString(), pending_review: true })
     .select('id')
     .single();
 
@@ -54,21 +58,13 @@ export async function createProfile(input: Omit<ProfileInput, 'lang'>): Promise<
     console.error('[join] welcome email failed', err);
   }
 
-  // AI check of the free text: only alerts /admin, never blocks; separate from matching.
+  // AI check of the name and texts; matching runs right after if it is clean (also fills the
+  // slots of people already waiting). Otherwise the profile waits for an admin.
   after(async () => {
     try {
-      await moderate(participant.id, profileTexts(profile));
+      await verifyNewProfile(participant.id, profile);
     } catch (err) {
-      console.error('[join] moderation failed', err);
-    }
-  });
-
-  // Match right away (also fills the slots of people already waiting) without delaying the redirect.
-  after(async () => {
-    try {
-      await runMatchingFor(participant.id);
-    } catch (err) {
-      console.error('[join] matching failed', err);
+      console.error('[join] verification failed', err);
     }
   });
 

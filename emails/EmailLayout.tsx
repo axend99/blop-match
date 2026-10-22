@@ -1,4 +1,4 @@
-import { Body, Button, Container, Head, Html, Preview, Section, Text } from '@react-email/components';
+import { Body, Button, Container, Head, Html, Link, Preview, Section, Text } from '@react-email/components';
 
 const COLORS = { midnight: '#1e1530', violet: '#5b3cf5', paper: '#f5f2ef' };
 
@@ -8,6 +8,7 @@ export default function EmailLayout({
   buttonLabel,
   buttonUrl,
   footer,
+  report,
   children,
 }: {
   lang: string;
@@ -15,6 +16,7 @@ export default function EmailLayout({
   buttonLabel: string;
   buttonUrl: string;
   footer: string;
+  report?: { text: string; link: string; url: string }; // "Report this person" (match e-mails)
   children: React.ReactNode;
 }) {
   return (
@@ -35,6 +37,14 @@ export default function EmailLayout({
               {buttonLabel}
             </Button>
           </Section>
+          {report && (
+            <Text style={{ fontSize: 13, color: '#6b6478', textAlign: 'center', marginTop: 16 }}>
+              {report.text}{' '}
+              <Link href={report.url} style={{ color: '#6b6478', textDecoration: 'underline' }}>
+                {report.link}
+              </Link>
+            </Text>
+          )}
           <Text style={{ fontSize: 12, color: '#6b6478', textAlign: 'center', marginTop: 24 }}>{footer}</Text>
         </Container>
       </Body>

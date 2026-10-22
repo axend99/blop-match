@@ -4,12 +4,15 @@ import { getMyParticipant, getUser } from '@/lib/auth';
 import { getDict } from '@/lib/i18n';
 import { getLang } from '@/lib/i18n/server';
 import { countryList } from '@/lib/phone';
+import { isBanned } from '@/lib/verification';
 
 // The server action also runs matching and sends emails in after().
 export const maxDuration = 60;
 
 export default async function JoinPage() {
-  if (!(await getUser())) redirect('/login');
+  const user = await getUser();
+  if (!user) redirect('/login');
+  if (await isBanned(user.email)) redirect('/auth/continue'); // signs out and explains
   if (await getMyParticipant()) redirect('/me');
   const lang = await getLang();
   const t = getDict(lang);

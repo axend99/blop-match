@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import type { Lang } from '@/lib/i18n';
 import type { Dict } from '@/lib/i18n/en';
+import { NEXT_COOKIE } from '@/lib/next';
 import { createClient } from '@/lib/supabase/client';
 
 // Google's own "Sign in with Google" button (Google Identity Services) on our domain, so the
@@ -43,13 +44,18 @@ type Status = 'idle' | 'sending' | 'sent' | 'error' | 'invalid' | 'googleError';
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-export default function LoginForm({ t, lang }: { t: Dict['login']; lang: Lang }) {
+export default function LoginForm({ t, lang, next }: { t: Dict['login']; lang: Lang; next?: string | null }) {
   const [email, setEmail] = useState('');
   const [status, setStatus] = useState<Status>('idle');
   const [googleBusy, setGoogleBusy] = useState(false);
   const [gisReady, setGisReady] = useState(false);
   const [inApp, setInApp] = useState(false);
   const gisRef = useRef<HTMLDivElement>(null);
+
+  // Remember where to go after signing in (read by /auth/continue; same browser only).
+  useEffect(() => {
+    if (next) document.cookie = `${NEXT_COOKIE}=${encodeURIComponent(next)}; path=/; max-age=3600; samesite=lax`;
+  }, [next]);
 
   useEffect(() => {
     setInApp(/Instagram|FBAN|FBAV|WhatsApp/i.test(navigator.userAgent));

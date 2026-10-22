@@ -116,6 +116,12 @@ export default async function MatchPage({ params }: { params: Promise<{ matchId:
       )}
 
       <ReviewStatus t={t.me} lang={lang} createdAt={match.created_at} reviewed={match.reviewed_by_me} matchId={match.match_id} />
+
+      {!deleted && (
+        <Link href={`/me/report/${match.match_id}`} className="block text-sm text-midnight/50 underline">
+          {t.report.link}
+        </Link>
+      )}
     </article>
   );
 }

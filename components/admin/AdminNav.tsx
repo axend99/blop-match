@@ -16,12 +16,14 @@ export default function AdminNav({
   href,
   seedCount,
   e2eCount,
+  toReview = 0,
 }: {
-  tab: 'painel' | 'participantes';
+  tab: 'painel' | 'participantes' | 'verificacao';
   mode: DataMode;
   href: (mode: DataMode) => string;
   seedCount: number;
   e2eCount: number;
+  toReview?: number; // profiles waiting + open reports
 }) {
   const pill = (active: boolean) =>
     `rounded-full border px-3 py-1 ${active ? 'border-violet bg-violet text-white' : 'border-midnight/20 bg-white'}`;
@@ -39,6 +41,9 @@ export default function AdminNav({
         </Link>
         <Link href={`/admin/participantes?dados=${mode}`} className={pill(tab === 'participantes')}>
           Participantes
+        </Link>
+        <Link href="/admin/verificacao" className={pill(tab === 'verificacao')}>
+          Verificação{toReview > 0 ? ` (${toReview})` : ''}
         </Link>
       </nav>
       {(seedCount > 0 || mode !== 'reais') && (
