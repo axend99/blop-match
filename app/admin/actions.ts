@@ -28,7 +28,12 @@ export async function openReview(formData: FormData): Promise<void> {
   if (!(await isAdmin())) return;
   const id = String(formData.get('matchId') ?? '');
   if (!UUID.test(id)) return;
-  await openReviewNow(id);
+  const sent = await openReviewNow(id);
+  // The page shows how many e-mails went out (0: already asked, answered, inactive or no e-mail).
+  (await cookies()).set('admin_notice', `Avaliação aberta · ${sent} ${sent === 1 ? 'e-mail enviado' : 'e-mails enviados'}`, {
+    path: '/admin',
+    maxAge: 60,
+  });
   revalidatePath('/admin/participantes');
 }
 

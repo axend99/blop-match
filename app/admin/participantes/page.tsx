@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { cookies } from 'next/headers';
 import { notFound } from 'next/navigation';
 import { openReview } from '@/app/admin/actions';
 import AdminNav from '@/components/admin/AdminNav';
@@ -35,6 +36,7 @@ export default async function ParticipantsPage({ searchParams }: { searchParams:
   if (!(await isAdmin())) notFound();
   const { dados, q = '' } = await searchParams;
   const mode = dataMode(dados);
+  const notice = (await cookies()).get('admin_notice')?.value;
   const { participants, matches, reviews, clicks, personById, seedCount, e2eCount } = await loadAdminData(mode);
 
   const query = q.trim().toLowerCase();
@@ -49,6 +51,8 @@ export default async function ParticipantsPage({ searchParams }: { searchParams:
     // Wider than the participant layout on desktop.
     <div className="relative left-1/2 w-[calc(100vw-2rem)] max-w-6xl -translate-x-1/2 space-y-6 text-midnight">
       <AdminNav tab="participantes" mode={mode} href={(dados) => href({ dados })} seedCount={seedCount} e2eCount={e2eCount} />
+
+      {notice && <p className="rounded-2xl bg-lime/60 p-3 text-sm font-medium">{notice}</p>}
 
       <form action="/admin/participantes" className="flex gap-2">
         <input type="hidden" name="dados" value={mode} />
@@ -128,7 +132,7 @@ export default async function ParticipantsPage({ searchParams }: { searchParams:
                               <form action={openReview}>
                                 <input type="hidden" name="matchId" value={match.id} />
                                 <button className="rounded-full border border-violet px-3 py-1 text-xs font-semibold text-violet">
-                                  Abrir avaliação agora (envia o e-mail às duas pessoas)
+                                  Abrir avaliação agora e enviar o e-mail
                                 </button>
                               </form>
                             ) : (
