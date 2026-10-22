@@ -119,6 +119,17 @@ const en = {
     reviewed: 'Reviewed ✓',
     formerParticipant: 'Former participant',
     leftNotice: "You left the study. You won't get new matches.",
+    profileLink: 'See my profile',
+  },
+  profile: {
+    title: 'My profile',
+    intro: 'This is what you shared when you joined. Your matches see everything here except your email, how long you have lived in the city, where you are from, the language and your "Other" answers.',
+    email: 'Email',
+    language: 'Language',
+    languages: { en: 'English', pt: 'Português' },
+    notGiven: 'Not given',
+    other: 'Other',
+    readOnly: 'Your profile cannot be changed during the study. If something is wrong, write to founders@meetblop.com.',
   },
   match: {
     intro: 'Blop found someone you should meet',

@@ -22,7 +22,12 @@ export default async function MePage() {
     <div className="space-y-8">
       <section className="flex items-center gap-4">
         <Blop variant={avatarCategory(me.interests)} label={t.avatarAlt(me.name)} className="size-24 shrink-0" />
-        <h1 className="text-3xl font-bold">{t.me.title(me.name)}</h1>
+        <div className="space-y-1">
+          <h1 className="text-3xl font-bold">{t.me.title(me.name)}</h1>
+          <Link href="/me/profile" className="text-sm font-medium text-violet underline">
+            {t.me.profileLink}
+          </Link>
+        </div>
       </section>
 
       {!me.active && <p className="rounded-2xl bg-pink/40 p-4 text-sm">{t.me.leftNotice}</p>}
