@@ -48,11 +48,13 @@ export async function createProfile(input: Omit<ProfileInput, 'lang'>): Promise<
     return { failed: true };
   }
 
+  let mailboxHeld = false; // alerts could not be stored: skip the automatic release
   if (mailbox.length) {
     const { error: flagError } = await supabase
       .from('content_flags')
       .insert(mailbox.map((row) => ({ ...row, participant_id: participant.id, match_id: null })));
     if (flagError) console.error('[join] mailbox alerts not stored', flagError);
+    mailboxHeld = Boolean(flagError);
   }
 
   try {
@@ -70,6 +72,7 @@ export async function createProfile(input: Omit<ProfileInput, 'lang'>): Promise<
   // AI check of the name and texts; matching runs right after if it is clean (also fills the
   // slots of people already waiting). Otherwise the profile waits for an admin.
   after(async () => {
+    if (mailboxHeld) return; // stays pending; an admin approves from the Verificação tab
     try {
       await verifyNewProfile(participant.id, profile);
     } catch (err) {

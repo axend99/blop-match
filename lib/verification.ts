@@ -101,13 +101,16 @@ export async function verifyNewProfile(participantId: string, profile: Parameter
   if (outcome === 'clean') await resumeIfClear(participantId);
 }
 
-async function resolveProfileFlags(participantId: string) {
-  const { error } = await createServiceClient()
+// `keepEmail`: leave the mailbox alerts open (only Aprovar clears them, never a new AI check).
+async function resolveProfileFlags(participantId: string, keepEmail = false) {
+  let query = createServiceClient()
     .from('content_flags')
     .update({ resolved_at: new Date().toISOString() })
     .eq('participant_id', participantId)
     .is('match_id', null)
     .is('resolved_at', null);
+  if (keepEmail) query = query.neq('field', 'email');
+  const { error } = await query;
   if (error) throw error;
 }
 
@@ -127,7 +130,7 @@ export async function recheckProfile(participantId: string): Promise<ResumeResul
     .maybeSingle();
   if (error) throw error;
   if (!p || p.deleted_at) return 'unchanged';
-  await resolveProfileFlags(participantId);
+  await resolveProfileFlags(participantId, true);
   const outcome = await moderate(participantId, profileTexts({ name: p.name, talk_about: p.talk_about, other_text: p.other_text ?? {} }));
   return outcome === 'clean' ? resumeIfClear(participantId) : outcome;
 }
