@@ -228,7 +228,7 @@ Abas: **Painel**, **Verificação** (`/admin/verificacao`: "Perfis por verificar
 - `email_log`: id, participant_id, kind, match_id null, sent_at
 - `participants.pending_review` (bool): perfil novo à espera da verificação (IA do nome e dos textos; se marcar algo ou falhar, espera por um admin) ou pessoa denunciada; não recebe matches novos (`lib/matchingService.ts` e `try_create_match`). Só volta quando não há denúncias abertas nem alertas de perfil por ver (`lib/verification.ts`).
 - `reports`: id, match_id, reporter_id, reported_id (on delete set null), reason (`harassment` | `sexual` | `threat` | `spam` | `fake` | `unsafe` | `other`), details ≤ 1000, created_at, resolved_at, resolution (`dismissed` | `banned`); unique(match_id, reporter_id). Feitas em `/me/report/[matchId]` (link no match, na review e nos e-mails de match/review); os admins recebem um e-mail curto.
-- `banned_emails`: email (minúsculas), reason, banned_at. Banir (`ban_participant()`, uma transação) apaga a pessoa, os matches dela e tudo o que está ligado, e bloqueia o e-mail durante o estudo (login e cadastro recusados).
+- `banned_emails`: email (minúsculas; ao banir guarda-se também a forma canónica — sem `+etiqueta`, sem pontos no Gmail, `lib/emailCanonical.ts` — exceto se for a caixa de um admin), reason, banned_at. Um perfil por caixa de correio: o cadastro recusa um e-mail cuja forma canónica já tem perfil ativo. Banir (`ban_participant()`, uma transação) apaga a pessoa, os matches dela e tudo o que está ligado, e bloqueia o e-mail durante o estudo (login e cadastro recusados).
 
 ### RLS
 - Um participante lê e atualiza só a própria linha em `participants`.

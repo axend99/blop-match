@@ -1,6 +1,7 @@
 import 'server-only';
 import { isAdminEmail, adminEmails } from '@/lib/admin';
 import { sendAdminNotice } from '@/lib/email';
+import { canonicalEmail } from '@/lib/emailCanonical';
 import { profileTexts } from '@/lib/moderation';
 import { runMatchingFor } from '@/lib/matchingService';
 import { moderate } from '@/lib/moderationService';
@@ -11,15 +12,26 @@ import { createServiceClient } from '@/lib/supabase/service';
 // being checked, when the check flagged something or failed, and when they were reported.
 // Everything here runs with the service role, on the server only.
 
+// Banned if the address or its canonical form (no +tag, no Gmail dots) was banned.
 export async function isBanned(email: string | null | undefined): Promise<boolean> {
   if (!email) return false;
-  const { data, error } = await createServiceClient()
-    .from('banned_emails')
-    .select('email')
-    .eq('email', email.trim().toLowerCase())
-    .maybeSingle();
+  const forms = [...new Set([email.trim().toLowerCase(), canonicalEmail(email)])];
+  const { data, error } = await createServiceClient().from('banned_emails').select('email').in('email', forms).limit(1);
   if (error) throw error;
-  return Boolean(data);
+  return Boolean(data?.length);
+}
+
+// Another live profile already uses this mailbox (e.g. ana+2@gmail.com when ana@gmail.com
+// joined). Seed and anonymised rows have no e-mail; the test accounts keep their own form.
+export async function emailInUse(email: string, userId: string): Promise<boolean> {
+  const canonical = canonicalEmail(email);
+  const { data, error } = await createServiceClient()
+    .from('participants')
+    .select('email, user_id')
+    .not('email', 'is', null)
+    .is('deleted_at', null);
+  if (error) throw error;
+  return (data ?? []).some((p) => p.user_id !== userId && canonicalEmail(p.email as string) === canonical);
 }
 
 // The one rule to let someone back in: no open report against them and no unseen alert on
@@ -110,6 +122,15 @@ export async function banParticipant(participantId: string, reason: string): Pro
   if (!p?.email || p.is_seed || isAdminEmail(p.email)) return false;
   const { data: userId, error: banError } = await supabase.rpc('ban_participant', { p_id: participantId, p_reason: reason });
   if (banError) throw banError;
+  // Also block the mailbox behind the address (its +tag and Gmail-dot variants), unless that
+  // mailbox is an admin's (the test accounts share the team's Gmail).
+  const canonical = canonicalEmail(p.email);
+  if (!adminEmails().some((a) => canonicalEmail(a) === canonical)) {
+    const { error: canonError } = await supabase
+      .from('banned_emails')
+      .upsert({ email: canonical, reason }, { onConflict: 'email', ignoreDuplicates: true });
+    if (canonError) console.error('[ban] canonical e-mail not stored', canonError);
+  }
   if (userId) {
     const { error: authError } = await supabase.auth.admin.deleteUser(userId as string);
     if (authError) console.error('[ban] auth user not deleted (e-mail still blocked)', authError);

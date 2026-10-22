@@ -12,9 +12,9 @@ import { validateProfile, type FieldErrors, type ProfileInput } from '@/lib/prof
 import { siteUrl } from '@/lib/site';
 import { createClient } from '@/lib/supabase/server';
 import { createServiceClient } from '@/lib/supabase/service';
-import { isBanned, verifyNewProfile } from '@/lib/verification';
+import { emailInUse, isBanned, verifyNewProfile } from '@/lib/verification';
 
-export type JoinState = { errors?: FieldErrors; failed?: boolean };
+export type JoinState = { errors?: FieldErrors; failed?: boolean; duplicate?: boolean };
 
 export async function createProfile(input: Omit<ProfileInput, 'lang'>): Promise<JoinState> {
   const lang = await getLang();
@@ -29,6 +29,8 @@ export async function createProfile(input: Omit<ProfileInput, 'lang'>): Promise<
     await (await createClient()).auth.signOut();
     redirect('/login?error=banned');
   }
+  // One profile per mailbox: the same Gmail with +tags or dots counts as the same person.
+  if (await emailInUse(user.email, user.id)) return { duplicate: true };
 
   const profile = result.data;
   const supabase = createServiceClient();
