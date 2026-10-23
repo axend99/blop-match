@@ -13,6 +13,8 @@ const TALKED = {
   satisfaction_1_7: 6,
   meet_again_1_7: 5,
   met: 'planned',
+  likes_concept: true,
+  best_for: 'both',
   comment: '  Great chat  ',
 };
 
@@ -56,22 +58,25 @@ describe('validateReview', () => {
       meet_again_1_7: null,
       met: null,
       ig_follow: null,
+      likes_concept: true,
+      best_for: 'both',
       comment: null,
     });
   });
 
   it('requires the questions shown in each branch', () => {
-    const notContacted = validateReview({ contacted: false, interest_1_7: 3 });
+    const idea = { likes_concept: true, best_for: 'friendship' };
+    const notContacted = validateReview({ contacted: false, interest_1_7: 3, ...idea });
     expect(notContacted.ok || notContacted.errors).toEqual({ why_not: 'required' });
 
-    const contacted = validateReview({ contacted: true, interest_1_7: 3 });
+    const contacted = validateReview({ contacted: true, interest_1_7: 3, ...idea });
     expect(contacted.ok || contacted.errors).toEqual({ who_first: 'required', comfort_1_7: 'required', talked: 'required' });
 
     const talked = validateReview({ ...TALKED, flow_1_7: undefined, met: undefined });
     expect(talked.ok || talked.errors).toEqual({ flow_1_7: 'required', met: 'required' });
 
     const empty = validateReview({});
-    expect(empty.ok || empty.errors).toEqual({ contacted: 'required', interest_1_7: 'required' });
+    expect(empty.ok || empty.errors).toEqual({ contacted: 'required', interest_1_7: 'required', likes_concept: 'required', best_for: 'required' });
   });
 
   it('rejects scales outside 1–7 and invalid options', () => {
@@ -191,5 +196,19 @@ describe('Instagram question', () => {
     expect(notAsked.ok && notAsked.data.ig_follow).toBeNull();
     const bad = validateReview({ ...TALKED, ig_follow: 'maybe' }, { askInstagram: true });
     expect(bad.ok).toBe(false);
+  });
+});
+
+describe('questions about the idea', () => {
+  it('are always required', () => {
+    const { likes_concept, best_for, ...rest } = TALKED;
+    void likes_concept;
+    void best_for;
+    const r = validateReview(rest);
+    expect(r.ok || r.errors).toMatchObject({ likes_concept: 'required', best_for: 'required' });
+    const bad = validateReview({ ...TALKED, best_for: 'work' });
+    expect(bad.ok || bad.errors.best_for).toBe('required');
+    const no = validateReview({ ...TALKED, likes_concept: false, best_for: 'dating' });
+    expect(no.ok && [no.data.likes_concept, no.data.best_for]).toEqual([false, 'dating']);
   });
 });

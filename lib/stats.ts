@@ -33,6 +33,8 @@ export type ReviewRow = {
   met: string | null;
   next_step: boolean;
   ig_follow?: string | null; // null when not asked (one of the two has no Instagram)
+  likes_concept?: boolean | null; // null on reviews sent before the question existed
+  best_for?: string | null;
 };
 
 export type ScoreField =
@@ -614,4 +616,17 @@ export function sample({ participants, matches, categories, cityTop = 6 }: {
       }),
     })),
   };
+}
+
+// --- The idea itself: does the person like it, and is it better for friendship or dating ---
+
+export const BEST_FOR_OPTIONS = ['friendship', 'dating', 'both'] as const;
+
+export function conceptOpinion(rows: ReviewRow[]) {
+  const answered = (g: Group | 'all') => byGroup(rows, g).filter((r) => r.likes_concept != null);
+  const col = (g: Group | 'all') => ({
+    likes: rate(answered(g), (r) => r.likes_concept === true),
+    bestFor: BEST_FOR_OPTIONS.map((option) => ({ option, share: rate(answered(g), (r) => r.best_for === option) })),
+  });
+  return { all: col('all'), compatible: col('compatible'), control: col('control') };
 }

@@ -28,6 +28,7 @@ import {
   funnel,
   hypotheses,
   igFollow,
+  conceptOpinion,
   otherAnswers,
   overview,
   scores,
@@ -60,6 +61,7 @@ const SEGMENT_VALUE: Record<string, Record<string, string>> = {
 };
 const WHY_NOT_LABEL: Record<string, string> = pt.review.whyNotOptions;
 const IG_FOLLOW_LABEL: Record<string, string> = pt.review.igFollowOptions;
+const BEST_FOR_LABEL: Record<string, string> = pt.review.bestForOptions;
 const STATUS: Record<Hypothesis['status'], { label: string; className: string }> = {
   above: { label: 'Acima da meta', className: 'bg-lime text-midnight' },
   below: { label: 'Abaixo da meta', className: 'bg-pink/60 text-midnight' },
@@ -599,6 +601,31 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
             </ul>
           </div>
         </div>
+      </Section>
+
+      <Section n="8a" title="A ideia: gostam do conceito? Amizade ou encontros?" description="Duas perguntas no fim de cada review, iguais para todos. Base: reviews que responderam (as anteriores a estas perguntas não contam).">
+        {(() => {
+          const c = conceptOpinion(rows);
+          const cols = [c.all, c.compatible, c.control];
+          return (
+            <Table head={['', 'Todos', 'Compatível', 'Controlo']}>
+              <tr>
+                <td className="px-2 py-1.5">Gosta do conceito</td>
+                {cols.map((x, i) => (
+                  <PctCell key={i} s={x.likes} />
+                ))}
+              </tr>
+              {c.all.bestFor.map((b, k) => (
+                <tr key={b.option}>
+                  <td className="px-2 py-1.5">Faz mais sentido para: {BEST_FOR_LABEL[b.option]}</td>
+                  {cols.map((x, i) => (
+                    <PctCell key={i} s={x.bestFor[k].share} />
+                  ))}
+                </tr>
+              ))}
+            </Table>
+          );
+        })()}
       </Section>
 
       <Section

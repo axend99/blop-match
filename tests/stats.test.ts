@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   byCategory,
+  conceptOpinion,
   contactClicks,
   dataMode,
   doseResponse,
@@ -522,5 +523,20 @@ describe('sample', () => {
     const empty = sample({ participants: [], matches: [], categories: ['music'] });
     expect(empty.perPersonMean).toBeNull();
     expect(empty.sharedByCategory[0].compatible).toEqual({ value: null, n: 0 });
+  });
+});
+
+describe('conceptOpinion', () => {
+  it('shares over the reviews that answered, by group', () => {
+    const rows = [
+      row({ type: 'compatible', likes_concept: true, best_for: 'friendship' }),
+      row({ type: 'compatible', likes_concept: false, best_for: 'dating' }),
+      row({ type: 'control', likes_concept: true, best_for: 'both' }),
+      row({ type: 'control', likes_concept: null, best_for: null }),
+    ];
+    const c = conceptOpinion(rows);
+    expect(c.all.likes).toEqual({ value: 2 / 3, n: 3 });
+    expect(c.compatible.bestFor.find((b) => b.option === 'dating')!.share).toEqual({ value: 0.5, n: 2 });
+    expect(c.control.likes).toEqual({ value: 1, n: 1 });
   });
 });
