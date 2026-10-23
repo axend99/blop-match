@@ -182,7 +182,7 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
   const mode = dataMode(dados);
   const segmentGroup: Group | 'all' = grupo === 'compativel' ? 'compatible' : grupo === 'controlo' ? 'control' : 'all';
 
-  const { participants, matches, reviews, flags, clicks, rows, personById, seedCount, e2eCount, pendingCount, openReports } = await loadAdminData(mode);
+  const { participants, matches, reviews, flags, clicks, rows, personById, seedCount, e2eCount, pendingCount, openReports, waitlist } = await loadAdminData(mode);
   const seedShown = participants.filter((p) => p.is_seed).length;
   // Keeps both filters in links.
   const link = (params: { grupo?: string; dados?: DataMode }, hash = '') =>
@@ -595,6 +595,29 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
             </ul>
           </div>
         </div>
+      </Section>
+
+      <Section
+        n="8b"
+        title="Lista de espera da app BLOP"
+        description="Convite enviado por e-mail 5 dias depois do cadastro e botão na página dos matches. Conta a primeira vez que cada pessoa toca no link, por origem."
+      >
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+          {[
+            ['Convites enviados', `${waitlist.invited}`],
+            ['Pessoas que tocaram', `${waitlist.people}`],
+            ['Pelo e-mail', `${waitlist.fromEmail}`],
+            ['Pelo botão', `${waitlist.fromButton}`],
+          ].map(([label, value]) => (
+            <div key={label} className="rounded-2xl bg-paper p-3">
+              <p className="text-xs uppercase tracking-wide text-midnight/60">{label}</p>
+              <p className="text-2xl font-bold tabular-nums">{value}</p>
+            </div>
+          ))}
+        </div>
+        <p className="text-xs text-midnight/60">
+          Quem se inscreve de facto na lista de espera fica no serviço da lista (fora do BLOP Match); aqui só contamos os toques.
+        </p>
       </Section>
 
       <Section n={9} title="Tabelas brutas (CSV)" description="Os dados completos para abrir no Excel ou noutra ferramenta (respeitam o filtro Reais/Seed/Tudo).">

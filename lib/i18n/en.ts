@@ -136,6 +136,9 @@ const en = {
     formerParticipant: 'Former participant',
     leftNotice: "You left the study. You won't get new matches.",
     profileLink: 'See my profile',
+    waitlistTitle: 'Coming soon: the BLOP app',
+    waitlistBody: 'An app to meet people who share your interests. Join the waiting list to be among the first to try it.',
+    waitlistButton: 'Join the waiting list',
   },
   profile: {
     title: 'My profile',
@@ -245,7 +248,7 @@ const en = {
       },
       {
         heading: 'What we collect',
-        body: 'Your profile (first name, email, WhatsApp, Instagram if given, city, language, age, time in the city, origin, interests and what you want to talk about), the reviews you send about your matches, and that you tapped the WhatsApp or Instagram button on a match, and when (not your messages).',
+        body: 'Your profile (first name, email, WhatsApp, Instagram if given, city, language, age, time in the city, origin, interests and what you want to talk about), the reviews you send about your matches, that you tapped the WhatsApp or Instagram button on a match, and when (not your messages), and whether you opened the BLOP app waiting-list link. Five days after joining we email you an invitation to that waiting list.',
       },
       {
         heading: 'Who sees it',
@@ -295,6 +298,12 @@ const en = {
       greeting: (name: string) => `Hi ${name},`,
       body: "You haven't rated your match yet. Your answer counts even if you didn't talk. It takes 2 minutes.",
       button: 'Rate this interaction',
+    },
+    waitlist: {
+      subject: 'Be the first to try the BLOP app',
+      greeting: (name: string) => `Hi ${name},`,
+      body: 'Thanks for being part of BLOP Match! We are building an app to meet people who share your interests. Join the waiting list to be among the first to try it.',
+      button: 'Join the waiting list',
     },
     welcome: {
       subject: 'Welcome to BLOP Match',
