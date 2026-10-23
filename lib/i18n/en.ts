@@ -252,7 +252,7 @@ const en = {
       },
       {
         heading: 'What we collect',
-        body: 'Your profile (first name, email, WhatsApp, Instagram if given, city, language, age, time in the city, origin, interests and what you want to talk about), the reviews you send about your matches, that you tapped the WhatsApp or Instagram button on a match, and when (not your messages), and whether you opened the waiting-list link for the BLOP bracelet and app. Five days after joining we email you an invitation to that waiting list. We also count visits to the site pages anonymously (Vercel Web Analytics, no cookies).',
+        body: 'Your profile (first name, email, WhatsApp, Instagram if given, city, language, age, time in the city, origin, interests and what you want to talk about), the reviews you send about your matches, that you tapped the WhatsApp or Instagram button on a match, and when (not your messages), and whether you opened the waiting-list link for the BLOP bracelet and app. Five days after joining we email you an invitation to that waiting list. We also count visits to the site pages anonymously and without cookies (Vercel Web Analytics and our own counter, with just the page and the day).',
       },
       {
         heading: 'Who sees it',

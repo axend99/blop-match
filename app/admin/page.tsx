@@ -13,6 +13,7 @@ import { loadAdminData } from '@/lib/adminData';
 import { interestLabel } from '@/lib/i18n';
 import pt from '@/lib/i18n/pt';
 import { invitedCount } from '@/lib/inviteService';
+import { loadVisitFunnel } from '@/lib/visitService';
 import { REVIEW_GRACE_MS } from '@/lib/review';
 import { matchingConfig, reviewDelayDays } from '@/lib/site';
 import { CATEGORIES } from '@/lib/interests';
@@ -331,6 +332,63 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
           Base: participantes não anonimizados e os matches entre eles (matches com pessoas que pediram para apagar os dados não
           contam aqui). O controlo partilha poucos interesses por desenho; o perfil (idade, cidade…) não entra no matching.
         </p>
+      </Section>
+
+      <Section
+        n="1b"
+        title="Funil de visitas (site)"
+        description="Quantas visitas chegaram a cada passo do cadastro. Uma visita é uma sessão do browser: conta uma vez por passo, mesmo que a pessoa recarregue a página."
+      >
+        {await (async () => {
+          const v = await loadVisitFunnel();
+          if (!v.since) return <p className="text-sm text-midnight/60">Ainda sem visitas contadas.</p>;
+          const steps = [
+            ['Página inicial', v.total.home],
+            ['Página de login', v.total.login],
+            ['Contas criadas', v.total.accounts],
+            ['Formulário aberto', v.total.join],
+            ['Perfis completos', v.total.profiles],
+          ] as const;
+          const top = Math.max(1, ...steps.map(([, n]) => n));
+          return (
+            <>
+              <ul className="space-y-2">
+                {steps.map(([label, n], i) => (
+                  <li key={label} className="text-sm">
+                    <div className="flex justify-between">
+                      <span>{label}</span>
+                      <span className="tabular-nums">
+                        <b>{n}</b>
+                        {i > 0 && steps[i - 1][1] > 0 && <span className="text-midnight/60"> · {Math.round((n / steps[i - 1][1]) * 100)}% do passo anterior</span>}
+                      </span>
+                    </div>
+                    <div className="mt-1 h-2 rounded-full bg-paper">
+                      <div className="h-2 rounded-full bg-violet" style={{ width: `${(n / top) * 100}%` }} />
+                    </div>
+                  </li>
+                ))}
+              </ul>
+              <Table head={['Dia', 'Inicial', 'Login', 'Contas', 'Formulário', 'Perfis']}>
+                {v.days.slice(0, 14).map((d) => (
+                  <tr key={d.day} className="tabular-nums">
+                    <td className="px-2 py-1.5">{d.day.split('-').reverse().slice(0, 2).join('/')}</td>
+                    {[d.home, d.login, d.accounts, d.join, d.profiles].map((n, i) => (
+                      <td key={i} className="px-2 py-1.5 text-right">
+                        {n}
+                      </td>
+                    ))}
+                  </tr>
+                ))}
+              </Table>
+              <p className="text-xs text-midnight/60">
+                Desde {v.since.split('-').reverse().join('/')}. Robôs, a equipa (admins) e as contas de teste não contam nas contas e
+                perfis; as visitas são anónimas, por isso as da equipa contam. Quem entra pelo Google ou por um link já com sessão pode
+                saltar a página de login, e quem já tem conta pode passar pelo login sem criar conta nova: compara os passos como
+                tendência, não como percentagens exatas. Mais detalhe (origem das visitas, país) na aba Analytics da Vercel.
+              </p>
+            </>
+          );
+        })()}
       </Section>
 
       <Section
