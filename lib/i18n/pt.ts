@@ -135,6 +135,9 @@ const pt: Dict = {
     reviewed: 'Avaliado ✓',
     formerParticipant: 'Ex-participante',
     profileLink: 'Ver o meu perfil',
+    waitlistTitle: 'Em breve: a app BLOP',
+    waitlistBody: 'Uma app para conhecer pessoas com interesses em comum. Entra na lista de espera para seres dos primeiros a experimentar.',
+    waitlistButton: 'Entrar na lista de espera',
     leftNotice: 'Saíste do estudo. Não vais receber novos matches.',
   },
   profile: {
@@ -245,7 +248,7 @@ const pt: Dict = {
       },
       {
         heading: 'O que recolhemos',
-        body: 'O teu perfil (primeiro nome, e-mail, WhatsApp, Instagram se indicado, cidade, idioma, idade, tempo na cidade, origem, interesses e aquilo de que queres falar), as avaliações que envias sobre os teus matches e o facto de tocares no botão de WhatsApp ou Instagram de um match, e quando (não as tuas mensagens).',
+        body: 'O teu perfil (primeiro nome, e-mail, WhatsApp, Instagram se indicado, cidade, idioma, idade, tempo na cidade, origem, interesses e aquilo de que queres falar), as avaliações que envias sobre os teus matches, o facto de tocares no botão de WhatsApp ou Instagram de um match, e quando (não as tuas mensagens), e se abriste o link da lista de espera da app BLOP. Cinco dias depois de entrares enviamos-te por e-mail um convite para essa lista de espera.',
       },
       {
         heading: 'Quem vê',
@@ -295,6 +298,12 @@ const pt: Dict = {
       greeting: (name: string) => `Olá ${name},`,
       body: 'Ainda não avaliaste o teu match. A tua resposta conta mesmo que não tenham falado. Demora 2 minutos.',
       button: 'Avaliar esta interação',
+    },
+    waitlist: {
+      subject: 'Sê dos primeiros a experimentar a app BLOP',
+      greeting: (name: string) => `Olá ${name},`,
+      body: 'Obrigado por fazeres parte do BLOP Match! Estamos a construir uma app para conhecer pessoas com interesses em comum. Entra na lista de espera para seres dos primeiros a experimentar.',
+      button: 'Entrar na lista de espera',
     },
     welcome: {
       subject: 'Boas-vindas ao BLOP Match',

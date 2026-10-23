@@ -87,7 +87,7 @@ export type AdminReport = {
 };
 
 export async function loadAdminData(mode: DataMode) {
-  const [allParticipants, allMatches, allReviews, allFlags, allClicks, reports] = await Promise.all([
+  const [allParticipants, allMatches, allReviews, allFlags, allClicks, reports, waitlistClicks, waitlistSent] = await Promise.all([
     all<AdminParticipant>(
       'participants',
       'id, name, email, whatsapp, instagram, city, lang, age, age_range, time_in_city, origin, interests, other_text, talk_about, talk_about_code, active, pending_review, deleted_at, is_seed, created_at',
@@ -100,6 +100,8 @@ export async function loadAdminData(mode: DataMode) {
     all<AdminFlag>('content_flags', 'id, participant_id, match_id, field, text, status, category, reason, created_at, resolved_at'),
     all<AdminClick>('contact_clicks', 'match_id, participant_id, channel, created_at'),
     all<AdminReport>('reports', 'id, match_id, reporter_id, reported_id, reason, details, created_at, resolved_at, resolution'),
+    all<{ participant_id: string | null; source: string }>('waitlist_clicks', 'id, participant_id, source'),
+    all<{ participant_id: string; kind: string }>('email_log', 'id, participant_id, kind').then((rows) => rows.filter((r) => r.kind === 'waitlist')),
   ]);
   const seedCount = allParticipants.filter((p) => p.is_seed).length;
   const e2eCount = allParticipants.filter((p) => isE2eEmail(p.email)).length;
@@ -164,5 +166,16 @@ export async function loadAdminData(mode: DataMode) {
     reports,
     allPeople,
     allFlags,
+    // Waiting list (BLOP app), for the people in the current data filter.
+    waitlist: (() => {
+      const ids = new Set(participants.map((p) => p.id));
+      const clicks = waitlistClicks.filter((c) => c.participant_id && ids.has(c.participant_id));
+      return {
+        invited: new Set(waitlistSent.filter((r) => ids.has(r.participant_id)).map((r) => r.participant_id)).size,
+        fromEmail: clicks.filter((c) => c.source === 'email').length,
+        fromButton: clicks.filter((c) => c.source === 'button').length,
+        people: new Set(clicks.map((c) => c.participant_id)).size,
+      };
+    })(),
   };
 }

@@ -16,6 +16,7 @@ Ficam na Vercel (Project → Settings → Environment Variables) e, para correr 
 | `SMTP_USER`, `SMTP_PASS` | Conta `blopmatch@gmail.com` e a **senha de app** (não a senha normal) | Google Account → Security → App passwords |
 | `EMAIL_FROM` | Remetente, ex. `BLOP Match <blopmatch@gmail.com>` | — |
 | `NEXT_PUBLIC_SITE_URL` | `https://blop-match.vercel.app` (links dos e-mails) | — |
+| `WAITLIST_URL` | Link da lista de espera da app BLOP (convite por e-mail 5 dias depois do cadastro e botão em `/me`); vazio = desligado | o dono |
 | `NEXT_PUBLIC_GOOGLE_CLIENT_ID` | Client ID do cliente Web do Google (não é segredo). **Só em Production**: ativa o botão oficial do Google no `/login`, que mostra `blop-match.vercel.app` em vez do endereço do Supabase | Google Cloud → Credentials |
 | `CRON_SECRET` | Segredo que a Vercel envia ao chamar `/api/cron` | gerar: `openssl rand -hex 32` |
 | `ADMIN_EMAILS` | E-mails com acesso ao `/admin` (separados por vírgula) | — |
@@ -28,7 +29,7 @@ Depois de mudar uma variável na Vercel, é preciso fazer **Redeploy**.
 
 ## 2. Supabase
 
-1. **Migrações**: no SQL Editor, correr por ordem os ficheiros de `supabase/migrations/` (`0001_init` → `0010_pending_bans_reports`). Todas já estão aplicadas em produção.
+1. **Migrações**: no SQL Editor, correr por ordem os ficheiros de `supabase/migrations/` (`0001_init` → `0011_waitlist`). Todas já estão aplicadas em produção.
 2. **Authentication → URL Configuration**: Site URL `https://blop-match.vercel.app`; Redirect URLs `https://blop-match.vercel.app/**` e `http://localhost:3000/**`.
 3. **Authentication → Providers → Google**: ativo, com o Client ID e o Client Secret do cliente **Web** do Google Cloud (passo 3).
 4. **Authentication → Emails → SMTP Settings**: Custom SMTP ativo — host `smtp.gmail.com`, porta `465`, utilizador `blopmatch@gmail.com` (atenção a erros como `gmaill.com`), senha de app, remetente `blopmatch@gmail.com`, nome `BLOP Match`.
@@ -77,6 +78,7 @@ No SQL Editor, trocando o e-mail:
 with p as (select id, user_id from participants where lower(email) = lower('pessoa@exemplo.com'))
 , del_flags as (delete from content_flags where participant_id in (select id from p))
 , del_clicks as (delete from contact_clicks where participant_id in (select id from p))
+, del_waitlist as (delete from waitlist_clicks where participant_id in (select id from p))
 update participants set
   name = '[deleted]', email = null, whatsapp = null, instagram = null,
   talk_about = null, talk_about_code = null, other_text = '{}',

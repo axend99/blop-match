@@ -8,6 +8,7 @@ import { avatarCategory } from '@/lib/avatar';
 import { getDict, interestLabel } from '@/lib/i18n';
 import { getLang } from '@/lib/i18n/server';
 import { getMyMatches } from '@/lib/myMatches';
+import { waitlistUrl } from '@/lib/waitlist';
 import looking from '@/public/blop/looking.webp';
 
 export default async function MePage() {
@@ -81,6 +82,16 @@ export default async function MePage() {
         </section>
       )}
 
+      {waitlistUrl() && (
+        <section className="space-y-3 rounded-3xl bg-midnight p-6 text-white">
+          <h2 className="text-xl font-semibold">{t.me.waitlistTitle}</h2>
+          <p className="text-white/80">{t.me.waitlistBody}</p>
+          {/* Plain link through /go/waitlist, which counts the tap. */}
+          <a href="/go/waitlist?src=button" className="inline-block rounded-full bg-lime px-6 py-3 font-semibold text-midnight">
+            {t.me.waitlistButton}
+          </a>
+        </section>
+      )}
     </div>
   );
 }
