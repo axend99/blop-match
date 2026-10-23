@@ -136,8 +136,8 @@ const en = {
     formerParticipant: 'Former participant',
     leftNotice: "You left the study. You won't get new matches.",
     profileLink: 'See my profile',
-    waitlistTitle: 'Coming soon: the BLOP app',
-    waitlistBody: 'An app to meet people who share your interests. Join the waiting list to be among the first to try it.',
+    waitlistTitle: 'Coming next: the BLOP bracelet',
+    waitlistBody: 'The full BLOP: the finished app and, above all, the BLOP bracelet. Join the waiting list to be among the first to get them.',
     waitlistButton: 'Join the waiting list',
   },
   profile: {
@@ -248,7 +248,7 @@ const en = {
       },
       {
         heading: 'What we collect',
-        body: 'Your profile (first name, email, WhatsApp, Instagram if given, city, language, age, time in the city, origin, interests and what you want to talk about), the reviews you send about your matches, that you tapped the WhatsApp or Instagram button on a match, and when (not your messages), and whether you opened the BLOP app waiting-list link. Five days after joining we email you an invitation to that waiting list.',
+        body: 'Your profile (first name, email, WhatsApp, Instagram if given, city, language, age, time in the city, origin, interests and what you want to talk about), the reviews you send about your matches, that you tapped the WhatsApp or Instagram button on a match, and when (not your messages), and whether you opened the waiting-list link for the BLOP bracelet and app. Five days after joining we email you an invitation to that waiting list.',
       },
       {
         heading: 'Who sees it',
@@ -300,9 +300,9 @@ const en = {
       button: 'Rate this interaction',
     },
     waitlist: {
-      subject: 'Be the first to try the BLOP app',
+      subject: 'Be the first to get the BLOP bracelet',
       greeting: (name: string) => `Hi ${name},`,
-      body: 'Thanks for being part of BLOP Match! We are building an app to meet people who share your interests. Join the waiting list to be among the first to try it.',
+      body: 'Thanks for being part of BLOP Match! This was just a taste. The full BLOP is coming: the finished app and, above all, the BLOP bracelet. Join the waiting list to be among the first to get them.',
       button: 'Join the waiting list',
     },
     welcome: {

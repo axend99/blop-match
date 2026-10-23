@@ -1,12 +1,27 @@
 import 'server-only';
 import { createElement } from 'react';
 import WaitlistEmail from '@/emails/WaitlistEmail';
-import { sendEmail } from '@/lib/email';
+import { adminEmails } from '@/lib/admin';
+import { sendAdminNotice, sendEmail } from '@/lib/email';
 import { getDict, isLang } from '@/lib/i18n';
 import { REVIEW_GRACE_MS } from '@/lib/review';
 import { siteUrl } from '@/lib/site';
 import { createServiceClient } from '@/lib/supabase/service';
 import { dueWaitlist, waitlistUrl } from '@/lib/waitlist';
+
+// Admin preview: the invitation in PT and EN to the admin addresses (taps not counted).
+export async function sendWaitlistPreview(): Promise<number> {
+  const to = adminEmails();
+  for (const lang of ['pt', 'en'] as const) {
+    await sendAdminNotice(
+      to,
+      `[teste] ${getDict(lang).emails.waitlist.subject}`,
+      getDict(lang).emails.waitlist.body,
+      createElement(WaitlistEmail, { name: 'Equipa BLOP', lang, url: `${siteUrl()}/go/waitlist?src=email` }),
+    );
+  }
+  return to.length;
+}
 
 // Daily (cron): the BLOP app waiting-list invitation, once per person, 5 days after sign-up.
 // Does nothing until WAITLIST_URL is set. The e-mail links to /go/waitlist, which counts the tap.

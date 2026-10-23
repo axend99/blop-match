@@ -1,7 +1,8 @@
 import type { Metadata } from 'next';
+import { cookies } from 'next/headers';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { resolveFlag } from '@/app/admin/actions';
+import { resolveFlag, waitlistPreview } from '@/app/admin/actions';
 import AdminNav from '@/components/admin/AdminNav';
 import DoseChart from '@/components/admin/DoseChart';
 import FunnelChart from '@/components/admin/FunnelChart';
@@ -41,6 +42,7 @@ import {
 
 // Admin panel (SPEC §8), in Portuguese. Data is read with the service role on the server.
 export const dynamic = 'force-dynamic';
+export const maxDuration = 60; // the e-mail preview button sends e-mails
 export const metadata: Metadata = { title: 'BLOP Match · Admin', robots: { index: false, follow: false } };
 
 const nf = (digits: number) => new Intl.NumberFormat('pt-PT', { minimumFractionDigits: digits, maximumFractionDigits: digits });
@@ -180,6 +182,7 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
   if (!(await isAdmin())) notFound();
   const { grupo, dados } = await searchParams;
   const mode = dataMode(dados);
+  const notice = (await cookies()).get('admin_notice')?.value;
   const segmentGroup: Group | 'all' = grupo === 'compativel' ? 'compatible' : grupo === 'controlo' ? 'control' : 'all';
 
   const { participants, matches, reviews, flags, clicks, rows, personById, seedCount, e2eCount, pendingCount, openReports, waitlist } = await loadAdminData(mode);
@@ -210,6 +213,7 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
     // Wider than the participant layout on desktop.
     <div className="relative left-1/2 w-[calc(100vw-2rem)] max-w-6xl -translate-x-1/2 space-y-6 text-midnight">
       <AdminNav tab="painel" mode={mode} href={(dados) => link({ dados })} seedCount={seedCount} e2eCount={e2eCount} toReview={pendingCount + openReports} />
+      {notice && <p className="rounded-2xl bg-lime/60 p-3 text-sm font-medium">{notice}</p>}
       {openFlags.length > 0 && (
         <a href="#alertas" className="block rounded-2xl bg-pink/50 p-4 font-medium">
           ⚠️ {openFlags.length} {openFlags.length === 1 ? 'alerta de conteúdo por ver' : 'alertas de conteúdo por ver'}
@@ -599,7 +603,7 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
 
       <Section
         n="8b"
-        title="Lista de espera da app BLOP"
+        title="Lista de espera (pulseira e app BLOP)"
         description="Convite enviado por e-mail 5 dias depois do cadastro e botão na página dos matches. Conta a primeira vez que cada pessoa toca no link, por origem."
       >
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
@@ -615,6 +619,11 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
             </div>
           ))}
         </div>
+        <form action={waitlistPreview}>
+          <button className="rounded-full border border-midnight/20 bg-white px-3 py-1 text-sm font-medium">
+            Enviar e-mail de teste aos admins (PT e EN)
+          </button>
+        </form>
         <p className="text-xs text-midnight/60">
           Quem se inscreve de facto na lista de espera fica no serviço da lista (fora do BLOP Match); aqui só contamos os toques. Alguns filtros de e-mail empresariais abrem os links sozinhos, o que pode aumentar um pouco o número &quot;Pelo e-mail&quot;.
         </p>

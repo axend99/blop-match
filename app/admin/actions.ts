@@ -6,6 +6,7 @@ import { redirect } from 'next/navigation';
 import { ADMIN_COOKIE, isAdmin } from '@/lib/admin';
 import { createClient } from '@/lib/supabase/server';
 import { openReviewNow } from '@/lib/reviewService';
+import { sendWaitlistPreview } from '@/lib/waitlistService';
 import { approveProfile, banParticipant, dismissReport, recheckProfile, type ResumeResult } from '@/lib/verification';
 import { createServiceClient } from '@/lib/supabase/service';
 
@@ -94,6 +95,13 @@ export async function ban(formData: FormData): Promise<void> {
   const done = await banParticipant(id, reason);
   await notice(done ? 'Conta banida: e-mail bloqueado e dados removidos.' : 'Não é possível banir esta conta (admin, seed ou já removida).');
   revalidatePath('/admin', 'layout');
+}
+
+export async function waitlistPreview(): Promise<void> {
+  if (!(await isAdmin())) return;
+  const n = await sendWaitlistPreview();
+  await notice(`E-mail de teste da lista de espera enviado (PT e EN) para ${n} ${n === 1 ? 'endereço' : 'endereços'} de admin.`);
+  revalidatePath('/admin');
 }
 
 export async function adminSignOut(): Promise<void> {
