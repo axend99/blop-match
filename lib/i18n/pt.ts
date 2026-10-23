@@ -135,9 +135,10 @@ const pt: Dict = {
     reviewed: 'Avaliado ✓',
     formerParticipant: 'Ex-participante',
     profileLink: 'Ver o meu perfil',
-    waitlistTitle: 'A seguir: a pulseira BLOP',
-    waitlistBody: 'O BLOP completo: a versão final da app e, sobretudo, a pulseira BLOP. Entra na lista de espera para seres dos primeiros a recebê-las.',
+    waitlistTitle: 'A seguir: BLOP',
+    waitlistBody: 'Isto é apenas um protótipo. A versão final, com a pulseira que leva as tuas ligações para o mundo real, chega em breve.',
     waitlistButton: 'Entrar na lista de espera',
+    instagramButton: 'Seguir no Instagram',
     leftNotice: 'Saíste do estudo. Não vais receber novos matches.',
   },
   profile: {
@@ -305,9 +306,10 @@ const pt: Dict = {
     waitlist: {
       subject: 'Sê dos primeiros a ter a pulseira BLOP',
       greeting: (name: string) => `Olá ${name},`,
-      body: 'Obrigado por fazeres parte do BLOP Match! Isto foi só uma amostra. Vem aí o BLOP completo: a versão final da app e, sobretudo, a pulseira BLOP. Entra na lista de espera para seres dos primeiros a recebê-las.',
+      body: 'Obrigado por fazeres parte do BLOP Match! Isto é apenas um protótipo. A versão final, com a pulseira que leva as tuas ligações para o mundo real, chega em breve. Entra na lista de espera para seres dos primeiros a recebê-la.',
       button: 'Entrar na lista de espera',
       more: 'Sabe mais em',
+      instagram: 'Segue-nos no Instagram:',
     },
     welcome: {
       subject: 'Boas-vindas ao BLOP Match',

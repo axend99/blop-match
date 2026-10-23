@@ -8,6 +8,7 @@ import { avatarCategory } from '@/lib/avatar';
 import { getDict, interestLabel } from '@/lib/i18n';
 import { getLang } from '@/lib/i18n/server';
 import { getMyMatches } from '@/lib/myMatches';
+import { BLOP_INSTAGRAM } from '@/lib/site';
 import { waitlistUrl } from '@/lib/waitlist';
 import looking from '@/public/blop/looking.webp';
 
@@ -87,9 +88,24 @@ export default async function MePage() {
           <h2 className="text-xl font-semibold">{t.me.waitlistTitle}</h2>
           <p className="text-white/80">{t.me.waitlistBody}</p>
           {/* Plain link through /go/waitlist, which counts the tap. */}
-          <a href="/go/waitlist?src=button" className="inline-block rounded-full bg-lime px-6 py-3 font-semibold text-midnight">
-            {t.me.waitlistButton}
-          </a>
+          <div className="flex flex-wrap gap-3">
+            <a href="/go/waitlist?src=button" className="inline-block rounded-full bg-lime px-6 py-3 font-semibold text-midnight">
+              {t.me.waitlistButton}
+            </a>
+            <a
+              href={BLOP_INSTAGRAM}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 rounded-full border border-white/40 px-6 py-3 font-semibold text-white"
+            >
+              <svg aria-hidden="true" viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2">
+                <rect x="3" y="3" width="18" height="18" rx="5" />
+                <circle cx="12" cy="12" r="4" />
+                <circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none" />
+              </svg>
+              {t.me.instagramButton}
+            </a>
+          </div>
         </section>
       )}
     </div>
