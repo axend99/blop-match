@@ -311,6 +311,17 @@ const pt: Dict = {
       more: 'Sabe mais em',
       instagram: 'Segue-nos no Instagram:',
     },
+    invite: {
+      subject: 'Estás na lista do BLOP: experimenta primeiro',
+      greeting: 'Olá!',
+      intro: 'Há algum tempo deixaste o teu e-mail na lista de espera do BLOP. Obrigado!',
+      invite: 'Estamos a construir o BLOP para ajudar as pessoas a conhecer quem gosta das mesmas coisas. Neste momento estamos a testar o primeiro protótipo, o BLOP Match, e por estares na lista és dos primeiros a ser convidados.',
+      how: 'Como funciona: dizes do que gostas (2 minutos), o Blop apresenta-te pessoas com os mesmos interesses, conversam e uns dias depois contas-nos como correu.',
+      help: 'É grátis e faz parte do nosso projeto de mestrado, por isso a tua ajuda conta mesmo.',
+      button: 'Experimentar o BLOP Match',
+      signoff: 'A equipa BLOP',
+      footer: 'Recebes este e-mail porque entraste na lista de espera do BLOP.',
+    },
     welcome: {
       subject: 'Boas-vindas ao BLOP Match',
       greeting: (name: string) => `Olá ${name},`,
