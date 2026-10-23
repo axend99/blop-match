@@ -38,3 +38,6 @@ export function reviewOpensAt(matchCreatedAt: string): Date {
 export function reminderDelayDays(): number {
   return intEnv('REMINDER_DELAY_DAYS', 2);
 }
+
+// The BLOP website (brand name, the same in every language).
+export const BLOP_WEBSITE = 'https://meetblop.com/';

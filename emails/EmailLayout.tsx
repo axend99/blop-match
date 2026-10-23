@@ -1,4 +1,5 @@
 import { Body, Button, Container, Head, Html, Link, Preview, Section, Text } from '@react-email/components';
+import { BLOP_WEBSITE } from '@/lib/site';
 
 const COLORS = { midnight: '#1e1530', violet: '#5b3cf5', paper: '#f5f2ef' };
 
@@ -45,7 +46,12 @@ export default function EmailLayout({
               </Link>
             </Text>
           )}
-          <Text style={{ fontSize: 12, color: '#6b6478', textAlign: 'center', marginTop: 24 }}>{footer}</Text>
+          <Text style={{ fontSize: 12, color: '#6b6478', textAlign: 'center', marginTop: 24 }}>
+            {footer} ·{' '}
+            <Link href={BLOP_WEBSITE} style={{ color: '#6b6478', textDecoration: 'underline' }}>
+              meetblop.com
+            </Link>
+          </Text>
         </Container>
       </Body>
     </Html>
