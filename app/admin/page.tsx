@@ -337,7 +337,7 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
       <Section
         n="1b"
         title="Funil de visitas (site)"
-        description="Quantas visitas chegaram a cada passo do cadastro. Uma visita é uma sessão do browser: conta uma vez por passo, mesmo que a pessoa recarregue a página."
+        description="Quantas visitas chegaram a cada passo do cadastro. Uma visita é um separador do browser: conta uma vez por passo, mesmo que a pessoa recarregue a página."
       >
         {await (async () => {
           const v = await loadVisitFunnel();
