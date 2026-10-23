@@ -20,7 +20,7 @@
 
 ## Identidade visual
 
-- Avatar BLOP — imagens do dono por categoria em `public/blop/` (música, desporto, passatempos/cinema, comida/chef, simples).
+- Avatar BLOP — imagens do dono por categoria em `public/blop/` (música, desporto, passatempos/cinema, comida/chef, simples, atividade física/corrida, atividades/surf, hobbies/tricô, animais/pets).
 - Ilustrações de estado em `public/blop/`: `looking.webp` (sem matches) e `thinking.webp` (0 em comum, 404).
 
 ## Pendências (decididas a 21/10/2026)

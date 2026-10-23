@@ -20,11 +20,6 @@ describe('avatarCategory', () => {
     expect(avatarCategory([...interests].reverse())).toBe(avatarCategory(interests));
   });
 
-  it('prefers a category with its own picture over animals on ties', () => {
-    expect(avatarCategory([...pick('animals', 4), ...pick('music', 4), ...pick('food', 2)])).toBe('music');
-    expect(avatarCategory([...pick('animals', 5), ...pick('music', 4), ...pick('food', 2)])).toBe('animals');
-  });
-
   it('does not always pick the first category on ties', () => {
     const results = new Set<Category | null>();
     for (let offset = 0; offset < 8; offset++) {

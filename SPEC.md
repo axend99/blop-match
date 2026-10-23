@@ -74,7 +74,7 @@ Regras de navegação: um logado sem perfil vai para `/join`; um logado com perf
 
 Cartão de match em `/me`: BLOP da outra pessoa, primeiro nome, até 3 chips dos itens partilhados (ou "Get to know each other!" se nenhum) e o estado da review ("Rate this interaction" ativo só depois do prazo, ou "Reviewed ✓"). Tocar no cartão abre `/me/match/[matchId]` (a "cheat sheet"): "Blop found someone you should meet", BLOP grande, "Nome, idade" (perfis antigos sem idade mostram a faixa), "Based in <cidade>", cartão "Wants to talk about" com o texto da pessoa (icebreaker), caixa "Your common ground" com os itens partilhados, "Also likes…" com os outros interesses, botão WhatsApp (`https://wa.me/<número só com dígitos>?text=<mensagem>`, com uma mensagem pré-preenchida no idioma de quem envia: saudação com os primeiros nomes e só o que a outra pessoa quer falar, para a conversa começar nesse tema (se o tema for um interesse que quem envia também marcou, acrescenta "eu também gosto de …"); perfis sem tema usam até 3 interesses em comum; `lib/icebreaker.ts`) e botão Instagram (`https://instagram.com/<handle sem @>`). Nunca mostrar score, tipo do match ou o e-mail da outra pessoa.
 
-Avatar BLOP: cada pessoa tem um BLOP (imagens em `public/blop/<categoria>.webp`, `components/Blop.tsx`) vestido para a categoria em que tem mais interesses (`lib/avatar.ts`); sem categoria mostra o BLOP simples (`plain.webp`).
+Avatar BLOP: cada pessoa tem um BLOP (imagens em `public/blop/<categoria>.webp`, `components/Blop.tsx`) vestido para a categoria em que tem mais interesses (`lib/avatar.ts`); sem categoria mostra o BLOP simples (`plain.webp`). Há uma imagem para cada uma das 8 categorias.
 
 Todo o design é mobile-first, simples e limpo, com botões grandes.
 
