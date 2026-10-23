@@ -136,9 +136,10 @@ const en = {
     formerParticipant: 'Former participant',
     leftNotice: "You left the study. You won't get new matches.",
     profileLink: 'See my profile',
-    waitlistTitle: 'Coming next: the BLOP bracelet',
-    waitlistBody: 'The full BLOP: the finished app and, above all, the BLOP bracelet. Join the waiting list to be among the first to get them.',
+    waitlistTitle: 'Coming next: BLOP',
+    waitlistBody: 'This is just a prototype. The final version, with the bracelet that takes your connections into the real world, is coming soon.',
     waitlistButton: 'Join the waiting list',
+    instagramButton: 'Follow on Instagram',
   },
   profile: {
     title: 'My profile',
@@ -305,9 +306,10 @@ const en = {
     waitlist: {
       subject: 'Be the first to get the BLOP bracelet',
       greeting: (name: string) => `Hi ${name},`,
-      body: 'Thanks for being part of BLOP Match! This was just a taste. The full BLOP is coming: the finished app and, above all, the BLOP bracelet. Join the waiting list to be among the first to get them.',
+      body: 'Thanks for being part of BLOP Match! This is just a prototype. The final version, with the bracelet that takes your connections into the real world, is coming soon. Join the waiting list to be among the first to get it.',
       button: 'Join the waiting list',
       more: 'Learn more at',
+      instagram: 'Follow us on Instagram:',
     },
     welcome: {
       subject: 'Welcome to BLOP Match',

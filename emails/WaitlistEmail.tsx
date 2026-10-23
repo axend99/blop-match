@@ -1,5 +1,5 @@
 import { Link, Text } from '@react-email/components';
-import { BLOP_WEBSITE } from '@/lib/site';
+import { BLOP_INSTAGRAM, BLOP_WEBSITE } from '@/lib/site';
 import { getDict, type Lang } from '@/lib/i18n';
 import EmailLayout from './EmailLayout';
 
@@ -14,6 +14,12 @@ export default function WaitlistEmail({ name, lang, url }: { name: string; lang:
         {t.waitlist.more}{' '}
         <Link href={BLOP_WEBSITE} style={{ color: '#5b3cf5', textDecoration: 'underline' }}>
           meetblop.com
+        </Link>
+      </Text>
+      <Text style={{ fontSize: 16, lineHeight: '24px', margin: '0 0 12px' }}>
+        {t.waitlist.instagram}{' '}
+        <Link href={BLOP_INSTAGRAM} style={{ color: '#5b3cf5', textDecoration: 'underline' }}>
+          @meetblop
         </Link>
       </Text>
     </EmailLayout>

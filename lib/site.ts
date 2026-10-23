@@ -41,3 +41,4 @@ export function reminderDelayDays(): number {
 
 // The BLOP website (brand name, the same in every language).
 export const BLOP_WEBSITE = 'https://meetblop.com/';
+export const BLOP_INSTAGRAM = 'https://www.instagram.com/meetblop/';
