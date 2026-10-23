@@ -293,6 +293,8 @@ for (const p of PEOPLE) {
         }
       }
       if ((await page.locator('input[name="ig_follow"]').count()) > 0) await pick('ig_follow', (p.i + k) % 4);
+      await pick('likes_concept', (p.i + k) % 2);
+      await pick('best_for', (p.i + k) % 3);
       await page.locator('textarea').fill(k % 2 ? `E2E review ${p.name} 👍` : '');
       await send.click();
       // A lost response (sandbox proxy) leaves the page as is; the review may still be saved.

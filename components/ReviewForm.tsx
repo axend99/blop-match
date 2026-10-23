@@ -4,7 +4,7 @@ import { useRef, useState, useTransition } from 'react';
 import { submitReview } from '@/app/me/review/[matchId]/actions';
 import Scale from '@/components/Scale';
 import type { Dict } from '@/lib/i18n/en';
-import { IG_FOLLOW, MAX_COMMENT, MET, WHO_FIRST, WHY_NOT, validateReview, type ReviewErrors, type ReviewField } from '@/lib/review';
+import { BEST_FOR, IG_FOLLOW, MAX_COMMENT, MET, WHO_FIRST, WHY_NOT, validateReview, type ReviewErrors, type ReviewField } from '@/lib/review';
 
 // Only plain strings can cross to a client component.
 export type ReviewFormTexts = Omit<Dict['review'], 'title' | 'opensOn'>;
@@ -150,6 +150,9 @@ export default function ReviewForm({
 
       {askInstagram &&
         question('ig_follow', t.igFollow, choice('ig_follow', IG_FOLLOW.map((v) => [v, t.igFollowOptions[v]])))}
+
+      {question('likes_concept', t.likesConcept, yesNo('likes_concept'))}
+      {question('best_for', t.bestFor, choice('best_for', BEST_FOR.map((v) => [v, t.bestForOptions[v]])))}
 
       {question(
         'comment',

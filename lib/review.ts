@@ -5,6 +5,7 @@ export const WHO_FIRST = ['me', 'them'] as const;
 export const WHY_NOT = ['no_time', 'not_interested', 'no_reply', 'shy', 'other'] as const;
 export const MET = ['yes', 'planned', 'no'] as const;
 export const IG_FOLLOW = ['me', 'them', 'both', 'none'] as const;
+export const BEST_FOR = ['friendship', 'dating', 'both'] as const;
 export const MAX_COMMENT = 1000;
 
 export type ReviewInput = Record<string, unknown>;
@@ -22,6 +23,8 @@ export type Review = {
   meet_again_1_7: number | null;
   met: (typeof MET)[number] | null;
   ig_follow: (typeof IG_FOLLOW)[number] | null;
+  likes_concept: boolean;
+  best_for: (typeof BEST_FOR)[number];
   comment: string | null;
 };
 
@@ -55,6 +58,8 @@ export function validateReview(
     meet_again_1_7: null,
     met: null,
     ig_follow: null,
+    likes_concept: false,
+    best_for: 'friendship',
     comment: null,
   };
 
@@ -90,6 +95,12 @@ export function validateReview(
     if (oneOf(IG_FOLLOW, input.ig_follow)) data.ig_follow = input.ig_follow;
     else errors.ig_follow = 'required';
   }
+
+  // About the idea itself (always asked).
+  if (isBool(input.likes_concept)) data.likes_concept = input.likes_concept;
+  else errors.likes_concept = 'required';
+  if (oneOf(BEST_FOR, input.best_for)) data.best_for = input.best_for;
+  else errors.best_for = 'required';
 
   if (typeof input.comment === 'string' && input.comment.trim()) {
     const comment = input.comment.trim();

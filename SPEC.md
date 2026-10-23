@@ -180,6 +180,8 @@ Uma review por pessoa por match. É um formulário de um só ecrã, com as pergu
 | `meet_again_1_7` | How likely are you to talk or meet again? | 1–7 | talked = sim |
 | `met` | Did you meet in person? | `yes` / `planned` / `no` | talked = sim |
 | `ig_follow` | Do you follow each other on Instagram now? | `me` / `them` / `both` / `none` | as duas pessoas têm Instagram |
+| `likes_concept` | Do you like the idea of meeting people through shared interests like this? | sim/não | sempre |
+| `best_for` | Do you think this idea works better for… | `friendship` / `dating` / `both` | sempre |
 | `comment` | Anything else? | texto, opcional | sempre |
 
 Derivado: `next_step = meet_again_1_7 >= 5 OR met IN ('yes','planned')`.
