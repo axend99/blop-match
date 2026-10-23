@@ -248,7 +248,7 @@ const pt: Dict = {
       },
       {
         heading: 'O que recolhemos',
-        body: 'O teu perfil (primeiro nome, e-mail, WhatsApp, Instagram se indicado, cidade, idioma, idade, tempo na cidade, origem, interesses e aquilo de que queres falar), as avaliações que envias sobre os teus matches o facto de tocares no botão de WhatsApp ou Instagram de um match, e quando (não as tuas mensagens), e se abriste o link da lista de espera da app BLOP. Cinco dias depois de entrares enviamos-te por e-mail um convite para essa lista de espera.',
+        body: 'O teu perfil (primeiro nome, e-mail, WhatsApp, Instagram se indicado, cidade, idioma, idade, tempo na cidade, origem, interesses e aquilo de que queres falar), as avaliações que envias sobre os teus matches, o facto de tocares no botão de WhatsApp ou Instagram de um match, e quando (não as tuas mensagens), e se abriste o link da lista de espera da app BLOP. Cinco dias depois de entrares enviamos-te por e-mail um convite para essa lista de espera.',
       },
       {
         heading: 'Quem vê',

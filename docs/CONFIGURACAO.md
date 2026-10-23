@@ -78,6 +78,7 @@ No SQL Editor, trocando o e-mail:
 with p as (select id, user_id from participants where lower(email) = lower('pessoa@exemplo.com'))
 , del_flags as (delete from content_flags where participant_id in (select id from p))
 , del_clicks as (delete from contact_clicks where participant_id in (select id from p))
+, del_waitlist as (delete from waitlist_clicks where participant_id in (select id from p))
 update participants set
   name = '[deleted]', email = null, whatsapp = null, instagram = null,
   talk_about = null, talk_about_code = null, other_text = '{}',

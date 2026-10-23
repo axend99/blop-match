@@ -82,7 +82,6 @@ export default async function MePage() {
         </section>
       )}
 
-
       {waitlistUrl() && (
         <section className="space-y-3 rounded-3xl bg-midnight p-6 text-white">
           <h2 className="text-xl font-semibold">{t.me.waitlistTitle}</h2>

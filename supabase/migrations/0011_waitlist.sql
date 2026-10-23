@@ -8,7 +8,7 @@ alter table public.email_log add constraint email_log_kind_check
 
 create table public.waitlist_clicks (
   id uuid primary key default gen_random_uuid(),
-  participant_id uuid references public.participants (id) on delete cascade,
+  participant_id uuid not null references public.participants (id) on delete cascade,
   source text not null check (source in ('email', 'button')),
   created_at timestamptz not null default now(),
   unique (participant_id, source)

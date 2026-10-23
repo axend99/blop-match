@@ -616,7 +616,7 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
           ))}
         </div>
         <p className="text-xs text-midnight/60">
-          Quem se inscreve de facto na lista de espera fica no serviço da lista (fora do BLOP Match); aqui só contamos os toques.
+          Quem se inscreve de facto na lista de espera fica no serviço da lista (fora do BLOP Match); aqui só contamos os toques. Alguns filtros de e-mail empresariais abrem os links sozinhos, o que pode aumentar um pouco o número &quot;Pelo e-mail&quot;.
         </p>
       </Section>
 

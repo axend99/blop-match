@@ -14,6 +14,14 @@ export function dueWaitlist(people: WaitlistPerson[], sent: Set<string>, now: Da
     .map((p) => p.id);
 }
 
+// Only a valid http(s) address turns the feature on (e-mail, /me card and redirect).
 export function waitlistUrl(): string | undefined {
-  return process.env.WAITLIST_URL?.trim() || undefined;
+  const value = process.env.WAITLIST_URL?.trim();
+  if (!value) return undefined;
+  try {
+    const url = new URL(value);
+    return url.protocol === 'https:' || url.protocol === 'http:' ? url.toString() : undefined;
+  } catch {
+    return undefined;
+  }
 }

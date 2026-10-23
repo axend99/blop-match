@@ -29,6 +29,6 @@ export async function GET(request: NextRequest) {
   const start = Date.now();
   const matching = await step('matching', () => runMatchingForAll(start + 20_000));
   const reviews = await step('reviews', () => runReviewEmails({ requests: start + 35_000, reminders: start + 50_000 }));
-  const waitlist = await step('waitlist', () => sendWaitlistEmails(start + 56_000));
+  const waitlist = await step('waitlist', () => sendWaitlistEmails(start + 50_000));
   return NextResponse.json({ matching, reviews, waitlist });
 }
