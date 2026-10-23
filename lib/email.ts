@@ -70,10 +70,11 @@ export async function sendEmail({ participantId, kind, matchId = null, to, subje
 
 // Short notice to the team (not a participant e-mail, so no email_log row). Plain text, no
 // personal data. Never throws.
-export async function sendAdminNotice(to: string[], subject: string, text: string): Promise<void> {
+export async function sendAdminNotice(to: string[], subject: string, text: string, react?: React.ReactElement): Promise<void> {
   if (!emailConfigured() || to.length === 0) return;
   try {
-    await transport().sendMail({ from: process.env.EMAIL_FROM, to, subject, text });
+    const html = react ? await render(react) : undefined;
+    await transport().sendMail({ from: process.env.EMAIL_FROM, to, subject, text, html });
   } catch (err) {
     console.error('[email] admin notice failed', err);
   }
