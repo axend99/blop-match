@@ -304,6 +304,7 @@ const pt: Dict = {
       greeting: (name: string) => `Olá ${name},`,
       body: 'Obrigado por fazeres parte do BLOP Match! Isto foi só uma amostra. Vem aí o BLOP completo: a versão final da app e, sobretudo, a pulseira BLOP. Entra na lista de espera para seres dos primeiros a recebê-las.',
       button: 'Entrar na lista de espera',
+      more: 'Sabe mais em',
     },
     welcome: {
       subject: 'Boas-vindas ao BLOP Match',

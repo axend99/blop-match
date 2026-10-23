@@ -304,6 +304,7 @@ const en = {
       greeting: (name: string) => `Hi ${name},`,
       body: 'Thanks for being part of BLOP Match! This was just a taste. The full BLOP is coming: the finished app and, above all, the BLOP bracelet. Join the waiting list to be among the first to get them.',
       button: 'Join the waiting list',
+      more: 'Learn more at',
     },
     welcome: {
       subject: 'Welcome to BLOP Match',

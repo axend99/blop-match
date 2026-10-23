@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from 'next';
 import { Outfit } from 'next/font/google';
 import Link from 'next/link';
+import { BLOP_WEBSITE } from '@/lib/site';
 import BlopLogo from '@/components/BlopLogo';
 import LangSwitcher from '@/components/LangSwitcher';
 import SignOutButton from '@/components/SignOutButton';
@@ -48,6 +49,9 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             <Link href="/privacy" className="underline">
               {t.footer.privacy}
             </Link>
+            <a href={BLOP_WEBSITE} target="_blank" rel="noopener noreferrer" className="underline">
+              meetblop.com
+            </a>
           </footer>
         </div>
       </body>
