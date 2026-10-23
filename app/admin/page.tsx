@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import { cookies } from 'next/headers';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { resolveFlag, waitlistPreview } from '@/app/admin/actions';
+import { invite, resolveFlag, waitlistPreview } from '@/app/admin/actions';
 import AdminNav from '@/components/admin/AdminNav';
 import DoseChart from '@/components/admin/DoseChart';
 import FunnelChart from '@/components/admin/FunnelChart';
@@ -12,6 +12,7 @@ import { FLAG_CATEGORY, flagField } from '@/lib/adminLabels';
 import { loadAdminData } from '@/lib/adminData';
 import { interestLabel } from '@/lib/i18n';
 import pt from '@/lib/i18n/pt';
+import { invitedCount } from '@/lib/inviteService';
 import { REVIEW_GRACE_MS } from '@/lib/review';
 import { matchingConfig, reviewDelayDays } from '@/lib/site';
 import { CATEGORIES } from '@/lib/interests';
@@ -654,6 +655,36 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
         <p className="text-xs text-midnight/60">
           Quem se inscreve de facto na lista de espera fica no serviço da lista (fora do BLOP Match); aqui só contamos os toques. Alguns filtros de e-mail empresariais abrem os links sozinhos, o que pode aumentar um pouco o número &quot;Pelo e-mail&quot;.
         </p>
+      </Section>
+
+      <Section
+        n="8c"
+        title="Convidar a lista de espera para o teste"
+        description="Envia um convite (em inglês, com o português por baixo) para experimentarem o BLOP Match. Um e-mail por pessoa: ninguém vê os endereços dos outros."
+      >
+        <p className="text-sm">
+          Já convidados: <b className="tabular-nums">{await invitedCount()}</b>. Quem já foi convidado, já participa ou está banido é
+          saltado, por isso podes colar a lista inteira outra vez.
+        </p>
+        <form action={invite} className="space-y-2">
+          <textarea
+            name="emails"
+            rows={5}
+            placeholder="Um e-mail por linha (ou separados por vírgulas)"
+            className="w-full rounded-2xl border border-midnight/20 bg-white p-3 text-sm"
+          />
+          <label className="flex items-center gap-2 text-sm">
+            <input type="checkbox" name="confirm" required /> Confirmo que quero enviar o convite a estes endereços
+          </label>
+          <div className="flex flex-wrap gap-2">
+            <button name="mode" value="send" className="rounded-full bg-violet px-4 py-2 text-sm font-semibold text-white">
+              Enviar convites
+            </button>
+            <button name="mode" value="preview" formNoValidate className="rounded-full border border-midnight/20 bg-white px-4 py-2 text-sm font-medium">
+              Enviar teste aos admins
+            </button>
+          </div>
+        </form>
       </Section>
 
       <Section n={9} title="Tabelas brutas (CSV)" description="Os dados completos para abrir no Excel ou noutra ferramenta (respeitam o filtro Reais/Seed/Tudo).">

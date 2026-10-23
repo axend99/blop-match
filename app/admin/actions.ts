@@ -6,6 +6,8 @@ import { redirect } from 'next/navigation';
 import { ADMIN_COOKIE, isAdmin } from '@/lib/admin';
 import { createClient } from '@/lib/supabase/server';
 import { openReviewNow } from '@/lib/reviewService';
+import { parseEmailList } from '@/lib/invite';
+import { sendInvitePreview, sendInvites } from '@/lib/inviteService';
 import { sendWaitlistPreview } from '@/lib/waitlistService';
 import { approveProfile, banParticipant, dismissReport, recheckProfile, type ResumeResult } from '@/lib/verification';
 import { createServiceClient } from '@/lib/supabase/service';
@@ -101,6 +103,32 @@ export async function waitlistPreview(): Promise<void> {
   if (!(await isAdmin())) return;
   const n = await sendWaitlistPreview();
   await notice(`E-mail de teste da lista de espera enviado (PT e EN) para ${n} ${n === 1 ? 'endereço' : 'endereços'} de admin.`);
+  revalidatePath('/admin');
+}
+
+// Invitation to try BLOP Match for a list of waiting-list addresses (pasted in /admin).
+export async function invite(formData: FormData): Promise<void> {
+  if (!(await isAdmin())) return;
+  if (formData.get('mode') === 'preview') {
+    const ok = await sendInvitePreview();
+    await notice(ok ? 'Convite de teste enviado aos admins.' : 'Não foi possível enviar o convite de teste.');
+  } else if (formData.get('confirm')) {
+    const { valid, invalid } = parseEmailList(String(formData.get('emails') ?? ''));
+    if (valid.length === 0) {
+      await notice(`Nenhum e-mail válido na lista.${invalid.length ? ` Ignorados: ${invalid.join(', ')}.` : ''}`);
+      revalidatePath('/admin');
+      return;
+    }
+    const r = await sendInvites(valid, Date.now() + 45_000);
+    const parts = [`Convites enviados: ${r.sent}.`];
+    if (r.skipped.invited) parts.push(`Já convidados antes: ${r.skipped.invited}.`);
+    if (r.skipped.participant) parts.push(`Já participam: ${r.skipped.participant}.`);
+    if (r.skipped.banned) parts.push(`Banidos: ${r.skipped.banned}.`);
+    if (r.failed) parts.push(`Falharam: ${r.failed} (podes tentar de novo).`);
+    if (r.remaining) parts.push(`Faltam ${r.remaining} por falta de tempo: carrega de novo.`);
+    if (invalid.length) parts.push(`Ignorados (não parecem e-mails): ${invalid.join(', ')}.`);
+    await notice(parts.join(' '));
+  }
   revalidatePath('/admin');
 }
 

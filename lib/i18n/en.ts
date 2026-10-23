@@ -311,6 +311,17 @@ const en = {
       more: 'Learn more at',
       instagram: 'Follow us on Instagram:',
     },
+    invite: {
+      subject: "You're on the BLOP list: come try it first",
+      greeting: 'Hi!',
+      intro: 'A while ago you left your email on the BLOP waiting list. Thank you!',
+      invite: "We're building BLOP to help people meet others who like the same things they do. Right now we're testing the first prototype, BLOP Match, and since you're on the list, you're among the first we're inviting.",
+      how: "How it works: tell us what you're into (2 minutes), Blop introduces you to people with the same interests, you chat, and a few days later you tell us how it went.",
+      help: "It's free and it's part of our master's project, so your help really counts.",
+      button: 'Try BLOP Match',
+      signoff: 'The BLOP team',
+      footer: "You're getting this because you joined the BLOP waiting list.",
+    },
     welcome: {
       subject: 'Welcome to BLOP Match',
       greeting: (name: string) => `Hi ${name},`,
