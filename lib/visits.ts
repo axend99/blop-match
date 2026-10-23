@@ -16,16 +16,29 @@ export function lisbonDay(iso: string | Date): string {
   return new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Lisbon' }).format(new Date(iso));
 }
 
-export type FunnelDay = { day: string; home: number; login: number; join: number; accounts: number; profiles: number };
+// When the visit counter went live in production: accounts and profiles before it are left out,
+// so all steps cover the same period.
+export const VISITS_SINCE = '2026-10-23T18:37:00Z';
 
-// From the first day with visit counts on (accounts and profiles before it are left out, so the
-// steps are comparable). Days newest first.
+export type FunnelDay = {
+  day: string;
+  home: number;
+  login: number;
+  join: number;
+  accounts: number;
+  profiles: number;
+};
+
+// Accounts and profiles count from `from` on (the visit counter's start), so the steps are
+// comparable. `since` is the first day with visit counts. Days newest first.
 export function visitFunnel(
   steps: { day: string; step: string; sessions: number }[],
   accounts: string[], // created_at of login accounts
   profiles: string[], // created_at of profiles
+  from: string = VISITS_SINCE,
 ) {
   const since = steps.reduce<string | null>((min, s) => (min === null || s.day < min ? s.day : min), null);
+  const counted = (iso: string) => new Date(iso).getTime() >= new Date(from).getTime();
   const byDay = new Map<string, FunnelDay>();
   const row = (day: string) => {
     let r = byDay.get(day);
@@ -34,12 +47,18 @@ export function visitFunnel(
   };
   for (const s of steps) if ((VISIT_STEPS as readonly string[]).includes(s.step)) row(s.day)[s.step as VisitStep] += s.sessions;
   if (since) {
-    for (const a of accounts) if (lisbonDay(a) >= since) row(lisbonDay(a)).accounts++;
-    for (const p of profiles) if (lisbonDay(p) >= since) row(lisbonDay(p)).profiles++;
+    for (const a of accounts) if (counted(a)) row(lisbonDay(a)).accounts++;
+    for (const p of profiles) if (counted(p)) row(lisbonDay(p)).profiles++;
   }
   const days = [...byDay.values()].sort((a, b) => b.day.localeCompare(a.day));
   const total = days.reduce(
-    (t, d) => ({ home: t.home + d.home, login: t.login + d.login, join: t.join + d.join, accounts: t.accounts + d.accounts, profiles: t.profiles + d.profiles }),
+    (t, d) => ({
+      home: t.home + d.home,
+      login: t.login + d.login,
+      join: t.join + d.join,
+      accounts: t.accounts + d.accounts,
+      profiles: t.profiles + d.profiles,
+    }),
     { home: 0, login: 0, join: 0, accounts: 0, profiles: 0 },
   );
   return { since, days, total };

@@ -14,6 +14,7 @@ import { interestLabel } from '@/lib/i18n';
 import pt from '@/lib/i18n/pt';
 import { invitedCount } from '@/lib/inviteService';
 import { loadVisitFunnel } from '@/lib/visitService';
+import { VISITS_SINCE } from '@/lib/visits';
 import { REVIEW_GRACE_MS } from '@/lib/review';
 import { matchingConfig, reviewDelayDays } from '@/lib/site';
 import { CATEGORIES } from '@/lib/interests';
@@ -381,7 +382,7 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
                 ))}
               </Table>
               <p className="text-xs text-midnight/60">
-                Desde {v.since.split('-').reverse().join('/')}. Robôs, a equipa (admins) e as contas de teste não contam nas contas e
+                Desde {v.since.split('-').reverse().join('/')} (às {new Date(VISITS_SINCE).toLocaleTimeString('pt-PT', { timeZone: 'Europe/Lisbon', hour: '2-digit', minute: '2-digit' })}). Robôs, a equipa (admins) e as contas de teste não contam nas contas e
                 perfis; as visitas são anónimas, por isso as da equipa contam. Quem entra pelo Google ou por um link já com sessão pode
                 saltar a página de login, e quem já tem conta pode passar pelo login sem criar conta nova: compara os passos como
                 tendência, não como percentagens exatas. Mais detalhe (origem das visitas, país) na aba Analytics da Vercel.
