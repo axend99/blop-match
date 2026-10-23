@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { BLOP_WEBSITE } from '@/lib/site';
 import BlopLogo from '@/components/BlopLogo';
 import PageAnalytics from '@/components/PageAnalytics';
+import VisitBeacon from '@/components/VisitBeacon';
 import LangSwitcher from '@/components/LangSwitcher';
 import SignOutButton from '@/components/SignOutButton';
 import { getUser } from '@/lib/auth';
@@ -56,6 +57,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           </footer>
         </div>
         <PageAnalytics />
+        <VisitBeacon />
       </body>
     </html>
   );

@@ -1,0 +1,29 @@
+import 'server-only';
+import { isAdminEmail } from '@/lib/admin';
+import { isE2eEmail } from '@/lib/e2eUsers';
+import { createServiceClient } from '@/lib/supabase/service';
+import { visitFunnel } from '@/lib/visits';
+
+// Visit funnel for /admin. Team and test accounts are left out of accounts and profiles.
+export async function loadVisitFunnel() {
+  const supabase = createServiceClient();
+  const [steps, people] = await Promise.all([
+    supabase.from('visit_steps').select('day, step, sessions'),
+    supabase.from('participants').select('email, created_at, is_seed'),
+  ]);
+  if (steps.error) throw steps.error;
+  if (people.error) throw people.error;
+  const users = [];
+  for (let page = 1; ; page++) {
+    const { data, error } = await supabase.auth.admin.listUsers({ page, perPage: 1000 });
+    if (error) throw error;
+    users.push(...data.users);
+    if (data.users.length < 1000) break;
+  }
+  const team = (email: string | null | undefined) => isAdminEmail(email ?? undefined) || isE2eEmail(email);
+  return visitFunnel(
+    steps.data,
+    users.filter((u) => !team(u.email)).map((u) => u.created_at),
+    people.data.filter((p) => !p.is_seed && !team(p.email)).map((p) => p.created_at),
+  );
+}
