@@ -115,7 +115,7 @@ export async function invite(formData: FormData): Promise<void> {
   } else if (formData.get('confirm')) {
     const { valid, invalid } = parseEmailList(String(formData.get('emails') ?? ''));
     if (valid.length === 0) {
-      await notice('Nenhum e-mail válido na lista.');
+      await notice(`Nenhum e-mail válido na lista.${invalid.length ? ` Ignorados: ${invalid.join(', ')}.` : ''}`);
       revalidatePath('/admin');
       return;
     }
