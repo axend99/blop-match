@@ -184,6 +184,8 @@ Uma review por pessoa por match. É um formulário de um só ecrã, com as pergu
 | `best_for` | Do you think this idea works better for… | `friendship` / `dating` / `both` | sempre |
 | `comment` | Anything else? | texto, opcional | sempre |
 
+As duas últimas (`likes_concept`, `best_for`) aparecem no admin no bloco 8a (% que gosta do conceito e para que faz mais sentido, por grupo) e nos CSV.
+
 Derivado: `next_step = meet_again_1_7 >= 5 OR met IN ('yes','planned')`.
 
 ---
