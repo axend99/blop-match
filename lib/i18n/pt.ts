@@ -291,6 +291,14 @@ const pt: Dict = {
       title: 'Tens um novo match!',
       body: 'O Blop encontrou alguém que devias conhecer. Abre a tua página para veres quem é, o que têm em comum e como falar com essa pessoa.',
     },
+    matchNudge: {
+      subject: (name: string) => `Já falaste com ${name}?`,
+      greeting: (name: string) => `Olá ${name},`,
+      body: (name: string) => `O Blop apresentou-te ${name}. Já disseram olá? Uma mensagem simples chega.`,
+      hint: (item: string) => `Podes começar por algo que têm em comum, por exemplo: ${item}.`,
+      next: 'Se já falaram, ótimo! Amanhã enviamos-te um pedido rápido para contares como correu (conta mesmo que não tenham falado).',
+      button: 'Ver o meu match',
+    },
     reviewOpen: {
       subject: (name?: string) => (name ? `Como correu com ${name}?` : 'Como correu com o teu match?'),
       greeting: (name: string) => `Olá ${name},`,

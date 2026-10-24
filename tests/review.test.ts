@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { dueReminders, dueReviewRequests, validateReview, type DueParticipant } from '@/lib/review';
+import { dueNudges, dueReminders, dueReviewRequests, validateReview, type DueParticipant } from '@/lib/review';
 import { reviewOpensAt } from '@/lib/site';
 
 const TALKED = {
@@ -130,6 +130,26 @@ describe('review email selection', () => {
     ).toEqual([]);
   });
 
+  it('nudges both sides from day 1 until the review request is due, once, never without the partner', () => {
+    const base = { nudged: new Set<string>(), reviewKeys: new Set<string>(), participants, now, nudgeDays: 1, reviewDelayDays: 2 };
+    const matches = [
+      { id: 'young', aId: 'a', bId: 'b', createdAt: daysAgo(0.5) }, // too early
+      { id: 'm1', aId: 'a', bId: 'b', createdAt: daysAgo(1) },
+      { id: 'm2', aId: 'a', bId: 'b', createdAt: daysAgo(1.9) },
+      { id: 'old', aId: 'a', bId: 'b', createdAt: daysAgo(2) }, // review request due instead
+      { id: 'left', aId: 'a', bId: 'c', createdAt: daysAgo(1) }, // partner left; c gets nothing either
+    ];
+    expect(dueNudges({ ...base, matches })).toEqual([
+      { matchId: 'm1', participantId: 'a' },
+      { matchId: 'm1', participantId: 'b' },
+      { matchId: 'm2', participantId: 'a' },
+      { matchId: 'm2', participantId: 'b' },
+    ]);
+    expect(dueNudges({ ...base, matches, nudged: new Set(['m1|a', 'm2|a']), reviewKeys: new Set(['m1|b']) })).toEqual([
+      { matchId: 'm2', participantId: 'b' },
+    ]);
+  });
+
   it('with REVIEW_DELAY_DAYS=0 every match is due right away', () => {
     const matches = [{ id: 'm1', aId: 'a', bId: 'b', createdAt: now.toISOString() }];
     expect(dueReviewRequests({ matches, requests: [], reviewKeys: new Set(), participants, now, delayDays: 0 })).toHaveLength(2);
@@ -179,7 +199,7 @@ describe('one hour of slack for the hourly cron window', () => {
 
   it('opens the review page with the same slack, never before the match', () => {
     const created = '2026-10-20T10:00:00Z';
-    expect(reviewOpensAt(created).toISOString()).toBe('2026-10-21T09:00:00.000Z'); // default: 1 day
+    expect(reviewOpensAt(created).toISOString()).toBe('2026-10-22T09:00:00.000Z'); // default: 2 days
     process.env.REVIEW_DELAY_DAYS = '0';
     expect(reviewOpensAt(created).toISOString()).toBe('2026-10-20T10:00:00.000Z');
     delete process.env.REVIEW_DELAY_DAYS;

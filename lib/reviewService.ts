@@ -1,9 +1,10 @@
 import 'server-only';
 import { createElement } from 'react';
+import MatchNudgeEmail from '@/emails/MatchNudgeEmail';
 import ReviewEmail from '@/emails/ReviewEmail';
 import { sendEmail, type EmailKind } from '@/lib/email';
-import { getDict, isLang } from '@/lib/i18n';
-import { dueReminders, dueReviewRequests, type DueParticipant, type Recipient } from '@/lib/review';
+import { getDict, interestLabel, isLang } from '@/lib/i18n';
+import { dueNudges, dueReminders, dueReviewRequests, type DueParticipant, type Recipient } from '@/lib/review';
 import { reminderDelayDays, reviewDelayDays, siteUrl } from '@/lib/site';
 import { createServiceClient } from '@/lib/supabase/service';
 
@@ -11,13 +12,14 @@ type Person = { id: string; name: string; email: string | null; lang: string; ac
 
 async function loadState() {
   const supabase = createServiceClient();
-  const [people, matches, requests, reviews] = await Promise.all([
+  const [people, matches, requests, reviews, nudges] = await Promise.all([
     supabase.from('participants').select('id, name, email, lang, active, deleted_at'),
-    supabase.from('matches').select('id, a_id, b_id, created_at'),
+    supabase.from('matches').select('id, a_id, b_id, created_at, shared_items'),
     supabase.from('review_requests').select('match_id, participant_id, requested_at, reminded_at'),
     supabase.from('reviews').select('match_id, reviewer_id'),
+    supabase.from('email_log').select('match_id, participant_id').eq('kind', 'match_nudge'),
   ]);
-  for (const r of [people, matches, requests, reviews]) if (r.error) throw r.error;
+  for (const r of [people, matches, requests, reviews, nudges]) if (r.error) throw r.error;
 
   const byId = new Map((people.data as Person[]).map((p) => [p.id, p]));
   const participants = new Map<string, DueParticipant>(
@@ -36,6 +38,7 @@ async function loadState() {
       remindedAt: r.reminded_at,
     })),
     reviewKeys: new Set(reviews.data!.map((r) => `${r.match_id}|${r.reviewer_id}`)),
+    nudged: new Set(nudges.data!.map((r) => `${r.match_id}|${r.participant_id}`)),
   };
 }
 
@@ -75,6 +78,47 @@ async function send(state: State, kind: Extract<EmailKind, 'review_open' | 'revi
     .eq('match_id', to.matchId)
     .maybeSingle();
   return Boolean(data);
+}
+
+// match_nudge: "have you talked to your match?" a day after the match, before the review
+// request. sendEmail's email_log row makes it once per person and match.
+async function sendNudges(state: State, deadline: number): Promise<number> {
+  const due = dueNudges({
+    matches: state.matches,
+    nudged: state.nudged,
+    reviewKeys: state.reviewKeys,
+    participants: state.participants,
+    now: new Date(),
+    nudgeDays: 1,
+    reviewDelayDays: reviewDelayDays(),
+  });
+  let sent = 0;
+  for (const to of due) {
+    if (Date.now() > deadline) break;
+    const person = state.byId.get(to.participantId);
+    const match = state.matchById.get(to.matchId);
+    const partner = state.byId.get(match?.a_id === to.participantId ? match?.b_id : match?.a_id);
+    if (!person?.email || !match || !partner) continue;
+    const lang = isLang(person.lang) ? person.lang : 'en';
+    const first = (match.shared_items as string[] | null)?.[0];
+    const ok = await sendEmail({
+      participantId: person.id,
+      kind: 'match_nudge',
+      matchId: to.matchId,
+      to: person.email,
+      subject: getDict(lang).emails.matchNudge.subject(partner.name),
+      react: createElement(MatchNudgeEmail, {
+        name: person.name,
+        partnerName: partner.name,
+        sharedItem: first ? interestLabel(first, lang) : undefined,
+        lang,
+        url: `${siteUrl()}/login?next=/me/match/${to.matchId}`,
+        reportUrl: `${siteUrl()}/login?next=/me/report/${to.matchId}`,
+      }),
+    });
+    if (ok) sent++;
+  }
+  return sent;
 }
 
 // review_open: records the request first (its primary key blocks duplicates between runs),
@@ -145,9 +189,10 @@ export async function openReviewNow(matchId: string): Promise<number> {
   return sendReviewRequests(state, Date.now() + 30_000);
 }
 
-export async function runReviewEmails(deadlines: { requests: number; reminders: number }) {
+export async function runReviewEmails(deadlines: { nudges: number; requests: number; reminders: number }) {
   const state = await loadState();
+  const matchNudge = await sendNudges(state, deadlines.nudges);
   const reviewOpen = await sendReviewRequests(state, deadlines.requests);
   const reviewReminder = await sendReviewReminders(state, deadlines.reminders);
-  return { reviewOpen, reviewReminder };
+  return { matchNudge, reviewOpen, reviewReminder };
 }

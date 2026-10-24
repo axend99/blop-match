@@ -291,6 +291,14 @@ const en = {
       title: 'You have a new match!',
       body: 'Blop found someone you should meet. Open your page to see who it is, what you have in common and how to reach them.',
     },
+    matchNudge: {
+      subject: (name: string) => `Have you talked to ${name} yet?`,
+      greeting: (name: string) => `Hi ${name},`,
+      body: (name: string) => `Blop introduced you to ${name}. Have you said hi yet? A simple message is enough.`,
+      hint: (item: string) => `You could start with something you have in common, like ${item}.`,
+      next: "If you've already talked, great! Tomorrow we'll send you a quick request to tell us how it went (it counts even if you haven't talked).",
+      button: 'See my match',
+    },
     reviewOpen: {
       subject: (name?: string) => (name ? `How did it go with ${name}?` : 'How did it go with your match?'),
       greeting: (name: string) => `Hi ${name},`,

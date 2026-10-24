@@ -1,6 +1,6 @@
 # BLOP Match — Especificação do experimento de compatibilidade
 
-Plataforma web simples para testar se interesses em comum aumentam a interação entre desconhecidos. Sem hardware. As pessoas recebem um link, fazem login, criam o perfil, recebem matches por e-mail, contactam-se por WhatsApp/Instagram e, 1 dia depois, avaliam cada interação. Um painel admin compara matches compatíveis com matches de controlo.
+Plataforma web simples para testar se interesses em comum aumentam a interação entre desconhecidos. Sem hardware. As pessoas recebem um link, fazem login, criam o perfil, recebem matches por e-mail, contactam-se por WhatsApp/Instagram e, 2 dias depois, avaliam cada interação. Um painel admin compara matches compatíveis com matches de controlo.
 
 Prazo: em produção até domingo, 25 de outubro de 2026.
 
@@ -17,7 +17,7 @@ Prazo: em produção até domingo, 25 de outubro de 2026.
 | Compatibilidade | Escondida. O participante nunca vê o score nem sabe se o match é de controlo. |
 | Matching | Solto, ao nível do item (ex.: `music_rock`). Sem restrição de cidade. |
 | Controlo | Cada pessoa: até 3 matches compatíveis + 1 de controlo. |
-| Review | Abre 1 dia após o match (`REVIEW_DELAY_DAYS`, padrão 1). |
+| Review | Abre 2 dias após o match (`REVIEW_DELAY_DAYS`, padrão 2). Na véspera (dia 1) há um e-mail "Já falaste com o teu match?"; lembrete da review 3 dias depois do pedido (dia 5). |
 | Escalas | 1–7 sempre que possível (1 = not at all, 7 = very much). |
 | Admin | Em português, restrito a `ADMIN_EMAILS`. |
 
@@ -47,7 +47,7 @@ NEXT_PUBLIC_SITE_URL=
 CRON_SECRET=
 ADMIN_EMAILS=email1@x.com,email2@x.com
 ADMIN_ACCESS_TOKEN=
-REVIEW_DELAY_DAYS=1
+REVIEW_DELAY_DAYS=2
 REMINDER_DELAY_DAYS=3
 MAX_COMPATIBLE=3
 MAX_CONTROL=1
@@ -60,7 +60,7 @@ MIN_SHARED_COMPATIBLE=8
 
 | Rota | Acesso | Conteúdo |
 | --- | --- | --- |
-| `/` | Público | Onboarding: o que é, o que se espera (contactar os matches, conversar, avaliar após 1 dia), duração, privacidade. Botão "Join the experiment". |
+| `/` | Público | Onboarding: o que é, o que se espera (contactar os matches, conversar, avaliar após 2 dias), duração, privacidade. Botão "Join the experiment". |
 | `/login` | Público | "Continue with Google" e "Email me a sign-in link". |
 | `/join` | Logado, sem perfil | Formulário de perfil (ver 4). |
 | `/me` | Logado, com perfil | Lista de matches + estado da review de cada um. Sem matches: "We'll email you as soon as you get a match." Link "Leave the study". |
@@ -156,10 +156,11 @@ Todos os e-mails estão em EN/PT conforme `participants.lang`, com um botão pri
 | --- | --- | --- |
 | `welcome` | Perfil criado | Obrigado, o que esperar, link para `/me` |
 | `new_match` | Match criado | "You have a new match!" + link para `/me` (sem contactos no e-mail) |
+| `match_nudge` | Cron: match com ≥ 1 dia e ainda antes do pedido de review, a outra pessoa ainda no estudo, sem review | "Já falaste com X?": um interesse em comum para começar e aviso de que o pedido de review chega no dia seguinte |
 | `review_open` | Cron: match com ≥ `REVIEW_DELAY_DAYS` dias, sem pedido enviado a essa pessoa | Link para `/me/review/<matchId>` |
 | `review_reminder` | Cron: ≥ `REMINDER_DELAY_DAYS` dias após `review_open`, sem review | Um único lembrete |
 
-`/api/cron` (diário às 09:00 UTC; ver `vercel.json`): 1) matching para quem tem vagas; 2) `review_open`; 3) `review_reminder`. A resposta é um JSON com as contagens.
+`/api/cron` (diário às 09:00 UTC; ver `vercel.json`): 1) matching para quem tem vagas; 2) `match_nudge`; 3) `review_open`; 4) `review_reminder`. A resposta é um JSON com as contagens.
 
 ---
 
@@ -230,7 +231,7 @@ Abas: **Painel**, **Verificação** (`/admin/verificacao`: "Perfis por verificar
 - `matches`: id uuid pk, a_id, b_id → participants, type text check in ('compatible','control'), score numeric, shared_items text[], shared_count int, shared_by_category jsonb, created_at; unique(a_id, b_id), check(a_id < b_id)
 - `review_requests`: match_id, participant_id, requested_at, reminded_at; pk(match_id, participant_id)
 - `reviews`: id uuid pk, match_id, reviewer_id, os campos da secção 7, created_at; unique(match_id, reviewer_id)
-- `email_log`: id, participant_id, kind (`welcome` | `new_match` | `review_open` | `review_reminder` | `waitlist`), match_id null, sent_at
+- `email_log`: id, participant_id, kind (`welcome` | `new_match` | `match_nudge` | `review_open` | `review_reminder` | `waitlist`), match_id null, sent_at
 - `waitlist_clicks`: participant_id, source (`email` | `button`), created_at; unique(participant_id, source). Lista de espera da pulseira e da app BLOP: o cron envia o convite (`waitlist`) 5 dias depois do cadastro a quem continua no estudo com e-mail (pendentes incluídos); `/me` tem um cartão com o botão; os dois links passam por `/go/waitlist`, que conta o toque e redireciona para `WAITLIST_URL` (sem essa variável não há e-mail nem botão). Bloco 8b do admin mostra convites e toques.
 - `participants.pending_review` (bool): perfil novo à espera da verificação (IA do nome e dos textos; se marcar algo ou falhar, espera por um admin) ou pessoa denunciada; não recebe matches novos (`lib/matchingService.ts` e `try_create_match`). Só volta quando não há denúncias abertas nem alertas de perfil por ver (`lib/verification.ts`).
 - `reports`: id, match_id, reporter_id, reported_id (on delete set null), reason (`harassment` | `sexual` | `threat` | `spam` | `fake` | `unsafe` | `other`), details ≤ 1000, created_at, resolved_at, resolution (`dismissed` | `banned`); unique(match_id, reporter_id). Feitas em `/me/report/[matchId]` (link no match, na review e nos e-mails de match/review); os admins recebem um e-mail curto.

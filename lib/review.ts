@@ -129,6 +129,42 @@ function emailable(p: DueParticipant | undefined): boolean {
   return Boolean(p && p.active && !p.deleted && p.hasEmail);
 }
 
+// match_nudge ("have you talked?"): matches at least `nudgeDays` old but not yet due for the review
+// request, for each side not nudged yet and without a review. Skipped when the other person left
+// (the e-mail invites to talk to them).
+export function dueNudges(args: {
+  matches: DueMatch[];
+  nudged: Set<string>; // `${matchId}|${participantId}`
+  reviewKeys: Set<string>;
+  participants: Map<string, DueParticipant>;
+  now: Date;
+  nudgeDays: number;
+  reviewDelayDays: number;
+}): Recipient[] {
+  const from = args.now.getTime() - args.nudgeDays * DAY + REVIEW_GRACE_MS;
+  const until = args.now.getTime() - args.reviewDelayDays * DAY + REVIEW_GRACE_MS;
+  const present = (p: DueParticipant | undefined) => Boolean(p && p.active && !p.deleted);
+  return args.matches
+    .filter((m) => {
+      const created = new Date(m.createdAt).getTime();
+      return created <= from && created > until;
+    })
+    .flatMap((m) => [
+      { matchId: m.id, participantId: m.aId, otherId: m.bId },
+      { matchId: m.id, participantId: m.bId, otherId: m.aId },
+    ])
+    .filter(({ matchId, participantId, otherId }) => {
+      const key = `${matchId}|${participantId}`;
+      return (
+        !args.nudged.has(key) &&
+        !args.reviewKeys.has(key) &&
+        emailable(args.participants.get(participantId)) &&
+        present(args.participants.get(otherId))
+      );
+    })
+    .map(({ matchId, participantId }) => ({ matchId, participantId }));
+}
+
 // review_open: matches at least `delayDays` old, for each side without a request or a review.
 export function dueReviewRequests(args: {
   matches: DueMatch[];
