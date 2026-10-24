@@ -184,9 +184,10 @@ Uma review por pessoa por match. É um formulário de um só ecrã, com as pergu
 | `ig_follow` | Do you follow each other on Instagram now? | `me` / `them` / `both` / `none` | as duas pessoas têm Instagram |
 | `likes_concept` | Do you like the idea of meeting people through shared interests like this? | sim/não | sempre |
 | `best_for` | Do you think this idea works better for… | `friendship` / `dating` / `both` | sempre |
+| `party_interest` | If we organised a party just for BLOP users, to try this in person, would you be interested? | `yes` / `maybe` / `no` | sempre |
 | `comment` | Anything else? | texto, opcional | sempre |
 
-As duas últimas (`likes_concept`, `best_for`) aparecem no admin no bloco 8a (% que gosta do conceito e para que faz mais sentido, por grupo) e nos CSV.
+As três últimas (`likes_concept`, `best_for`, `party_interest`) aparecem no admin no bloco 8a (% que gosta do conceito e para que faz mais sentido, por grupo; e quem teria interesse numa festa ao vivo, com nome e e-mail, como lista de espera) e nos CSV.
 
 Derivado: `next_step = meet_again_1_7 >= 5 OR met IN ('yes','planned')`.
 

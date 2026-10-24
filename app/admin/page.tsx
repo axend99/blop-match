@@ -19,6 +19,7 @@ import { REVIEW_GRACE_MS } from '@/lib/review';
 import { matchingConfig, reviewDelayDays } from '@/lib/site';
 import { CATEGORIES } from '@/lib/interests';
 import {
+  partyInterest,
   MIN_N,
   SEGMENTS,
   WHY_NOT,
@@ -666,27 +667,64 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
         </div>
       </Section>
 
-      <Section n="8a" title="A ideia: gostam do conceito? Amizade ou encontros?" description="Duas perguntas no fim de cada review, iguais para todos. Base: reviews que responderam (as anteriores a estas perguntas não contam).">
+      <Section n="8a" title="A ideia: gostam do conceito? Amizade ou encontros? Festa ao vivo?" description="Perguntas no fim de cada review, iguais para todos. Base: reviews que responderam (as anteriores a estas perguntas não contam).">
         {(() => {
           const c = conceptOpinion(rows);
           const cols = [c.all, c.compatible, c.control];
+          const party = partyInterest(rows.map((r) => r.review));
+          const interested = party.interested.flatMap((x) => {
+            const p = personById.get(x.id);
+            return p && !p.deleted_at ? [{ ...x, name: p.name, email: p.email }] : [];
+          });
           return (
-            <Table head={['', 'Todos', 'Compatível', 'Controlo']}>
-              <tr>
-                <td className="px-2 py-1.5">Gosta do conceito</td>
-                {cols.map((x, i) => (
-                  <PctCell key={i} s={x.likes} />
-                ))}
-              </tr>
-              {c.all.bestFor.map((b, k) => (
-                <tr key={b.option}>
-                  <td className="px-2 py-1.5">Faz mais sentido para: {BEST_FOR_LABEL[b.option]}</td>
+            <>
+              <Table head={['', 'Todos', 'Compatível', 'Controlo']}>
+                <tr>
+                  <td className="px-2 py-1.5">Gosta do conceito</td>
                   {cols.map((x, i) => (
-                    <PctCell key={i} s={x.bestFor[k].share} />
+                    <PctCell key={i} s={x.likes} />
                   ))}
                 </tr>
-              ))}
-            </Table>
+                {c.all.bestFor.map((b, k) => (
+                  <tr key={b.option}>
+                    <td className="px-2 py-1.5">Faz mais sentido para: {BEST_FOR_LABEL[b.option]}</td>
+                    {cols.map((x, i) => (
+                      <PctCell key={i} s={x.bestFor[k].share} />
+                    ))}
+                  </tr>
+                ))}
+              </Table>
+              <div className="space-y-2">
+                <h3 className="text-sm font-semibold">Festa só para pessoas do BLOP, para testar ao vivo</h3>
+                <p className="text-sm">
+                  {party.people === 0
+                    ? 'Ainda sem respostas.'
+                    : `${party.people} ${party.people === 1 ? 'pessoa respondeu' : 'pessoas responderam'}: ${party.counts.yes} sim · ${party.counts.maybe} talvez · ${party.counts.no} não.`}
+                </p>
+                {interested.length > 0 && (
+                  <>
+                    <ul className="space-y-0.5 text-sm">
+                      {interested.map((x) => (
+                        <li key={x.id}>
+                          {x.name} · {x.email ?? 'sem e-mail'} · {x.answer === 'yes' ? 'sim' : 'talvez'}
+                        </li>
+                      ))}
+                    </ul>
+                    <textarea
+                      readOnly
+                      rows={2}
+                      aria-label="E-mails de quem respondeu sim ou talvez"
+                      value={interested.flatMap((x) => (x.email ? [x.email] : [])).join(', ')}
+                      className="w-full rounded-2xl border border-midnight/20 bg-white p-2 text-xs"
+                    />
+                  </>
+                )}
+                <p className="text-xs text-midnight/60">
+                  Uma resposta por pessoa (a da review mais recente). A lista serve de lista de espera para uma festa, se avançarmos;
+                  quem saiu do estudo não aparece.
+                </p>
+              </div>
+            </>
           );
         })()}
       </Section>

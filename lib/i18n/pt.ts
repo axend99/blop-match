@@ -227,6 +227,8 @@ const pt: Dict = {
     likesConcept: 'Gostas da ideia de conhecer pessoas assim, através de interesses em comum?',
     bestFor: 'Achas que esta ideia faz mais sentido para…',
     bestForOptions: { friendship: 'Amizade', dating: 'Encontros amorosos', both: 'As duas' },
+    party: 'Se organizássemos uma festa só para pessoas do BLOP, para testar isto ao vivo, terias interesse? (Se sim ou talvez, podemos enviar-te um e-mail sobre isso.)',
+    partyOptions: { yes: 'Sim', maybe: 'Talvez', no: 'Não' },
     comment: 'Mais alguma coisa? (opcional)',
     submit: 'Enviar',
     submitting: 'A enviar…',

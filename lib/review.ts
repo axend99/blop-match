@@ -6,6 +6,7 @@ export const WHY_NOT = ['no_time', 'not_interested', 'no_reply', 'shy', 'other']
 export const MET = ['yes', 'planned', 'no'] as const;
 export const IG_FOLLOW = ['me', 'them', 'both', 'none'] as const;
 export const BEST_FOR = ['friendship', 'dating', 'both'] as const;
+export const PARTY = ['yes', 'maybe', 'no'] as const;
 export const MAX_COMMENT = 1000;
 
 export type ReviewInput = Record<string, unknown>;
@@ -25,6 +26,7 @@ export type Review = {
   ig_follow: (typeof IG_FOLLOW)[number] | null;
   likes_concept: boolean;
   best_for: (typeof BEST_FOR)[number];
+  party_interest: (typeof PARTY)[number];
   comment: string | null;
 };
 
@@ -60,6 +62,7 @@ export function validateReview(
     ig_follow: null,
     likes_concept: false,
     best_for: 'friendship',
+    party_interest: 'no',
     comment: null,
   };
 
@@ -101,6 +104,8 @@ export function validateReview(
   else errors.likes_concept = 'required';
   if (oneOf(BEST_FOR, input.best_for)) data.best_for = input.best_for;
   else errors.best_for = 'required';
+  if (oneOf(PARTY, input.party_interest)) data.party_interest = input.party_interest;
+  else errors.party_interest = 'required';
 
   if (typeof input.comment === 'string' && input.comment.trim()) {
     const comment = input.comment.trim();

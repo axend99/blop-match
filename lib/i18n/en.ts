@@ -227,6 +227,8 @@ const en = {
     likesConcept: 'Do you like the idea of meeting people through shared interests like this?',
     bestFor: 'Do you think this idea works better for…',
     bestForOptions: { friendship: 'Friendship', dating: 'Dating', both: 'Both' },
+    party: 'If we organised a party just for BLOP users, to try this in person, would you be interested? (If yes or maybe, we may email you about it.)',
+    partyOptions: { yes: 'Yes', maybe: 'Maybe', no: 'No' },
     comment: 'Anything else? (optional)',
     submit: 'Send',
     submitting: 'Sending…',
