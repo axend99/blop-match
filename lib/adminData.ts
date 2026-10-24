@@ -1,5 +1,7 @@
 import 'server-only';
 import { isE2eEmail } from '@/lib/e2eUsers';
+import { analysisType } from '@/lib/matching';
+import { matchingConfig } from '@/lib/site';
 import { filterAdminData, type DataMode, type ReviewRow } from '@/lib/stats';
 import { createServiceClient } from '@/lib/supabase/service';
 
@@ -43,7 +45,8 @@ export type AdminMatch = {
   id: string;
   a_id: string;
   b_id: string;
-  type: 'compatible' | 'control';
+  type: 'compatible' | 'control'; // group for the analysis (analysisType), not the stored one
+  assigned_type: 'compatible' | 'control'; // type stored when the match was created
   score: number;
   shared_items: string[];
   shared_count: number;
@@ -92,7 +95,12 @@ export async function loadAdminData(mode: DataMode) {
       'participants',
       'id, name, email, whatsapp, instagram, city, lang, age, age_range, time_in_city, origin, interests, other_text, talk_about, talk_about_code, active, pending_review, deleted_at, is_seed, created_at',
     ),
-    all<AdminMatch>('matches', 'id, a_id, b_id, type, score, shared_items, shared_count, shared_by_category, created_at'),
+    all<Omit<AdminMatch, 'assigned_type'>>('matches', 'id, a_id, b_id, type, score, shared_items, shared_count, shared_by_category, created_at').then(
+      (rows) => {
+        const min = matchingConfig().minSharedCompatible;
+        return rows.map((m): AdminMatch => ({ ...m, assigned_type: m.type, type: analysisType(m.shared_count, min) }));
+      },
+    ),
     all<AdminReview>(
       'reviews',
       'id, match_id, reviewer_id, contacted, interest_1_7, who_first, comfort_1_7, why_not, talked, flow_1_7, common_ground_1_7, satisfaction_1_7, meet_again_1_7, met, ig_follow, likes_concept, best_for, comment, next_step, created_at',
@@ -118,7 +126,7 @@ export async function loadAdminData(mode: DataMode) {
   const matchById = new Map(matches.map((m) => [m.id, m]));
 
   // Each review joined with its match and the profile of the person who answered.
-  const rows: (ReviewRow & { review: AdminReview })[] = reviews.flatMap((r) => {
+  const rows: (ReviewRow & { review: AdminReview; assigned_type: AdminMatch['assigned_type'] })[] = reviews.flatMap((r) => {
     const m = matchById.get(r.match_id);
     const p = personById.get(r.reviewer_id);
     if (!m || !p) return [];
@@ -127,6 +135,7 @@ export async function loadAdminData(mode: DataMode) {
         ...r,
         review: r,
         type: m.type,
+        assigned_type: m.assigned_type,
         shared_count: m.shared_count,
         shared_by_category: m.shared_by_category,
         shared_items: m.shared_items,

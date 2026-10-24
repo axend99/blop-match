@@ -53,6 +53,14 @@ export function sharedByCategory(a: string[], b: string[]): Record<Category, num
   return counts;
 }
 
+// The group a match counts in for the analysis: compatible when the pair shares at least
+// `minSharedCompatible` interests, control otherwise. Applied to every match, so a match created
+// under an older, lower threshold can count as control (the stored `type` is kept for the per-person
+// limits and is shown alongside in the CSV).
+export function analysisType(sharedCount: number, minSharedCompatible: number): MatchType {
+  return sharedCount >= minSharedCompatible ? 'compatible' : 'control';
+}
+
 function shuffle<T>(items: T[], rng: () => number): T[] {
   const result = [...items];
   for (let i = result.length - 1; i > 0; i--) {
@@ -99,12 +107,15 @@ export function planMatches(
         .filter((x) => x.shared.length >= config.minSharedCompatible)
         .sort((x, y) => y.score - x.score || byFewestThenOldest(x.c, y.c))[0];
     } else {
-      const none = candidates.filter((x) => x.shared.length === 0);
+      // Only pairs below the compatible threshold, so a control always counts as control. If
+      // nobody qualifies, the slot stays open and the daily run tries again.
+      const below = candidates.filter((x) => x.shared.length < config.minSharedCompatible);
+      const none = below.filter((x) => x.shared.length === 0);
       chosen = none.length
         ? none[Math.floor(rng() * none.length)]
-        : candidates.sort((x, y) => x.score - y.score || byFewestThenOldest(x.c, y.c))[0];
+        : below.sort((x, y) => x.score - y.score || byFewestThenOldest(x.c, y.c))[0];
     }
-    if (!chosen) continue;
+    if (!chosen) continue; // no suitable person yet: the slot stays open for a later run
 
     const other = chosen.c;
     const [aId, bId] = person.id < other.id ? [person.id, other.id] : [other.id, person.id];

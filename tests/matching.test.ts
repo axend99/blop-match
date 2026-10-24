@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { planMatches, score, shared, sharedByCategory, type Candidate, type MatchingConfig } from '@/lib/matching';
+import { analysisType, planMatches, score, shared, sharedByCategory, type Candidate, type MatchingConfig } from '@/lib/matching';
 
 const CONFIG: MatchingConfig = { maxCompatible: 3, maxControl: 1, minSharedCompatible: 2 };
 
@@ -30,6 +30,12 @@ function person(interests: string[], patch: Partial<Candidate> = {}): Candidate 
 const ROCK = ['music_rock', 'music_pop', 'music_indie', 'fit_gym', 'food_wine', 'act_beach'];
 const ROCK_LIKE = ['music_rock', 'music_pop', 'music_jazz', 'sports_surf', 'food_brunch', 'hob_reading'];
 const OPPOSITE = ['music_fado', 'music_kpop', 'music_metal', 'sports_padel', 'food_indian', 'hob_videogames'];
+
+describe('analysisType', () => {
+  it('is compatible from the threshold on, control below', () => {
+    expect([0, 7, 8, 17].map((n) => analysisType(n, 8))).toEqual(['control', 'control', 'compatible', 'compatible']);
+  });
+});
 
 describe('score and shared', () => {
   it('computes Jaccard over all items', () => {
@@ -84,6 +90,22 @@ describe('planMatches', () => {
     expect(proposal.type).toBe('control');
     expect([proposal.aId, proposal.bId]).toContain(far.id);
     expect(proposal.sharedCount).toBe(1);
+  });
+
+  it('never picks a control at or above the compatible threshold: the slot stays open', () => {
+    const me = person(ROCK);
+    const close = person(ROCK_LIKE); // 2 shared = the threshold
+    const tight = { ...CONFIG, maxCompatible: 0 };
+    expect(planMatches(me, [me, close], tight, seeded())).toEqual([]);
+    expect(me.controlCount).toBe(0);
+  });
+
+  it('leaves compatible slots open when nobody reaches the threshold', () => {
+    const me = person(ROCK);
+    const far = person(['music_rock', 'music_fado', 'music_kpop', 'sports_padel', 'food_indian', 'hob_videogames']);
+    const proposals = planMatches(me, [me, far], CONFIG, seeded());
+    expect(proposals.map((p) => p.type)).toEqual(['control']);
+    expect(me.compatibleCount).toBe(0);
   });
 
   it('respects the per-type limits on both sides', () => {

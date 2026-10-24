@@ -25,7 +25,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     );
   } else if (tabela === 'matches') {
     csv = toCsv(
-      ['id', 'a_id', 'a_name', 'a_is_seed', 'a_clicked', 'a_first_click_at', 'b_id', 'b_name', 'b_is_seed', 'b_clicked', 'b_first_click_at', 'type', 'score', 'shared_count', 'shared_items', 'shared_by_category', 'created_at'],
+      ['id', 'a_id', 'a_name', 'a_is_seed', 'a_clicked', 'a_first_click_at', 'b_id', 'b_name', 'b_is_seed', 'b_clicked', 'b_first_click_at', 'type', 'assigned_type', 'score', 'shared_count', 'shared_items', 'shared_by_category', 'created_at'],
       matches.map((m) => ({
         ...m,
         a_name: personById.get(m.a_id)?.name,
@@ -43,7 +43,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     csv = toCsv(
       [
         'id', 'match_id', 'reviewer_id', 'reviewer_name', 'is_seed', 'created_at',
-        'type', 'shared_count', 'shared_items', 'shared_by_category',
+        'type', 'assigned_type', 'shared_count', 'shared_items', 'shared_by_category',
         'age', 'age_range', 'time_in_city', 'origin', 'city', 'lang',
         'contacted', 'interest_1_7', 'who_first', 'comfort_1_7', 'why_not', 'talked', 'flow_1_7',
         'common_ground_1_7', 'satisfaction_1_7', 'meet_again_1_7', 'met', 'next_step', 'ig_follow', 'likes_concept', 'best_for', 'comment',

@@ -179,7 +179,7 @@ describe('one hour of slack for the hourly cron window', () => {
 
   it('opens the review page with the same slack, never before the match', () => {
     const created = '2026-10-20T10:00:00Z';
-    expect(reviewOpensAt(created).toISOString()).toBe('2026-10-23T09:00:00.000Z');
+    expect(reviewOpensAt(created).toISOString()).toBe('2026-10-21T09:00:00.000Z'); // default: 1 day
     process.env.REVIEW_DELAY_DAYS = '0';
     expect(reviewOpensAt(created).toISOString()).toBe('2026-10-20T10:00:00.000Z');
     delete process.env.REVIEW_DELAY_DAYS;

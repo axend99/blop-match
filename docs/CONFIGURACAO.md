@@ -21,9 +21,9 @@ Ficam na Vercel (Project → Settings → Environment Variables) e, para correr 
 | `CRON_SECRET` | Segredo que a Vercel envia ao chamar `/api/cron` | gerar: `openssl rand -hex 32` |
 | `ADMIN_EMAILS` | E-mails com acesso ao `/admin` (separados por vírgula) | — |
 | `ADMIN_ACCESS_TOKEN` | Token do link de acesso ao `/admin` sem login (≥ 32 caracteres) | gerar: `openssl rand -hex 32` |
-| `REVIEW_DELAY_DAYS` | Dias entre o match e o pedido de review (3) | — |
+| `REVIEW_DELAY_DAYS` | Dias entre o match e o pedido de review (1) | — |
 | `REMINDER_DELAY_DAYS` | Dias entre o pedido e o lembrete (2) | — |
-| `MAX_COMPATIBLE`, `MAX_CONTROL`, `MIN_SHARED_COMPATIBLE` | Regras do matching (3, 1, 3) | — |
+| `MAX_COMPATIBLE`, `MAX_CONTROL`, `MIN_SHARED_COMPATIBLE` | Regras do matching (3, 1, 8): compatível = pelo menos 8 interesses em comum, também na análise | — |
 
 Depois de mudar uma variável na Vercel, é preciso fazer **Redeploy**.
 
