@@ -5,7 +5,7 @@ export function siteUrl(): string | undefined {
 }
 
 export function reviewDelayDays(): number {
-  return intEnv('REVIEW_DELAY_DAYS', 3);
+  return intEnv('REVIEW_DELAY_DAYS', 1);
 }
 
 function intEnv(name: string, fallback: number): number {
@@ -17,7 +17,7 @@ export function matchingConfig() {
   return {
     maxCompatible: intEnv('MAX_COMPATIBLE', 3),
     maxControl: intEnv('MAX_CONTROL', 1),
-    minSharedCompatible: intEnv('MIN_SHARED_COMPATIBLE', 3),
+    minSharedCompatible: intEnv('MIN_SHARED_COMPATIBLE', 8),
   };
 }
 
@@ -36,7 +36,7 @@ export function reviewOpensAt(matchCreatedAt: string): Date {
 }
 
 export function reminderDelayDays(): number {
-  return intEnv('REMINDER_DELAY_DAYS', 2);
+  return intEnv('REMINDER_DELAY_DAYS', 3);
 }
 
 // The BLOP website (brand name, the same in every language).

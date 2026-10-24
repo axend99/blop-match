@@ -1,6 +1,6 @@
 # BLOP Match — Especificação do experimento de compatibilidade
 
-Plataforma web simples para testar se interesses em comum aumentam a interação entre desconhecidos. Sem hardware. As pessoas recebem um link, fazem login, criam o perfil, recebem matches por e-mail, contactam-se por WhatsApp/Instagram e, 3 dias depois, avaliam cada interação. Um painel admin compara matches compatíveis com matches de controlo.
+Plataforma web simples para testar se interesses em comum aumentam a interação entre desconhecidos. Sem hardware. As pessoas recebem um link, fazem login, criam o perfil, recebem matches por e-mail, contactam-se por WhatsApp/Instagram e, 1 dia depois, avaliam cada interação. Um painel admin compara matches compatíveis com matches de controlo.
 
 Prazo: em produção até domingo, 25 de outubro de 2026.
 
@@ -17,7 +17,7 @@ Prazo: em produção até domingo, 25 de outubro de 2026.
 | Compatibilidade | Escondida. O participante nunca vê o score nem sabe se o match é de controlo. |
 | Matching | Solto, ao nível do item (ex.: `music_rock`). Sem restrição de cidade. |
 | Controlo | Cada pessoa: até 3 matches compatíveis + 1 de controlo. |
-| Review | Abre 3 dias após o match (`REVIEW_DELAY_DAYS`, padrão 3). |
+| Review | Abre 1 dia após o match (`REVIEW_DELAY_DAYS`, padrão 1). |
 | Escalas | 1–7 sempre que possível (1 = not at all, 7 = very much). |
 | Admin | Em português, restrito a `ADMIN_EMAILS`. |
 
@@ -47,11 +47,11 @@ NEXT_PUBLIC_SITE_URL=
 CRON_SECRET=
 ADMIN_EMAILS=email1@x.com,email2@x.com
 ADMIN_ACCESS_TOKEN=
-REVIEW_DELAY_DAYS=3
-REMINDER_DELAY_DAYS=2
+REVIEW_DELAY_DAYS=1
+REMINDER_DELAY_DAYS=3
 MAX_COMPATIBLE=3
 MAX_CONTROL=1
-MIN_SHARED_COMPATIBLE=3
+MIN_SHARED_COMPATIBLE=8
 ```
 
 ---
@@ -60,7 +60,7 @@ MIN_SHARED_COMPATIBLE=3
 
 | Rota | Acesso | Conteúdo |
 | --- | --- | --- |
-| `/` | Público | Onboarding: o que é, o que se espera (contactar os matches, conversar, avaliar após 3 dias), duração, privacidade. Botão "Join the experiment". |
+| `/` | Público | Onboarding: o que é, o que se espera (contactar os matches, conversar, avaliar após 1 dia), duração, privacidade. Botão "Join the experiment". |
 | `/login` | Público | "Continue with Google" e "Email me a sign-in link". |
 | `/join` | Logado, sem perfil | Formulário de perfil (ver 4). |
 | `/me` | Logado, com perfil | Lista de matches + estado da review de cada um. Sem matches: "We'll email you as soon as you get a match." Link "Leave the study". |
@@ -136,8 +136,9 @@ sharedByCategory(A, B) = { music: n, sports: n, fitness: n, movies: n, animals: 
 2. Vagas a preencher na pessoa: a lista de tipos em falta (ex.: `[compatible, compatible, compatible, control]`) é **embaralhada**, para que o controlo não seja sempre o último.
 3. Para cada vaga:
    - **compatible:** candidatos com `|shared| >= MIN_SHARED_COMPATIBLE` e vaga compatível livre; escolher o maior score (desempate: quem tem menos matches e depois quem é mais antigo).
-   - **control:** candidatos com `|shared| = 0` e vaga de controlo livre; escolher ao acaso. Se não houver ninguém com 0, escolher o de menor score com vaga de controlo. Grava-se sempre o `shared_count` real.
-   - Sem candidato: a vaga fica livre para o próximo perfil ou cron.
+   - **control:** candidatos com `|shared| = 0` e vaga de controlo livre; escolher ao acaso. Se não houver ninguém com 0, escolher o de menor score entre quem partilha menos de `MIN_SHARED_COMPATIBLE` (nunca acima da régua). Grava-se sempre o `shared_count` real.
+   - Sem candidato: a vaga fica livre para o próximo perfil ou cron (não se força um match só para preencher a quota).
+   - **Na análise** (`/admin`, CSV), o grupo de cada match é recalculado pela régua atual: compatível se `shared_count >= MIN_SHARED_COMPATIBLE`, controlo abaixo disso. O `type` gravado continua a contar para as vagas e aparece no CSV como `assigned_type`.
 4. Cada match criado é um registo por par (`a_id < b_id`), com `type`, `score`, `shared_items`, `shared_by_category` e `shared_count`, gravados no momento (snapshot). Conta na vaga do mesmo tipo das duas pessoas.
 5. Envia o e-mail "new match" às duas pessoas.
 
