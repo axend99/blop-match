@@ -294,7 +294,7 @@ const en = {
     reviewOpen: {
       subject: (name?: string) => (name ? `How did it go with ${name}?` : 'How did it go with your match?'),
       greeting: (name: string) => `Hi ${name},`,
-      body: 'A few days have passed since your match. Tell us how it went: it takes 2 minutes and helps the research a lot.',
+      body: 'Time to look back on your match. Tell us how it went (even if you haven\'t talked yet): it takes 2 minutes and helps the research a lot.',
       button: 'Rate this interaction',
     },
     reviewReminder: {

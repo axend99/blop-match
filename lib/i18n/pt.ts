@@ -294,7 +294,7 @@ const pt: Dict = {
     reviewOpen: {
       subject: (name?: string) => (name ? `Como correu com ${name}?` : 'Como correu com o teu match?'),
       greeting: (name: string) => `Olá ${name},`,
-      body: 'Já passaram alguns dias desde o teu match. Conta-nos como correu: demora 2 minutos e ajuda muito a investigação.',
+      body: 'Está na hora de avaliar o teu match. Conta-nos como correu (mesmo que ainda não tenham falado): demora 2 minutos e ajuda muito a investigação.',
       button: 'Avaliar esta interação',
     },
     reviewReminder: {

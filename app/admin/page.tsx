@@ -237,7 +237,7 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
             serve de comparação: mostra o que acontece com poucos interesses em comum.
           </li>
           <li>
-            <b>Review</b>: uma pessoa a avaliar um match, {reviewDelayDays()} dias depois. Cada match dá até 2 reviews (uma de cada
+            <b>Review</b>: uma pessoa a avaliar um match, {reviewDelayDays()} {reviewDelayDays() === 1 ? 'dia' : 'dias'} depois. Cada match dá até 2 reviews (uma de cada
             lado).
           </li>
           <li>
