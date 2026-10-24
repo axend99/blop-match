@@ -36,7 +36,7 @@ export function reviewOpensAt(matchCreatedAt: string): Date {
 }
 
 export function reminderDelayDays(): number {
-  return intEnv('REMINDER_DELAY_DAYS', 2);
+  return intEnv('REMINDER_DELAY_DAYS', 3);
 }
 
 // The BLOP website (brand name, the same in every language).
