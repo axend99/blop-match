@@ -1,16 +1,7 @@
-// "blop" wordmark: the "o" is the pair of overlapping violet and pink circles.
+import Image from 'next/image';
+import logo from '@/public/brand/logo.png';
+
+// The BLOP logo (the Blop above the "BLOP" lettering), the same one used in the e-mails and flyers.
 export default function BlopLogo({ className = '' }: { className?: string }) {
-  return (
-    <span className={`inline-flex items-center text-2xl font-bold tracking-tight text-midnight ${className}`}>
-      <span aria-hidden="true" className="inline-flex items-center">
-        bl
-        <svg viewBox="0 0 34 20" className="mx-px h-[0.8em] w-[1.36em]">
-          <circle cx="10" cy="10" r="10" fill="#5b3cf5" fillOpacity="0.85" />
-          <circle cx="24" cy="10" r="10" fill="#e3a6f5" fillOpacity="0.8" />
-        </svg>
-        p
-      </span>
-      <span className="sr-only">BLOP</span>
-    </span>
-  );
+  return <Image src={logo} alt="BLOP" priority sizes="72px" className={`h-14 w-auto ${className}`} />;
 }

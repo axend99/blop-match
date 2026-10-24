@@ -1,5 +1,5 @@
-import { Body, Button, Container, Head, Html, Link, Preview, Section, Text } from '@react-email/components';
-import { BLOP_WEBSITE } from '@/lib/site';
+import { Body, Button, Container, Head, Html, Img, Link, Preview, Section, Text } from '@react-email/components';
+import { BLOP_WEBSITE, siteUrl } from '@/lib/site';
 
 const COLORS = { midnight: '#1e1530', violet: '#5b3cf5', paper: '#f5f2ef' };
 
@@ -26,9 +26,8 @@ export default function EmailLayout({
       <Preview>{preview}</Preview>
       <Body style={{ backgroundColor: COLORS.paper, color: COLORS.midnight, fontFamily: 'Helvetica, Arial, sans-serif', margin: 0, padding: '24px 0' }}>
         <Container style={{ maxWidth: 480, margin: '0 auto', padding: '0 16px' }}>
-          <Text style={{ fontSize: 28, fontWeight: 700, letterSpacing: -0.5, margin: '0 0 24px' }}>
-            bl<span style={{ color: COLORS.violet }}>o</span>p
-          </Text>
+          {/* The BLOP logo (public/brand/logo-email.png); e-mail apps need an absolute URL. */}
+          <Img src={`${siteUrl()}/brand/logo-email.png`} alt="BLOP" width={100} height={81} style={{ margin: '0 0 20px' }} />
           <Section style={{ backgroundColor: '#ffffff', borderRadius: 24, padding: 24 }}>
             {children}
             <Button
