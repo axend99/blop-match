@@ -298,7 +298,7 @@ const en = {
       greeting: (name: string) => `Hi ${name},`,
       body: (name: string) => `Blop introduced you to ${name}. Have you said hi yet? A simple message is enough.`,
       hint: (item: string) => `You could start with something you have in common, like ${item}.`,
-      next: "If you've already talked, great! Tomorrow we'll send you a quick request to tell us how it went (it counts even if you haven't talked).",
+      next: "If you've already talked, great! Tomorrow we'll send you a quick request to tell us how it went (please answer even if you haven't talked).",
       button: 'See my match',
     },
     reviewOpen: {

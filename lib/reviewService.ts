@@ -8,22 +8,34 @@ import { dueNudges, dueReminders, dueReviewRequests, type DueParticipant, type R
 import { reminderDelayDays, reviewDelayDays, siteUrl } from '@/lib/site';
 import { createServiceClient } from '@/lib/supabase/service';
 
-type Person = { id: string; name: string; email: string | null; lang: string; active: boolean; deleted_at: string | null };
+type Person = {
+  id: string;
+  name: string;
+  email: string | null;
+  lang: string;
+  active: boolean;
+  deleted_at: string | null;
+  pending_review: boolean;
+};
 
 async function loadState() {
   const supabase = createServiceClient();
-  const [people, matches, requests, reviews, nudges] = await Promise.all([
-    supabase.from('participants').select('id, name, email, lang, active, deleted_at'),
+  const [people, matches, requests, reviews, nudges, reports] = await Promise.all([
+    supabase.from('participants').select('id, name, email, lang, active, deleted_at, pending_review'),
     supabase.from('matches').select('id, a_id, b_id, created_at, shared_items'),
     supabase.from('review_requests').select('match_id, participant_id, requested_at, reminded_at'),
     supabase.from('reviews').select('match_id, reviewer_id'),
     supabase.from('email_log').select('match_id, participant_id').eq('kind', 'match_nudge'),
+    supabase.from('reports').select('match_id'),
   ]);
-  for (const r of [people, matches, requests, reviews, nudges]) if (r.error) throw r.error;
+  for (const r of [people, matches, requests, reviews, nudges, reports]) if (r.error) throw r.error;
 
   const byId = new Map((people.data as Person[]).map((p) => [p.id, p]));
   const participants = new Map<string, DueParticipant>(
-    [...byId.values()].map((p) => [p.id, { id: p.id, active: p.active, deleted: Boolean(p.deleted_at), hasEmail: Boolean(p.email) }]),
+    [...byId.values()].map((p) => [
+      p.id,
+      { id: p.id, active: p.active, deleted: Boolean(p.deleted_at), hasEmail: Boolean(p.email), held: p.pending_review },
+    ]),
   );
   return {
     supabase,
@@ -39,6 +51,7 @@ async function loadState() {
     })),
     reviewKeys: new Set(reviews.data!.map((r) => `${r.match_id}|${r.reviewer_id}`)),
     nudged: new Set(nudges.data!.map((r) => `${r.match_id}|${r.participant_id}`)),
+    reported: new Set(reports.data!.flatMap((r) => (r.match_id ? [r.match_id as string] : []))),
   };
 }
 
@@ -80,16 +93,20 @@ async function send(state: State, kind: Extract<EmailKind, 'review_open' | 'revi
   return Boolean(data);
 }
 
-// match_nudge: "have you talked to your match?" a day after the match, before the review
-// request. sendEmail's email_log row makes it once per person and match.
+// match_nudge: "have you talked to your match?" the day before the review request (the e-mail
+// says the request comes tomorrow). sendEmail's email_log row makes it once per person and match.
 async function sendNudges(state: State, deadline: number): Promise<number> {
+  const nudgeDays = reviewDelayDays() - 1;
+  if (nudgeDays < 1) return 0;
   const due = dueNudges({
     matches: state.matches,
     nudged: state.nudged,
+    requests: state.requests,
+    reported: state.reported,
     reviewKeys: state.reviewKeys,
     participants: state.participants,
     now: new Date(),
-    nudgeDays: 1,
+    nudgeDays,
     reviewDelayDays: reviewDelayDays(),
   });
   let sent = 0;

@@ -674,7 +674,7 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
           const party = partyInterest(rows.map((r) => r.review));
           const interested = party.interested.flatMap((x) => {
             const p = personById.get(x.id);
-            return p && !p.deleted_at ? [{ ...x, name: p.name, email: p.email }] : [];
+            return p && p.active && !p.deleted_at ? [{ ...x, name: p.name, email: p.email }] : [];
           });
           return (
             <>

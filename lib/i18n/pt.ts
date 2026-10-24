@@ -296,9 +296,9 @@ const pt: Dict = {
     matchNudge: {
       subject: (name: string) => `Já falaste com ${name}?`,
       greeting: (name: string) => `Olá ${name},`,
-      body: (name: string) => `O Blop apresentou-te ${name}. Já disseram olá? Uma mensagem simples chega.`,
+      body: (name: string) => `O Blop pôs-te em contacto com ${name}. Já lhe disseste olá? Basta uma mensagem simples.`,
       hint: (item: string) => `Podes começar por algo que têm em comum, por exemplo: ${item}.`,
-      next: 'Se já falaram, ótimo! Amanhã enviamos-te um pedido rápido para contares como correu (conta mesmo que não tenham falado).',
+      next: 'Se já falaram, ótimo! Amanhã enviamos-te um pedido rápido para contares como correu (responde mesmo que não tenham falado).',
       button: 'Ver o meu match',
     },
     reviewOpen: {

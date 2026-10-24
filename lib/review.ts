@@ -120,7 +120,7 @@ export function validateReview(
 
 export type DueMatch = { id: string; aId: string; bId: string; createdAt: string };
 export type DueRequest = { matchId: string; participantId: string; requestedAt: string; remindedAt: string | null };
-export type DueParticipant = { id: string; active: boolean; deleted: boolean; hasEmail: boolean };
+export type DueParticipant = { id: string; active: boolean; deleted: boolean; hasEmail: boolean; held?: boolean };
 export type Recipient = { matchId: string; participantId: string };
 
 const DAY = 24 * 60 * 60 * 1000;
@@ -135,11 +135,13 @@ function emailable(p: DueParticipant | undefined): boolean {
 }
 
 // match_nudge ("have you talked?"): matches at least `nudgeDays` old but not yet due for the review
-// request, for each side not nudged yet and without a review. Skipped when the other person left
-// (the e-mail invites to talk to them).
+// request, for each side not nudged, not asked for a review yet and without a review. Skipped when
+// the match was reported or either person left or is on hold (the e-mail invites to talk).
 export function dueNudges(args: {
   matches: DueMatch[];
   nudged: Set<string>; // `${matchId}|${participantId}`
+  requests: DueRequest[];
+  reported: Set<string>; // match ids with a report
   reviewKeys: Set<string>;
   participants: Map<string, DueParticipant>;
   now: Date;
@@ -148,11 +150,12 @@ export function dueNudges(args: {
 }): Recipient[] {
   const from = args.now.getTime() - args.nudgeDays * DAY + REVIEW_GRACE_MS;
   const until = args.now.getTime() - args.reviewDelayDays * DAY + REVIEW_GRACE_MS;
-  const present = (p: DueParticipant | undefined) => Boolean(p && p.active && !p.deleted);
+  const present = (p: DueParticipant | undefined) => Boolean(p && p.active && !p.deleted && !p.held);
+  const requested = new Set(args.requests.map((r) => `${r.matchId}|${r.participantId}`));
   return args.matches
     .filter((m) => {
       const created = new Date(m.createdAt).getTime();
-      return created <= from && created > until;
+      return created <= from && created > until && !args.reported.has(m.id);
     })
     .flatMap((m) => [
       { matchId: m.id, participantId: m.aId, otherId: m.bId },
@@ -162,8 +165,10 @@ export function dueNudges(args: {
       const key = `${matchId}|${participantId}`;
       return (
         !args.nudged.has(key) &&
+        !requested.has(key) &&
         !args.reviewKeys.has(key) &&
         emailable(args.participants.get(participantId)) &&
+        present(args.participants.get(participantId)) &&
         present(args.participants.get(otherId))
       );
     })

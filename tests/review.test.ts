@@ -133,7 +133,16 @@ describe('review email selection', () => {
   });
 
   it('nudges both sides from day 1 until the review request is due, once, never without the partner', () => {
-    const base = { nudged: new Set<string>(), reviewKeys: new Set<string>(), participants, now, nudgeDays: 1, reviewDelayDays: 2 };
+    const base = {
+      nudged: new Set<string>(),
+      requests: [],
+      reported: new Set<string>(),
+      reviewKeys: new Set<string>(),
+      participants,
+      now,
+      nudgeDays: 1,
+      reviewDelayDays: 2,
+    };
     const matches = [
       { id: 'young', aId: 'a', bId: 'b', createdAt: daysAgo(0.5) }, // too early
       { id: 'm1', aId: 'a', bId: 'b', createdAt: daysAgo(1) },
@@ -149,6 +158,20 @@ describe('review email selection', () => {
     ]);
     expect(dueNudges({ ...base, matches, nudged: new Set(['m1|a', 'm2|a']), reviewKeys: new Set(['m1|b']) })).toEqual([
       { matchId: 'm2', participantId: 'b' },
+    ]);
+  });
+
+  it('skips nudges when the review was already requested, the match was reported or the partner is on hold', () => {
+    const base = { nudged: new Set<string>(), reviewKeys: new Set<string>(), now, nudgeDays: 1, reviewDelayDays: 2 };
+    const matches = [
+      { id: 'm1', aId: 'a', bId: 'b', createdAt: daysAgo(1) },
+      { id: 'm2', aId: 'a', bId: 'b', createdAt: daysAgo(1) },
+      { id: 'm3', aId: 'a', bId: 'e', createdAt: daysAgo(1) },
+    ];
+    const withHeld = new Map([...participants, person('e', { held: true })]);
+    const requests = [{ matchId: 'm1', participantId: 'a', requestedAt: daysAgo(0), remindedAt: null }];
+    expect(dueNudges({ ...base, matches, participants: withHeld, requests, reported: new Set(['m2']) })).toEqual([
+      { matchId: 'm1', participantId: 'b' },
     ]);
   });
 
