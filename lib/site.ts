@@ -5,7 +5,7 @@ export function siteUrl(): string | undefined {
 }
 
 export function reviewDelayDays(): number {
-  return intEnv('REVIEW_DELAY_DAYS', 1);
+  return intEnv('REVIEW_DELAY_DAYS', 2);
 }
 
 function intEnv(name: string, fallback: number): number {

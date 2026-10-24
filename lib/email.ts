@@ -4,7 +4,7 @@ import nodemailer, { type Transporter } from 'nodemailer';
 import { createServiceClient } from '@/lib/supabase/service';
 import { siteUrl } from '@/lib/site';
 
-export type EmailKind = 'welcome' | 'new_match' | 'review_open' | 'review_reminder' | 'waitlist';
+export type EmailKind = 'welcome' | 'new_match' | 'match_nudge' | 'review_open' | 'review_reminder' | 'waitlist';
 
 type SendEmailArgs = {
   participantId: string;

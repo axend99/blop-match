@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  partyInterest,
   byCategory,
   conceptOpinion,
   contactClicks,
@@ -538,5 +539,24 @@ describe('conceptOpinion', () => {
     expect(c.all.likes).toEqual({ value: 2 / 3, n: 3 });
     expect(c.compatible.bestFor.find((b) => b.option === 'dating')!.share).toEqual({ value: 0.5, n: 2 });
     expect(c.control.likes).toEqual({ value: 1, n: 1 });
+  });
+});
+
+describe('partyInterest', () => {
+  it('keeps each person latest answer and lists who said yes or maybe', () => {
+    const r = (reviewer_id: string, party_interest: string | null, created_at: string) => ({ reviewer_id, party_interest, created_at });
+    const p = partyInterest([
+      r('a', 'no', '2026-10-25T10:00:00Z'),
+      r('a', 'yes', '2026-10-26T10:00:00Z'),
+      r('b', 'maybe', '2026-10-25T10:00:00Z'),
+      r('c', 'no', '2026-10-25T10:00:00Z'),
+      r('d', null, '2026-10-25T10:00:00Z'),
+    ]);
+    expect(p.people).toBe(3);
+    expect(p.counts).toEqual({ yes: 1, maybe: 1, no: 1 });
+    expect(p.interested).toEqual([
+      { id: 'a', answer: 'yes' },
+      { id: 'b', answer: 'maybe' },
+    ]);
   });
 });

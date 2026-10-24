@@ -35,6 +35,7 @@ export type ReviewRow = {
   ig_follow?: string | null; // null when not asked (one of the two has no Instagram)
   likes_concept?: boolean | null; // null on reviews sent before the question existed
   best_for?: string | null;
+  party_interest?: string | null; // null on reviews sent before the question existed
 };
 
 export type ScoreField =
@@ -629,4 +630,23 @@ export function conceptOpinion(rows: ReviewRow[]) {
     bestFor: BEST_FOR_OPTIONS.map((option) => ({ option, share: rate(answered(g), (r) => r.best_for === option) })),
   });
   return { all: col('all'), compatible: col('compatible'), control: col('control') };
+}
+
+// --- In-person party: would people come? One answer per person (their latest review) ---
+
+export const PARTY_OPTIONS = ['yes', 'maybe', 'no'] as const;
+
+export function partyInterest(reviews: { reviewer_id: string; party_interest?: string | null; created_at: string }[]) {
+  const latest = new Map<string, { answer: string; at: string }>();
+  for (const r of reviews) {
+    if (!r.party_interest) continue;
+    const current = latest.get(r.reviewer_id);
+    if (!current || r.created_at > current.at) latest.set(r.reviewer_id, { answer: r.party_interest, at: r.created_at });
+  }
+  const counts = Object.fromEntries(PARTY_OPTIONS.map((o) => [o, 0])) as Record<(typeof PARTY_OPTIONS)[number], number>;
+  for (const { answer } of latest.values()) if (answer in counts) counts[answer as keyof typeof counts]++;
+  const interested = [...latest]
+    .filter(([, v]) => v.answer === 'yes' || v.answer === 'maybe')
+    .map(([id, v]) => ({ id, answer: v.answer as 'yes' | 'maybe' }));
+  return { people: latest.size, counts, interested };
 }

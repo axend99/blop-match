@@ -21,8 +21,8 @@ Ficam na Vercel (Project → Settings → Environment Variables) e, para correr 
 | `CRON_SECRET` | Segredo que a Vercel envia ao chamar `/api/cron` | gerar: `openssl rand -hex 32` |
 | `ADMIN_EMAILS` | E-mails com acesso ao `/admin` (separados por vírgula) | — |
 | `ADMIN_ACCESS_TOKEN` | Token do link de acesso ao `/admin` sem login (≥ 32 caracteres) | gerar: `openssl rand -hex 32` |
-| `REVIEW_DELAY_DAYS` | Dias entre o match e o pedido de review (1) | — |
-| `REMINDER_DELAY_DAYS` | Dias entre o pedido e o lembrete (3: o lembrete chega 4 dias depois do match) | — |
+| `REVIEW_DELAY_DAYS` | Dias entre o match e o pedido de review (2; no dia 1 vai o e-mail "Já falaste com o teu match?") | — |
+| `REMINDER_DELAY_DAYS` | Dias entre o pedido e o lembrete (3: o lembrete chega 5 dias depois do match) | — |
 | `MAX_COMPATIBLE`, `MAX_CONTROL`, `MIN_SHARED_COMPATIBLE` | Regras do matching (3, 1, 8): compatível = pelo menos 8 interesses em comum, também na análise | — |
 
 Depois de mudar uma variável na Vercel, é preciso fazer **Redeploy**.
@@ -50,7 +50,7 @@ A conta `blopmatch@gmail.com` precisa de verificação em 2 passos ativa para cr
 ## 5. Vercel
 
 - Variáveis da secção 1 em **Production** (e Preview, se quiser testar previews).
-- Cron em `vercel.json`: `/api/cron` todos os dias às 09:00 UTC (pedidos e lembretes de review, matching dos que ficaram sem pares). Em previews o cron não faz nada, porque os previews usam a mesma base de dados.
+- Cron em `vercel.json`: `/api/cron` todos os dias às 09:00 UTC (matching dos que ficaram sem pares, e-mail "Já falaste com o teu match?", pedidos e lembretes de review). Em previews o cron não faz nada, porque os previews usam a mesma base de dados.
 - Domínio: `blop-match.vercel.app` (Settings → Domains).
 
 ## 6. Acesso ao `/admin`
