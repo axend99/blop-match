@@ -290,17 +290,26 @@ export default function JoinForm({
             const ok = have >= need;
             const missing = need - have;
             return (
-              <p key={label} className="flex flex-wrap items-center gap-x-2">
-                <span aria-hidden="true" className={`grid size-5 place-items-center rounded-full text-xs font-bold ${ok ? 'bg-lime text-midnight' : 'bg-midnight/10 text-midnight/50'}`}>
-                  {ok ? '✓' : ''}
-                </span>
-                <span className="font-semibold">{label.replace('{n}', String(Math.min(have, need)))}</span>
-                {!ok && (
-                  <span className={errors.interestsTotal ? 'text-red-700' : 'text-midnight/60'}>
-                    {missing === 1 ? one : many.replace('{k}', String(missing))}
+              <div key={label} className="space-y-1">
+                <p className="flex flex-wrap items-center gap-x-2">
+                  <span aria-hidden="true" className={`grid size-5 place-items-center rounded-full text-xs font-bold ${ok ? 'bg-lime text-midnight' : 'bg-midnight/10 text-midnight/50'}`}>
+                    {ok ? '✓' : ''}
                   </span>
-                )}
-              </p>
+                  <span className="font-semibold">{label.replace('{n}', String(Math.min(have, need)))}</span>
+                  {!ok && (
+                    <span className={errors.interestsTotal ? 'text-red-700' : 'text-midnight/60'}>
+                      {missing === 1 ? one : many.replace('{k}', String(missing))}
+                    </span>
+                  )}
+                </p>
+                {/* Fills with every pick, so progress shows before the step is complete. */}
+                <div aria-hidden="true" className="h-1.5 overflow-hidden rounded-full bg-midnight/10">
+                  <div
+                    className={`h-full rounded-full transition-all ${ok ? 'bg-lime' : 'bg-violet'}`}
+                    style={{ width: `${Math.min(100, (have / need) * 100)}%` }}
+                  />
+                </div>
+              </div>
             );
           })}
         </div>
