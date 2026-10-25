@@ -88,9 +88,9 @@ export async function createProfile(input: Omit<ProfileInput, 'lang'>): Promise<
 
 // "Write it for me": an AI sentence for "what I want to talk about", about one of the
 // person's chosen interests. Signed-in people without a profile only.
-export async function suggestTalk(code: string, city: string): Promise<SuggestionResult> {
+export async function suggestTalk(code: string): Promise<SuggestionResult> {
   const user = await getUser();
   if (!user || !interestByCode(code) || (await getMyParticipant())) return { error: 'failed' };
   const lang = await getLang();
-  return suggestTalkAbout(user.id, { interest: interestLabel(code, lang), city: String(city ?? ''), lang });
+  return suggestTalkAbout(user.id, { interest: interestLabel(code, lang), lang });
 }
