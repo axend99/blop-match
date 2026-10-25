@@ -18,7 +18,7 @@ const en = {
     steps: [
       'Sign in and tell us a bit about you and your interests (about 5 minutes).',
       'We email you when you have a match. You will see their first name, what you have in common, their WhatsApp and Instagram (if they shared it).',
-      'Reach out and, if it goes well, grab a coffee together.',
+      'Say hi and start a conversation, beginning with what you have in common.',
     ],
     review: (days: number) =>
       `${days} ${days === 1 ? 'day' : 'days'} after each match, we ask you to rate the interaction. It takes 2 minutes.`,
