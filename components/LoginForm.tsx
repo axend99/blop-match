@@ -139,6 +139,7 @@ export default function LoginForm({ t, lang, next }: { t: Dict['login']; lang: L
       <div className="space-y-4 rounded-3xl bg-white p-6 text-center">
         <h2 className="text-xl font-semibold">{t.sentTitle}</h2>
         <p className="text-midnight/70">{t.sentBody}</p>
+        <p className="rounded-2xl bg-lime/40 p-3 text-sm">{t.sentSpam}</p>
         <button type="button" onClick={() => setStatus('idle')} className="text-sm font-medium text-violet underline">
           {t.useAnotherEmail}
         </button>

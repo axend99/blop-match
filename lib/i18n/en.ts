@@ -38,6 +38,7 @@ const en = {
     sending: 'Sending…',
     sentTitle: 'Check your inbox',
     sentBody: 'We sent a sign-in link to your email. Open it on this phone to continue.',
+    sentSpam: "Can't find it? Check your spam or promotions folder. It comes from BLOP Match (blopmatch@gmail.com).",
     useAnotherEmail: 'Use another email',
     invalidEmail: 'Please enter a valid email.',
     sendError: 'We could not send the link. Wait a minute and try again.',
