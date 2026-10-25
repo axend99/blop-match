@@ -18,16 +18,23 @@ export type SuggestionResult = { text: string } | { error: 'limit' | 'failed' };
 export async function suggestTalkAbout(userId: string, args: { interest: string; city: string; lang: 'en' | 'pt' }): Promise<SuggestionResult> {
   if (!client) return { error: 'failed' };
   const supabase = createServiceClient();
+  // Insert first, then count: parallel requests can't slip past the cap. A failed call gives
+  // the attempt back.
+  const { data: row, error: insertError } = await supabase.from('talk_suggestions').insert({ user_id: userId }).select('id').single();
+  if (insertError) return { error: 'failed' };
+  const giveBack = () => supabase.from('talk_suggestions').delete().eq('id', row.id);
   const { count, error } = await supabase.from('talk_suggestions').select('id', { count: 'exact', head: true }).eq('user_id', userId);
-  if (error) return { error: 'failed' };
-  if ((count ?? 0) >= MAX_SUGGESTIONS) return { error: 'limit' };
-  await supabase.from('talk_suggestions').insert({ user_id: userId });
+  if (error || (count ?? 0) > MAX_SUGGESTIONS) {
+    await giveBack();
+    return { error: error ? 'failed' : 'limit' };
+  }
 
   const language = args.lang === 'pt' ? 'European Portuguese (Portugal, informal "tu")' : 'English';
   try {
     const response = await client.messages.create({
       model: 'claude-haiku-5-5',
-      max_tokens: 200,
+      max_tokens: 1024,
+      output_config: { effort: 'low' },
       system: SYSTEM,
       messages: [
         {
@@ -38,10 +45,14 @@ export async function suggestTalkAbout(userId: string, args: { interest: string;
     });
     const block = response.content.find((b) => b.type === 'text');
     const text = block && block.type === 'text' ? block.text.replace(/\s+/g, ' ').replace(/^["“'«]+|["”'»]+$/g, '').trim() : '';
-    if (!text || response.stop_reason === 'refusal') return { error: 'failed' };
+    if (!text || response.stop_reason === 'refusal' || response.stop_reason === 'max_tokens') {
+      await giveBack();
+      return { error: 'failed' };
+    }
     return { text: text.slice(0, MAX_TALK_ABOUT) };
   } catch (err) {
     console.error('[talk suggestion] failed', err);
+    await giveBack();
     return { error: 'failed' };
   }
 }

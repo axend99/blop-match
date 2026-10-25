@@ -27,17 +27,19 @@ export default function Blop({
   variant,
   label,
   className = '',
+  sizes = '(min-width: 640px) 224px, 50vw',
 }: {
   variant: Category | null;
   label?: string; // omit when the Blop is decorative (e.g. inside a labelled link)
   className?: string;
+  sizes?: string; // rendered width, so small icons don't download a large image
 }) {
   return (
     <Image
       src={variant ? PICTURES[variant] : plain}
       alt={label ?? ''}
       aria-hidden={label ? undefined : true}
-      sizes="(min-width: 640px) 224px, 50vw"
+      sizes={sizes}
       className={`object-contain ${className}`}
     />
   );

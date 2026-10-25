@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useState, useTransition } from 'react';
+import { useRef, useState, useTransition } from 'react';
 import { createProfile, suggestTalk } from '@/app/join/actions';
 import Blop from '@/components/Blop';
 import { interestLabel, type Lang } from '@/lib/i18n';
@@ -49,6 +49,8 @@ export default function JoinForm({
   const [otherOpen, setOtherOpen] = useState<Partial<Record<Category, boolean>>>({});
   const [talkAbout, setTalkAbout] = useState('');
   const [talkAboutCode, setTalkAboutCode] = useState('');
+  const codeRef = useRef('');
+  codeRef.current = talkAboutCode;
   const [opened, setOpened] = useState<Category[]>([]); // categories shown open (several at once)
   const [suggestion, setSuggestion] = useState<'idle' | 'busy' | 'done' | 'limit' | 'failed'>('idle');
   const [consent, setConsent] = useState(false);
@@ -95,9 +97,11 @@ export default function JoinForm({
   // "Write it for me": the AI writes a sentence about the chosen interest; it lands in the free
   // text box, where the person can edit it (it is then saved as their own text).
   async function writeForMe() {
-    if (!talkAboutCode) return;
+    const code = talkAboutCode;
+    if (!code) return;
     setSuggestion('busy');
-    const result = await suggestTalk(talkAboutCode, city).catch(() => ({ error: 'failed' as const }));
+    const result = await suggestTalk(code, city).catch(() => ({ error: 'failed' as const }));
+    if (codeRef.current !== code) return; // the person changed their choice meanwhile
     if ('text' in result) {
       setTalkAbout(result.text);
       setTalkAboutCode('');
@@ -216,7 +220,7 @@ export default function JoinForm({
                   onClick={() => toggleCategory(category)}
                   className="flex w-full items-center gap-3 py-2 pl-2 pr-4 text-left"
                 >
-                  <Blop variant={category} className="size-11 shrink-0" />
+                  <Blop variant={category} sizes="44px" className="size-11 shrink-0" />
                   <span className="flex-1 text-lg font-semibold">{t.categories[category]}</span>
                   <span
                     className={`rounded-full px-2.5 py-0.5 text-sm font-semibold ${n > 0 ? 'bg-lime text-midnight' : 'bg-midnight/10 text-midnight/70'}`}
@@ -340,6 +344,7 @@ export default function JoinForm({
             type="button"
             onClick={writeForMe}
             disabled={suggestion === 'busy'}
+            aria-live="polite"
             className="rounded-full bg-midnight px-4 py-2 text-sm font-semibold text-white disabled:opacity-60"
           >
             {suggestion === 'busy' ? t.talkAboutWriting : t.talkAboutWrite.replace('{x}', interestLabel(talkAboutCode, lang))}
