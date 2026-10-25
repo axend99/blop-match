@@ -7,6 +7,15 @@ import { reviewDelayDays } from '@/lib/site';
 export default async function Home() {
   await redirectIfLoggedIn();
   const t = getDict(await getLang());
+  // Twice: right under the headline (in view without scrolling on most phones) and at the end.
+  const cta = (
+    <Link
+      href="/login"
+      className="block rounded-full bg-violet px-6 py-4 text-center text-lg font-semibold text-white shadow-lg shadow-violet/30 active:scale-[0.98]"
+    >
+      {t.home.cta}
+    </Link>
+  );
 
   return (
     <div className="space-y-8">
@@ -17,6 +26,8 @@ export default async function Home() {
         </h1>
         <p className="text-lg text-midnight/70">{t.home.subtitle}</p>
       </section>
+
+      {cta}
 
       <section className="space-y-4 rounded-3xl bg-midnight p-6 text-white">
         <h2 className="text-xl font-semibold">{t.home.howTitle}</h2>
@@ -42,12 +53,7 @@ export default async function Home() {
         </p>
       </section>
 
-      <Link
-        href="/login"
-        className="block rounded-full bg-violet px-6 py-4 text-center text-lg font-semibold text-white shadow-lg shadow-violet/30 active:scale-[0.98]"
-      >
-        {t.home.cta}
-      </Link>
+      {cta}
     </div>
   );
 }

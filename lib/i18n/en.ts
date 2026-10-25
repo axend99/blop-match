@@ -28,8 +28,8 @@ const en = {
     cta: 'Find my matches',
   },
   login: {
-    title: 'Join BLOP Match',
-    subtitle: 'No passwords. Pick one option.',
+    title: "You're one step away from meeting your new crowd",
+    subtitle: 'No passwords: sign in with Google or with a link sent to your email.',
     google: 'Continue with Google',
     or: 'or',
     emailLabel: 'Your email',
@@ -62,7 +62,7 @@ const en = {
     timeInCity: 'How long have you lived in this city?',
     origin: 'Where are you from?',
     interestsTitle: 'Your interests',
-    interestsHint: 'Pick what really describes you. You need at least 10 interests, from at least 3 categories (up to 5 per category). You can leave categories empty.',
+    interestsHint: 'Tap a category to open it and pick what really describes you. You need at least 10 interests, from at least 3 categories (up to 5 per category).',
     // Plain string (the form is a client component): {n} items, {c} categories.
     // Two checkpoints shown while picking (plain strings: the form is a client component).
     checkCategories: 'Categories: {n} of 3',
@@ -81,6 +81,11 @@ const en = {
     talkAboutPick: 'Pick one of your interests',
     talkAboutPickFirst: 'Pick your interests above first.',
     talkAboutOr: 'or write your own, e.g. the best surf spots near Lisbon',
+    talkAboutWrite: '✨ Write a sentence about {x}',
+    talkAboutWriting: 'Writing…',
+    talkAboutEdit: 'We wrote this for you: feel free to edit it.',
+    talkAboutLimit: "You've asked for a lot of sentences. Write your own or pick an interest.",
+    talkAboutFailed: "We couldn't write it right now. Try again or write your own.",
     consentLink: 'Privacy & rules',
     submit: 'Join',
     submitting: 'Saving…',
