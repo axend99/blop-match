@@ -8,6 +8,7 @@ import { createClient } from '@/lib/supabase/server';
 import { openReviewNow } from '@/lib/reviewService';
 import { parseEmailList } from '@/lib/invite';
 import { sendInvitePreview, sendInvites } from '@/lib/inviteService';
+import { saveSnapshot } from '@/lib/visitService';
 import { sendWaitlistPreview } from '@/lib/waitlistService';
 import { approveProfile, banParticipant, dismissReport, recheckProfile, type ResumeResult } from '@/lib/verification';
 import { createServiceClient } from '@/lib/supabase/service';
@@ -97,6 +98,14 @@ export async function ban(formData: FormData): Promise<void> {
   const done = await banParticipant(id, reason);
   await notice(done ? 'Conta banida: e-mail bloqueado e dados removidos.' : 'Não é possível banir esta conta (admin, seed ou já removida).');
   revalidatePath('/admin', 'layout');
+}
+
+// Saves the visit funnel totals now, so /admin can compare before × after a change.
+export async function funnelSnapshot(formData: FormData): Promise<void> {
+  if (!(await isAdmin())) return;
+  await saveSnapshot(String(formData.get('label') ?? ''));
+  await notice('Fotografia do funil guardada: a partir de agora o painel compara antes × depois.');
+  revalidatePath('/admin');
 }
 
 export async function waitlistPreview(): Promise<void> {
