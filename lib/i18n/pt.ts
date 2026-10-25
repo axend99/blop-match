@@ -40,6 +40,7 @@ const pt: Dict = {
     sending: 'A enviar…',
     sentTitle: 'Vê a tua caixa de entrada',
     sentBody: 'Enviámos um link de acesso para o teu e-mail. Abre-o neste telemóvel para continuar.',
+    sentSpam: 'Não o encontras? Vê a pasta de spam ou de promoções. O e-mail vem de BLOP Match (blopmatch@gmail.com).',
     useAnotherEmail: 'Usar outro e-mail',
     invalidEmail: 'Escreve um e-mail válido.',
     sendError: 'Não conseguimos enviar o link. Espera um minuto e tenta outra vez.',
