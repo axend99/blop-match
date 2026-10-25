@@ -2,7 +2,8 @@
 
 import Link from 'next/link';
 import { useState, useTransition } from 'react';
-import { createProfile } from '@/app/join/actions';
+import { createProfile, suggestTalk } from '@/app/join/actions';
+import Blop from '@/components/Blop';
 import { interestLabel, type Lang } from '@/lib/i18n';
 import type { Dict } from '@/lib/i18n/en';
 import { CATEGORIES, MAX_PER_CATEGORY, MIN_CATEGORIES, MIN_TOTAL, interestsByCategory, type Category } from '@/lib/interests';
@@ -48,6 +49,8 @@ export default function JoinForm({
   const [otherOpen, setOtherOpen] = useState<Partial<Record<Category, boolean>>>({});
   const [talkAbout, setTalkAbout] = useState('');
   const [talkAboutCode, setTalkAboutCode] = useState('');
+  const [opened, setOpened] = useState<Category[]>([]); // categories shown open (several at once)
+  const [suggestion, setSuggestion] = useState<'idle' | 'busy' | 'done' | 'limit' | 'failed'>('idle');
   const [consent, setConsent] = useState(false);
   const [errors, setErrors] = useState<FieldErrors>({});
   const [failed, setFailed] = useState(false);
@@ -82,6 +85,25 @@ export default function JoinForm({
       setInterests(interests.filter((c) => c !== code));
     } else if (counts[category] < MAX_PER_CATEGORY) {
       setInterests([...interests, code]);
+    }
+  }
+
+  function toggleCategory(category: Category) {
+    setOpened(opened.includes(category) ? opened.filter((c) => c !== category) : [...opened, category]);
+  }
+
+  // "Write it for me": the AI writes a sentence about the chosen interest; it lands in the free
+  // text box, where the person can edit it (it is then saved as their own text).
+  async function writeForMe() {
+    if (!talkAboutCode) return;
+    setSuggestion('busy');
+    const result = await suggestTalk(talkAboutCode, city).catch(() => ({ error: 'failed' as const }));
+    if ('text' in result) {
+      setTalkAbout(result.text);
+      setTalkAboutCode('');
+      setSuggestion('done');
+    } else {
+      setSuggestion(result.error);
     }
   }
 
@@ -178,61 +200,80 @@ export default function JoinForm({
           <h2 className="text-xl font-semibold">{t.interestsTitle}</h2>
           <p className="text-sm text-midnight/60">{t.interestsHint}</p>
         </div>
-        {CATEGORIES.map((category) => {
-          const n = counts[category];
-          const showOther = otherOpen[category] || Boolean(otherText[category]);
-          return (
-            <fieldset key={category} className="space-y-3">
-              <legend className="flex w-full items-center justify-between">
-                <span className="font-semibold">{t.categories[category]}</span>
-                <span
-                  className={`rounded-full px-2.5 py-0.5 text-sm font-semibold ${n > 0 ? 'bg-lime text-midnight' : 'bg-midnight/10 text-midnight/70'}`}
+        <div className="space-y-2.5">
+          {CATEGORIES.map((category) => {
+            const n = counts[category];
+            const showOther = otherOpen[category] || Boolean(otherText[category]);
+            const isOpen = opened.includes(category);
+            return (
+              <fieldset key={category} className="overflow-hidden rounded-3xl border border-midnight/10 bg-white">
+                <legend className="sr-only">{t.categories[category]}</legend>
+                {/* Closed by default: the person opens only the categories they want. */}
+                <button
+                  type="button"
+                  aria-expanded={isOpen}
+                  aria-controls={`interests-${category}`}
+                  onClick={() => toggleCategory(category)}
+                  className="flex w-full items-center gap-3 py-2 pl-2 pr-4 text-left"
                 >
-                  {n}/{MAX_PER_CATEGORY}
-                </span>
-              </legend>
-              <div className="flex flex-wrap gap-2">
-                {interestsByCategory(category).map((interest) => {
-                  const selected = interests.includes(interest.code);
-                  const full = !selected && n >= MAX_PER_CATEGORY;
-                  return (
-                    <button
-                      key={interest.code}
-                      type="button"
-                      aria-pressed={selected}
-                      disabled={full}
-                      onClick={() => toggle(interest.code, category)}
-                      className={`rounded-full border px-4 py-2 text-base font-medium transition ${
-                        selected
-                          ? 'border-violet bg-pink text-midnight'
-                          : 'border-midnight/15 bg-white text-midnight disabled:opacity-40'
-                      }`}
-                    >
-                      {interest[lang]}
-                    </button>
-                  );
-                })}
-              </div>
-              {err(category)}
-              {showOther ? (
-                <input
-                  aria-label={`${t.categories[category]}: ${t.otherLabel}`}
-                  value={otherText[category] ?? ''}
-                  maxLength={MAX_OTHER}
-                  placeholder={`${t.otherLabel} · ${t.otherPlaceholder}`}
-                  autoFocus={otherOpen[category] && !otherText[category]}
-                  onChange={(e) => setOtherText((o) => ({ ...o, [category]: e.target.value }))}
-                  className={`${inputClass} border-midnight/15 text-base`}
-                />
-              ) : (
-                <button type="button" onClick={() => setOtherOpen((o) => ({ ...o, [category]: true }))}
-                  className="text-sm font-medium text-violet">
-                  {t.otherAdd}
+                  <Blop variant={category} className="size-11 shrink-0" />
+                  <span className="flex-1 text-lg font-semibold">{t.categories[category]}</span>
+                  <span
+                    className={`rounded-full px-2.5 py-0.5 text-sm font-semibold ${n > 0 ? 'bg-lime text-midnight' : 'bg-midnight/10 text-midnight/70'}`}
+                  >
+                    {n}/{MAX_PER_CATEGORY}
+                  </span>
+                  <span aria-hidden="true" className={`text-midnight/50 transition ${isOpen ? 'rotate-180' : ''}`}>
+                    ▾
+                  </span>
                 </button>
-              )}
-            </fieldset>
-          );
-        })}
+                {err(category)}
+                {isOpen && (
+                  <div id={`interests-${category}`} className="space-y-3 px-4 pb-4 pt-1">
+                    <div className="flex flex-wrap gap-2">
+                      {interestsByCategory(category).map((interest) => {
+                        const selected = interests.includes(interest.code);
+                        const full = !selected && n >= MAX_PER_CATEGORY;
+                        return (
+                          <button
+                            key={interest.code}
+                            type="button"
+                            aria-pressed={selected}
+                            disabled={full}
+                            onClick={() => toggle(interest.code, category)}
+                            className={`rounded-full border px-4 py-2 text-base font-medium transition ${
+                              selected
+                                ? 'border-violet bg-pink text-midnight'
+                                : 'border-midnight/15 bg-white text-midnight disabled:opacity-40'
+                            }`}
+                          >
+                            {interest[lang]}
+                          </button>
+                        );
+                      })}
+                    </div>
+                    {showOther ? (
+                      <input
+                        aria-label={`${t.categories[category]}: ${t.otherLabel}`}
+                        value={otherText[category] ?? ''}
+                        maxLength={MAX_OTHER}
+                        placeholder={`${t.otherLabel} · ${t.otherPlaceholder}`}
+                        autoFocus={otherOpen[category] && !otherText[category]}
+                        onChange={(e) => setOtherText((o) => ({ ...o, [category]: e.target.value }))}
+                        className={`${inputClass} border-midnight/15 text-base`}
+                      />
+                    ) : (
+                      <button type="button" onClick={() => setOtherOpen((o) => ({ ...o, [category]: true }))}
+                        className="text-sm font-medium text-violet">
+                        {t.otherAdd}
+                      </button>
+                    )}
+                  </div>
+                )}
+              </fieldset>
+            );
+          })}
+        </div>
         {err('other_text')}
         {/* Overall rule as two checkpoints, always in view while picking. */}
         <div role="status" className={`sticky bottom-2 z-10 space-y-1.5 rounded-2xl border bg-white px-4 py-3 text-sm shadow-sm ${
@@ -283,6 +324,7 @@ export default function JoinForm({
                 onClick={() => {
                   setTalkAboutCode(talkAboutCode === code ? '' : code);
                   setTalkAbout('');
+                  setSuggestion('idle');
                 }}
                 className={`rounded-full border px-3 py-1 text-sm font-medium ${
                   talkAboutCode === code ? 'border-violet bg-violet text-white' : 'border-midnight/15 bg-white'
@@ -292,6 +334,22 @@ export default function JoinForm({
               </button>
             ))}
           </div>
+        )}
+        {talkAboutCode && (
+          <button
+            type="button"
+            onClick={writeForMe}
+            disabled={suggestion === 'busy'}
+            className="rounded-full bg-midnight px-4 py-2 text-sm font-semibold text-white disabled:opacity-60"
+          >
+            {suggestion === 'busy' ? t.talkAboutWriting : t.talkAboutWrite.replace('{x}', interestLabel(talkAboutCode, lang))}
+          </button>
+        )}
+        {suggestion === 'done' && talkAbout && <p className="text-sm text-midnight/60">{t.talkAboutEdit}</p>}
+        {(suggestion === 'limit' || suggestion === 'failed') && (
+          <p role="alert" className="text-sm text-red-700">
+            {suggestion === 'limit' ? t.talkAboutLimit : t.talkAboutFailed}
+          </p>
         )}
         <label htmlFor="talk_about" className="block text-sm font-medium">
           {t.talkAboutOr}

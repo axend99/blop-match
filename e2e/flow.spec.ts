@@ -134,9 +134,9 @@ for (const p of PEOPLE) {
     for (const name of ['time_in_city', 'origin']) {
       await page.locator(`input[name="${name}"]`).nth(p.i % 3).check({ force: true });
     }
-    const groups = page.locator('fieldset:has(button[aria-pressed])');
-    for (let c = 0; c < 4; c++) {
-      const buttons = groups.nth(c).locator('button[aria-pressed]');
+    for (const [c, category] of ['music', 'sports', 'fitness', 'movies'].entries()) {
+      await page.locator(`button[aria-controls="interests-${category}"]`).click(); // categories start closed
+      const buttons = page.locator(`#interests-${category} button[aria-pressed]`);
       const n = await buttons.count();
       for (const k of TASTES[p.i - 1]) await buttons.nth((k + c) % n).click();
     }

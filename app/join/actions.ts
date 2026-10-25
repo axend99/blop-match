@@ -6,10 +6,12 @@ import { createElement } from 'react';
 import WelcomeEmail from '@/emails/WelcomeEmail';
 import { getMyParticipant, getUser } from '@/lib/auth';
 import { sendEmail } from '@/lib/email';
-import { getDict } from '@/lib/i18n';
+import { getDict, interestLabel } from '@/lib/i18n';
+import { interestByCode } from '@/lib/interests';
 import { getLang, setLang } from '@/lib/i18n/server';
 import { validateProfile, type FieldErrors, type ProfileInput } from '@/lib/profile';
 import { siteUrl } from '@/lib/site';
+import { suggestTalkAbout, type SuggestionResult } from '@/lib/talkSuggestion';
 import { createClient } from '@/lib/supabase/server';
 import { createServiceClient } from '@/lib/supabase/service';
 import { isBanned, mailboxAlerts, verifyNewProfile } from '@/lib/verification';
@@ -82,4 +84,13 @@ export async function createProfile(input: Omit<ProfileInput, 'lang'>): Promise<
 
   await setLang(profile.lang);
   redirect('/me');
+}
+
+// "Write it for me": an AI sentence for "what I want to talk about", about one of the
+// person's chosen interests. Signed-in people without a profile only.
+export async function suggestTalk(code: string, city: string): Promise<SuggestionResult> {
+  const user = await getUser();
+  if (!user || !interestByCode(code) || (await getMyParticipant())) return { error: 'failed' };
+  const lang = await getLang();
+  return suggestTalkAbout(user.id, { interest: interestLabel(code, lang), city: String(city ?? ''), lang });
 }
