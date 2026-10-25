@@ -100,7 +100,7 @@ export default function JoinForm({
     const code = talkAboutCode;
     if (!code) return;
     setSuggestion('busy');
-    const result = await suggestTalk(code, city).catch(() => ({ error: 'failed' as const }));
+    const result = await suggestTalk(code).catch(() => ({ error: 'failed' as const }));
     if (codeRef.current !== code) return; // the person changed their choice meanwhile
     if ('text' in result) {
       setTalkAbout(result.text);
