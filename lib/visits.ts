@@ -63,3 +63,19 @@ export function visitFunnel(
   );
   return { since, days, total };
 }
+
+export type FunnelTotals = { home: number; login: number; join: number; accounts: number; profiles: number };
+
+// Before × after a snapshot: "before" is what the snapshot saved, "after" is everything since
+// (current totals minus the snapshot). Never negative.
+export function splitAtSnapshot(total: FunnelTotals, snapshot: FunnelTotals): { before: FunnelTotals; after: FunnelTotals } {
+  const keys = ['home', 'login', 'join', 'accounts', 'profiles'] as const;
+  const after = Object.fromEntries(keys.map((k) => [k, Math.max(0, total[k] - snapshot[k])])) as FunnelTotals;
+  return { before: { ...snapshot }, after };
+}
+
+// Each step as a share of the previous one, in the panel's order; null when the previous is 0.
+export const FUNNEL_ORDER = ['home', 'login', 'accounts', 'join', 'profiles'] as const;
+export function stepRates(t: FunnelTotals): (number | null)[] {
+  return FUNNEL_ORDER.map((k, i) => (i === 0 ? null : t[FUNNEL_ORDER[i - 1]] > 0 ? t[k] / t[FUNNEL_ORDER[i - 1]] : null));
+}

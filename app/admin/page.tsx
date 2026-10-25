@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import { cookies } from 'next/headers';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { invite, resolveFlag, waitlistPreview } from '@/app/admin/actions';
+import { funnelSnapshot, invite, resolveFlag, waitlistPreview } from '@/app/admin/actions';
 import AdminNav from '@/components/admin/AdminNav';
 import DoseChart from '@/components/admin/DoseChart';
 import FunnelChart from '@/components/admin/FunnelChart';
@@ -13,8 +13,8 @@ import { loadAdminData } from '@/lib/adminData';
 import { interestLabel } from '@/lib/i18n';
 import pt from '@/lib/i18n/pt';
 import { invitedCount } from '@/lib/inviteService';
-import { loadVisitFunnel } from '@/lib/visitService';
-import { VISITS_SINCE } from '@/lib/visits';
+import { latestSnapshot, loadVisitFunnel } from '@/lib/visitService';
+import { FUNNEL_ORDER, VISITS_SINCE, splitAtSnapshot, stepRates } from '@/lib/visits';
 import { REVIEW_GRACE_MS } from '@/lib/review';
 import { matchingConfig, reviewDelayDays } from '@/lib/site';
 import { CATEGORIES } from '@/lib/interests';
@@ -345,8 +345,19 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
         description="Quantas visitas chegaram a cada passo do cadastro. Uma visita é um separador do browser: conta uma vez por passo, mesmo que a pessoa recarregue a página."
       >
         {await (async () => {
-          const v = await loadVisitFunnel();
+          const [v, snap] = await Promise.all([loadVisitFunnel(), latestSnapshot()]);
           if (!v.since) return <p className="text-sm text-midnight/60">Ainda sem visitas contadas.</p>;
+          const STEP_LABEL = { home: 'Página inicial', login: 'Página de login', accounts: 'Contas criadas', join: 'Formulário aberto', profiles: 'Perfis completos' };
+          const split = snap ? splitAtSnapshot(v.total, snap) : null;
+          const rates = split && { before: stepRates(split.before), after: stepRates(split.after) };
+          const cell = (n: number, r: number | null) => (
+            <>
+              <b>{n}</b>
+              {r !== null && <span className="text-midnight/60"> · {Math.round(r * 100)}%</span>}
+            </>
+          );
+          const when = (iso: string) =>
+            new Date(iso).toLocaleString('pt-PT', { timeZone: 'Europe/Lisbon', day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
           const steps = [
             ['Página inicial', v.total.home],
             ['Página de login', v.total.login],
@@ -373,6 +384,36 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
                   </li>
                 ))}
               </ul>
+              {split && rates && snap && (
+                <div className="space-y-1">
+                  <h3 className="text-sm font-semibold">Antes × depois de “{snap.label}” ({when(snap.taken_at)})</h3>
+                  <Table head={['Passo', 'Antes', 'Depois']}>
+                    {FUNNEL_ORDER.map((k, i) => (
+                      <tr key={k} className="tabular-nums">
+                        <td className="px-2 py-1.5">{STEP_LABEL[k]}</td>
+                        <td className="px-2 py-1.5 text-right">{cell(split.before[k], rates.before[i])}</td>
+                        <td className="px-2 py-1.5 text-right">{cell(split.after[k], rates.after[i])}</td>
+                      </tr>
+                    ))}
+                  </Table>
+                  <p className="text-xs text-midnight/60">
+                    % = do passo anterior. Compara as percentagens, não os números: o “depois” ainda está a crescer.
+                  </p>
+                </div>
+              )}
+              <form action={funnelSnapshot} className="flex flex-wrap items-center gap-2">
+                <input
+                  name="label"
+                  required
+                  maxLength={120}
+                  placeholder="Nome da mudança, p. ex. página inicial nova"
+                  aria-label="Nome da fotografia"
+                  className="min-w-0 flex-1 rounded-full border border-midnight/20 bg-white px-3 py-1.5 text-sm"
+                />
+                <button className="rounded-full border border-midnight/20 bg-white px-3 py-1.5 text-sm font-medium">
+                  Guardar fotografia do funil
+                </button>
+              </form>
               <Table head={['Dia', 'Inicial', 'Login', 'Contas', 'Formulário', 'Perfis']}>
                 {v.days.slice(0, 14).map((d) => (
                   <tr key={d.day} className="tabular-nums">
