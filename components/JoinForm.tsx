@@ -361,7 +361,7 @@ export default function JoinForm({
         </label>
         <textarea
           id="talk_about"
-          rows={2}
+          rows={3}
           value={talkAbout}
           maxLength={MAX_TALK_ABOUT}
           onChange={(e) => {
