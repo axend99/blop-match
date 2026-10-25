@@ -11,21 +11,21 @@ const en = {
     backToJoin: 'Back to my profile',
   },
   home: {
-    tagline: 'People happen here',
-    title: 'Meet people who like what you like',
-    subtitle: 'A short friendship experiment by BLOP. Tell us what you love and we will introduce you to people around you.',
+    tagline: 'Friendships that start with what you love',
+    title: 'Your next friends are closer than you think',
+    subtitle: 'Tell us what you love and Blop introduces you to people with the same interests. It is free and takes 5 minutes.',
     howTitle: 'How it works',
     steps: [
       'Sign in and tell us a bit about you and your interests (about 5 minutes).',
       'We email you when you have a match. You will see their first name, what you have in common, their WhatsApp and Instagram (if they shared it).',
-      'Reach out, have a chat and, if it clicks, meet up.',
+      'Reach out and, if it goes well, grab a coffee together.',
     ],
     review: (days: number) =>
       `${days} ${days === 1 ? 'day' : 'days'} after each match, we ask you to rate the interaction. It takes 2 minutes.`,
-    duration: 'The study runs for about 2 weeks. It is just for friendship.',
+    duration: 'It is part of a master\'s project that runs for about 2 weeks: by joining, you help us understand how friendships begin.',
     privacy: 'Only your matches see your profile (first name, age, city, interests, what you want to talk about), your WhatsApp and your Instagram if you add it. Never your email. You can leave at any time.',
     privacyLink: 'Read the privacy notice',
-    cta: 'Join the experiment',
+    cta: 'Find my matches',
   },
   login: {
     title: 'Join BLOP Match',

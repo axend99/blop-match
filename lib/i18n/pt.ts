@@ -13,21 +13,21 @@ const pt: Dict = {
     backToJoin: 'Voltar ao meu perfil',
   },
   home: {
-    tagline: 'People happen here',
-    title: 'Conhece pessoas que gostam do mesmo que tu',
-    subtitle: 'Uma pequena experiência de amizade do BLOP. Diz-nos do que gostas e apresentamos-te pessoas à tua volta.',
+    tagline: 'Amizades que começam pelo que gostas',
+    title: 'Os teus próximos amigos estão mais perto do que pensas',
+    subtitle: 'Diz-nos do que gostas e o Blop apresenta-te pessoas com os mesmos interesses. É grátis e leva 5 minutos.',
     howTitle: 'Como funciona',
     steps: [
       'Entra e conta-nos um pouco sobre ti e os teus interesses (cerca de 5 minutos).',
       'Enviamos-te um e-mail quando tiveres um match. Vais ver o primeiro nome dessa pessoa, o que têm em comum, o WhatsApp e o Instagram (se o tiver indicado).',
-      'Mete conversa e, se houver química, combinem um encontro.',
+      'Mete conversa e, se correr bem, combinem um café.',
     ],
     review: (days: number) =>
       `${days} ${days === 1 ? 'dia' : 'dias'} depois de cada match, pedimos-te que avalies a interação. Demora 2 minutos.`,
-    duration: 'O estudo dura cerca de 2 semanas. É só para fazer amigos.',
+    duration: 'Faz parte de um projeto de mestrado de cerca de 2 semanas: ao participares, ajudas-nos a perceber como nascem as amizades.',
     privacy: 'Só os teus matches veem o teu perfil (primeiro nome, idade, cidade, interesses, aquilo de que queres falar), o teu WhatsApp e o teu Instagram, se o indicares. Nunca o teu e-mail. Podes sair quando quiseres.',
     privacyLink: 'Ler o aviso de privacidade',
-    cta: 'Participar na experiência',
+    cta: 'Encontrar os meus matches',
   },
   login: {
     title: 'Entra no BLOP Match',
