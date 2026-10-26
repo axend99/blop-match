@@ -2,7 +2,8 @@ import 'server-only';
 import { createElement } from 'react';
 import MatchNudgeEmail from '@/emails/MatchNudgeEmail';
 import ReviewEmail from '@/emails/ReviewEmail';
-import { sendEmail, type EmailKind } from '@/lib/email';
+import { inBatches } from '@/lib/batch';
+import { sendEmail, sendOther, type EmailKind } from '@/lib/email';
 import { getDict, interestLabel, isLang } from '@/lib/i18n';
 import { dueNudges, dueReminders, dueReviewRequests, type DueParticipant, type Recipient } from '@/lib/review';
 import { reminderDelayDays, reviewDelayDays, siteUrl } from '@/lib/site';
@@ -23,7 +24,7 @@ async function loadState() {
   const [people, matches, requests, reviews, nudges, reports] = await Promise.all([
     supabase.from('participants').select('id, name, email, lang, active, deleted_at, pending_review'),
     supabase.from('matches').select('id, a_id, b_id, created_at, shared_items'),
-    supabase.from('review_requests').select('match_id, participant_id, requested_at, reminded_at'),
+    supabase.from('review_requests').select('match_id, participant_id, requested_at, reminded_at, resent_at'),
     supabase.from('reviews').select('match_id, reviewer_id'),
     supabase.from('email_log').select('match_id, participant_id').eq('kind', 'match_nudge'),
     supabase.from('reports').select('match_id'),
@@ -48,6 +49,7 @@ async function loadState() {
       participantId: r.participant_id,
       requestedAt: r.requested_at,
       remindedAt: r.reminded_at,
+      resentAt: r.resent_at as string | null,
     })),
     reviewKeys: new Set(reviews.data!.map((r) => `${r.match_id}|${r.reviewer_id}`)),
     nudged: new Set(nudges.data!.map((r) => `${r.match_id}|${r.participant_id}`)),
@@ -57,21 +59,20 @@ async function loadState() {
 
 type State = Awaited<ReturnType<typeof loadState>>;
 
-// Sends one review email. A false from sendEmail can also mean "already logged"
-// (sent before), so that case still counts as done and is never retried forever.
-async function send(state: State, kind: Extract<EmailKind, 'review_open' | 'review_reminder'>, to: Recipient): Promise<boolean> {
+// E-mails sent at the same time (the SMTP connection is shared; Gmail copes with a few).
+const BATCH = 5;
+
+// The review e-mail (request or reminder) for one person and match; null without an address.
+function reviewMessage(state: State, kind: Extract<EmailKind, 'review_open' | 'review_reminder'>, to: Recipient) {
   const person = state.byId.get(to.participantId);
-  if (!person?.email) return false;
+  if (!person?.email) return null;
   const lang = isLang(person.lang) ? person.lang : 'en';
   const copyKey = kind === 'review_open' ? 'reviewOpen' : 'reviewReminder';
   const match = state.matchById.get(to.matchId);
   const partner = state.byId.get(match?.a_id === person.id ? match?.b_id : match?.a_id);
   const partnerName = partner && !partner.deleted_at ? partner.name : undefined;
-  const sent = await sendEmail({
-    participantId: person.id,
-    kind,
-    matchId: to.matchId,
-    to: person.email,
+  return {
+    person,
     subject: getDict(lang).emails[copyKey].subject(partnerName),
     react: createElement(ReviewEmail, {
       kind: copyKey,
@@ -82,12 +83,20 @@ async function send(state: State, kind: Extract<EmailKind, 'review_open' | 'revi
       url: `${siteUrl()}/go/review?m=${to.matchId}&p=${person.id}&src=${kind === 'review_open' ? 'open' : 'reminder'}`,
       reportUrl: partnerName ? `${siteUrl()}/login?next=/me/report/${to.matchId}` : undefined,
     }),
-  });
+  };
+}
+
+// Sends one review email. A false from sendEmail can also mean "already logged"
+// (sent before), so that case still counts as done and is never retried forever.
+async function send(state: State, kind: Extract<EmailKind, 'review_open' | 'review_reminder'>, to: Recipient): Promise<boolean> {
+  const message = reviewMessage(state, kind, to);
+  if (!message) return false;
+  const sent = await sendEmail({ participantId: message.person.id, kind, matchId: to.matchId, to: message.person.email!, subject: message.subject, react: message.react });
   if (sent) return true;
   const { data } = await state.supabase
     .from('email_log')
     .select('id')
-    .eq('participant_id', person.id)
+    .eq('participant_id', message.person.id)
     .eq('kind', kind)
     .eq('match_id', to.matchId)
     .maybeSingle();
@@ -110,16 +119,14 @@ async function sendNudges(state: State, deadline: number): Promise<number> {
     nudgeDays,
     reviewDelayDays: reviewDelayDays(),
   });
-  let sent = 0;
-  for (const to of due) {
-    if (Date.now() > deadline) break;
+  return inBatches(due, BATCH, deadline, async (to) => {
     const person = state.byId.get(to.participantId);
     const match = state.matchById.get(to.matchId);
     const partner = state.byId.get(match?.a_id === to.participantId ? match?.b_id : match?.a_id);
-    if (!person?.email || !match || !partner) continue;
+    if (!person?.email || !match || !partner) return false;
     const lang = isLang(person.lang) ? person.lang : 'en';
     const first = (match.shared_items as string[] | null)?.[0];
-    const ok = await sendEmail({
+    return sendEmail({
       participantId: person.id,
       kind: 'match_nudge',
       matchId: to.matchId,
@@ -134,9 +141,7 @@ async function sendNudges(state: State, deadline: number): Promise<number> {
         reportUrl: `${siteUrl()}/login?next=/me/report/${to.matchId}`,
       }),
     });
-    if (ok) sent++;
-  }
-  return sent;
+  });
 }
 
 // review_open: records the request first (its primary key blocks duplicates between runs),
@@ -150,23 +155,20 @@ async function sendReviewRequests(state: State, deadline: number): Promise<numbe
     now: new Date(),
     delayDays: reviewDelayDays(),
   });
-  let sent = 0;
-  for (const to of due) {
-    if (Date.now() > deadline) break;
+  return inBatches(due, BATCH, deadline, async (to) => {
     const { data: inserted, error } = await state.supabase
       .from('review_requests')
       .upsert({ match_id: to.matchId, participant_id: to.participantId }, { onConflict: 'match_id,participant_id', ignoreDuplicates: true })
       .select('match_id');
     if (error) {
       console.error('[reviews] request insert failed', error);
-      continue;
+      return false;
     }
-    if (!inserted?.length) continue; // Another run already took it.
-    if (await send(state, 'review_open', to)) sent++;
-    else
-      await state.supabase.from('review_requests').delete().eq('match_id', to.matchId).eq('participant_id', to.participantId);
-  }
-  return sent;
+    if (!inserted?.length) return false; // Another run already took it.
+    if (await send(state, 'review_open', to)) return true;
+    await state.supabase.from('review_requests').delete().eq('match_id', to.matchId).eq('participant_id', to.participantId);
+    return false;
+  });
 }
 
 // review_reminder: a single reminder per request. Uses the requests loaded at the start of
@@ -179,18 +181,15 @@ async function sendReviewReminders(state: State, deadline: number): Promise<numb
     now: new Date(),
     reminderDays: reminderDelayDays(),
   });
-  let sent = 0;
-  for (const to of due) {
-    if (Date.now() > deadline) break;
-    if (!(await send(state, 'review_reminder', to))) continue;
-    sent++;
+  return inBatches(due, BATCH, deadline, async (to) => {
+    if (!(await send(state, 'review_reminder', to))) return false;
     await state.supabase
       .from('review_requests')
       .update({ reminded_at: new Date().toISOString() })
       .eq('match_id', to.matchId)
       .eq('participant_id', to.participantId);
-  }
-  return sent;
+    return true;
+  });
 }
 
 // Admin shortcut for testers: moves the match back so its review is open now, then sends the
@@ -205,6 +204,46 @@ export async function openReviewNow(matchId: string): Promise<number> {
   const state = await loadState();
   state.matches = state.matches.filter((m) => m.id === matchId);
   return sendReviewRequests(state, Date.now() + 30_000);
+}
+
+// Review requests sent with the old link (it did not bring people back to the form after signing
+// in): sent once more with the current link, to those who have not answered yet.
+export const OLD_REVIEW_LINK_BEFORE = '2026-10-26T15:45:00Z'; // when the fixed link went live
+
+function oldLinkRequests(state: State) {
+  return state.requests.filter(
+    (r) =>
+      new Date(r.requestedAt).getTime() < new Date(OLD_REVIEW_LINK_BEFORE).getTime() &&
+      !r.resentAt &&
+      !state.reviewKeys.has(`${r.matchId}|${r.participantId}`) &&
+      state.participants.get(r.participantId)?.active &&
+      state.participants.get(r.participantId)?.hasEmail &&
+      !state.participants.get(r.participantId)?.deleted,
+  );
+}
+
+export async function countOldLinkRequests(): Promise<number> {
+  return oldLinkRequests(await loadState()).length;
+}
+
+export async function resendOldLinkRequests(deadline: number): Promise<number> {
+  const state = await loadState();
+  return inBatches(oldLinkRequests(state), BATCH, deadline, async (r) => {
+    const to = { matchId: r.matchId, participantId: r.participantId };
+    // Marked first, so a second click can't send it twice; unmarked if the e-mail fails.
+    const { data, error } = await state.supabase
+      .from('review_requests')
+      .update({ resent_at: new Date().toISOString() })
+      .eq('match_id', to.matchId)
+      .eq('participant_id', to.participantId)
+      .is('resent_at', null)
+      .select('match_id');
+    if (error || !data?.length) return false;
+    const message = reviewMessage(state, 'review_open', to);
+    if (message && (await sendOther([message.person.email!], message.subject, message.subject, message.react))) return true;
+    await state.supabase.from('review_requests').update({ resent_at: null }).eq('match_id', to.matchId).eq('participant_id', to.participantId);
+    return false;
+  });
 }
 
 export async function runReviewEmails(deadlines: { nudges: number; requests: number; reminders: number }) {

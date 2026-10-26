@@ -4,7 +4,7 @@ import { runReviewEmails } from '@/lib/reviewService';
 import { sendWaitlistEmails } from '@/lib/waitlistService';
 
 export const dynamic = 'force-dynamic';
-export const maxDuration = 60;
+export const maxDuration = 300;
 
 async function step<T>(name: string, run: () => Promise<T>): Promise<T | { error: string }> {
   try {
@@ -27,8 +27,8 @@ export async function GET(request: NextRequest) {
   if (process.env.VERCEL_ENV === 'preview') return NextResponse.json({ skipped: 'preview' });
 
   const start = Date.now();
-  const matching = await step('matching', () => runMatchingForAll(start + 20_000));
-  const reviews = await step('reviews', () => runReviewEmails({ nudges: start + 28_000, requests: start + 38_000, reminders: start + 50_000 }));
-  const waitlist = await step('waitlist', () => sendWaitlistEmails(start + 50_000));
+  const matching = await step('matching', () => runMatchingForAll(start + 90_000));
+  const reviews = await step('reviews', () => runReviewEmails({ nudges: start + 140_000, requests: start + 200_000, reminders: start + 250_000 }));
+  const waitlist = await step('waitlist', () => sendWaitlistEmails(start + 270_000));
   return NextResponse.json({ matching, reviews, waitlist });
 }

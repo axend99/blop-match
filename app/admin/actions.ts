@@ -5,7 +5,7 @@ import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { ADMIN_COOKIE, isAdmin } from '@/lib/admin';
 import { createClient } from '@/lib/supabase/server';
-import { openReviewNow } from '@/lib/reviewService';
+import { openReviewNow, resendOldLinkRequests } from '@/lib/reviewService';
 import { parseEmailList } from '@/lib/invite';
 import { sendInvitePreview, sendInvites } from '@/lib/inviteService';
 import { saveSnapshot } from '@/lib/visitService';
@@ -105,6 +105,14 @@ export async function funnelSnapshot(formData: FormData): Promise<void> {
   if (!(await isAdmin())) return;
   await saveSnapshot(String(formData.get('label') ?? ''));
   await notice('Fotografia do funil guardada: a partir de agora o painel compara antes × depois.');
+  revalidatePath('/admin');
+}
+
+// One-off: review requests sent with the old link go out again with the current one.
+export async function resendReviews(): Promise<void> {
+  if (!(await isAdmin())) return;
+  const n = await resendOldLinkRequests(Date.now() + 45_000);
+  await notice(`Pedidos de review reenviados com o link novo: ${n}.`);
   revalidatePath('/admin');
 }
 
