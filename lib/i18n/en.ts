@@ -202,7 +202,10 @@ const en = {
   review: {
     title: (name: string) => `How did it go with ${name}?`,
     titleFormer: 'How did it go with your match?',
-    intro: 'It takes 2 minutes. Your answers are only for the research team.',
+    intro: 'It takes 2 minutes.',
+    // Plain strings ({name} placeholder): these texts also go to the client form.
+    privateNote: '🔒 {name} never sees what you answer. Your answers are confidential: only the research team reads them, for the study.',
+    privateNoteFormer: '🔒 Your answers are confidential: only the research team reads them, for the study.',
     opensOn: (date: string) => `You can rate this interaction from ${date}.`,
     alreadyDone: 'You already rated this interaction. Thank you!',
     yes: 'Yes',
@@ -294,6 +297,8 @@ const en = {
     footer: 'BLOP Match · a research study by BLOP, MIETE master\'s programme',
     report: 'Something wrong with this person?',
     reportLink: 'Report it',
+    reviewPrivate: (name?: string) =>
+      `🔒 ${name ?? 'The other person'} never sees what you answer. Your answers are confidential: only the research team reads them, for the study.`,
     newMatch: {
       subject: 'You have a new match!',
       greeting: (name: string) => `Hi ${name},`,

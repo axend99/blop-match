@@ -202,7 +202,10 @@ const pt: Dict = {
   review: {
     title: (name: string) => `Como correu com ${name}?`,
     titleFormer: 'Como correu com o teu match?',
-    intro: 'Demora 2 minutos. As tuas respostas são só para a equipa de investigação.',
+    intro: 'Demora 2 minutos.',
+    // Texto simples (marcador {name}): estes textos também vão para o formulário no browser.
+    privateNote: '🔒 {name} nunca vê o que respondes. As tuas respostas são confidenciais: só a equipa de investigação as lê, para o estudo.',
+    privateNoteFormer: '🔒 As tuas respostas são confidenciais: só a equipa de investigação as lê, para o estudo.',
     opensOn: (date: string) => `Podes avaliar esta interação a partir de ${date}.`,
     alreadyDone: 'Já avaliaste esta interação. Obrigado!',
     yes: 'Sim',
@@ -294,6 +297,8 @@ const pt: Dict = {
     footer: 'BLOP Match · um estudo de investigação do BLOP, mestrado MIETE',
     report: 'Algum problema com esta pessoa?',
     reportLink: 'Denuncia',
+    reviewPrivate: (name?: string) =>
+      `🔒 ${name ?? 'A outra pessoa'} nunca vê o que respondes. As tuas respostas são confidenciais: só a equipa de investigação as lê, para o estudo.`,
     newMatch: {
       subject: 'Tens um novo match!',
       greeting: (name: string) => `Olá ${name},`,

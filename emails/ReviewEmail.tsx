@@ -28,6 +28,9 @@ export default function ReviewEmail({
     >
       <Text style={{ fontSize: 18, fontWeight: 600, margin: '0 0 12px' }}>{copy.greeting(name)}</Text>
       <Text style={{ fontSize: 16, lineHeight: '24px', margin: '0 0 12px' }}>{copy.body}</Text>
+      <Text style={{ fontSize: 14, lineHeight: '21px', margin: '0 0 12px', padding: '10px 12px', backgroundColor: '#eef9c4', borderRadius: 12 }}>
+        {t.reviewPrivate(partnerName)}
+      </Text>
     </EmailLayout>
   );
 }

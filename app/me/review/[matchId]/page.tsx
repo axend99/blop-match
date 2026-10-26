@@ -61,6 +61,9 @@ export default async function ReviewPage({ params }: { params: Promise<{ matchId
       <div className="space-y-2">
         <h1 className="text-3xl font-bold">{match.other_deleted ? t.review.titleFormer : title(match.other_name)}</h1>
         <p className="text-midnight/70">{t.review.intro}</p>
+        <p className="rounded-2xl bg-lime/40 p-3 text-sm font-medium">
+          {match.other_deleted ? t.review.privateNoteFormer : t.review.privateNote.replace('{name}', match.other_name)}
+        </p>
       </div>
       <ReviewForm
         matchId={match.match_id}
