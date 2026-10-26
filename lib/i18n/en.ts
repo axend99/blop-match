@@ -257,7 +257,7 @@ const en = {
     sections: [
       {
         heading: 'Who we are',
-        body: 'BLOP Match is an academic study by the BLOP project (MIET 2026). It tests whether shared interests help strangers connect.',
+        body: 'BLOP Match is an academic study by the BLOP project, part of the MIETE master\'s programme. It tests whether shared interests help strangers connect.',
       },
       {
         heading: 'What we collect',
@@ -291,7 +291,7 @@ const en = {
   },
   emails: {
     button: 'Go to my page',
-    footer: 'BLOP Match · a research study by BLOP (MIET 2026)',
+    footer: 'BLOP Match · a research study by BLOP, MIETE master\'s programme',
     report: 'Something wrong with this person?',
     reportLink: 'Report it',
     newMatch: {
@@ -353,7 +353,7 @@ const en = {
   about: {
     title: 'About the study',
     whatTitle: 'What it is',
-    what: 'BLOP Match is a short friendship experiment by the BLOP project (MIET 2026). We want to learn whether shared interests make it easier for strangers to connect.',
+    what: 'BLOP Match is a short friendship experiment by the BLOP project, part of the MIETE master\'s programme. We want to learn whether shared interests make it easier for strangers to connect.',
     howTitle: 'How it works',
     durationTitle: 'How long it takes',
     privacyTitle: 'Your data',
