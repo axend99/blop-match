@@ -16,10 +16,11 @@ import thinking from '@/public/blop/thinking.webp';
 
 // The match "cheat sheet": who they are and what you have in common.
 export default async function MatchPage({ params }: { params: Promise<{ matchId: string }> }) {
-  if (!(await getUser())) redirect('/login');
+  const { matchId } = await params;
+  // Back here after signing in (e.g. a link opened from an e-mail in another browser).
+  if (!(await getUser())) redirect(`/login?next=/me/match/${encodeURIComponent(matchId)}`);
   const me = await getMyParticipant();
   if (!me) redirect('/join');
-  const { matchId } = await params;
   const match = (await getMyMatches()).find((m) => m.match_id === matchId);
   if (!match) notFound();
 

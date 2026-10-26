@@ -84,7 +84,7 @@ describe('splitAtSnapshot and stepRates', () => {
     const { before, after } = splitAtSnapshot({ home: 100, login: 70, join: 30, accounts: 31, profiles: 25 }, snap);
     expect(before).toEqual(snap);
     expect(after).toEqual({ home: 35, login: 25, join: 16, accounts: 16, profiles: 15 });
-    expect(stepRates(after)).toEqual([null, 25 / 35, 16 / 25, 16 / 16, 15 / 16]);
-    expect(stepRates({ home: 0, login: 0, join: 0, accounts: 0, profiles: 0 })).toEqual([null, null, null, null, null]);
+    expect(stepRates(after)).toEqual([null, 25 / 35, 16 / 25, 15 / 16]);
+    expect(stepRates({ home: 0, login: 0, join: 0, accounts: 0, profiles: 0 })).toEqual([null, null, null, null]);
   });
 });

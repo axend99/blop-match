@@ -650,3 +650,72 @@ export function partyInterest(reviews: { reviewer_id: string; party_interest?: s
     .map(([id, v]) => ({ id, answer: v.answer as 'yes' | 'maybe' }));
   return { people: latest.size, counts, interested };
 }
+
+// --- Review progress: expected vs received, and where people stop (request → tap → form → review) ---
+
+export type ProgressInput = {
+  matches: { id: string; a_id: string; b_id: string; type: Group; created_at: string }[];
+  people: Set<string>; // participants counted (filtered by the panel; anonymised people left out)
+  requests: { match_id: string; participant_id: string; requested_at: string; reminded_at: string | null }[];
+  reviews: { match_id: string; reviewer_id: string; created_at: string }[];
+  clicks: { match_id: string; participant_id: string; source: string }[];
+  views: { match_id: string; participant_id: string }[];
+  now: Date;
+  delayDays: number;
+  graceMs: number;
+};
+
+const median = (xs: number[]) => {
+  if (!xs.length) return null;
+  const s = [...xs].sort((a, b) => a - b);
+  const m = Math.floor(s.length / 2);
+  return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2;
+};
+
+export function reviewProgress(input: ProgressInput) {
+  const key = (m: string, p: string) => `${m}|${p}`;
+  const cutoff = input.now.getTime() - input.delayDays * 86_400_000 + input.graceMs;
+  const sides = input.matches.flatMap((m) =>
+    [m.a_id, m.b_id].filter((p) => input.people.has(p)).map((p) => ({ key: key(m.id, p), type: m.type, due: new Date(m.created_at).getTime() <= cutoff })),
+  );
+  const known = new Set(sides.map((s) => s.key));
+  const inSides = <T>(rows: T[], k: (r: T) => string) => rows.filter((r) => known.has(k(r)));
+  const requests = inSides(input.requests, (r) => key(r.match_id, r.participant_id));
+  const reviews = inSides(input.reviews, (r) => key(r.match_id, r.reviewer_id));
+  const reviewed = new Map(reviews.map((r) => [key(r.match_id, r.reviewer_id), r.created_at]));
+  const clicks = inSides(input.clicks, (r) => key(r.match_id, r.participant_id));
+  const viewed = new Set(inSides(input.views, (r) => key(r.match_id, r.participant_id)).map((r) => key(r.match_id, r.participant_id)));
+  const clickedBy = (source: string) => new Set(clicks.filter((c) => c.source === source).map((c) => key(c.match_id, c.participant_id))).size;
+
+  const due = sides.filter((s) => s.due);
+  const group = (g: Group) => {
+    const d = due.filter((s) => s.type === g);
+    return { due: d.length, reviewed: d.filter((s) => reviewed.has(s.key)).length };
+  };
+  const reminded = requests.filter((r) => r.reminded_at);
+  const hours = requests.flatMap((r) => {
+    const at = reviewed.get(key(r.match_id, r.participant_id));
+    return at ? [(new Date(at).getTime() - new Date(r.requested_at).getTime()) / 3_600_000] : [];
+  });
+
+  return {
+    sides: sides.length,
+    notDue: sides.length - due.length,
+    due: due.length,
+    requested: requests.length,
+    reminded: reminded.length,
+    clickedOpen: clickedBy('open'),
+    clickedReminder: clickedBy('reminder'),
+    viewed: viewed.size,
+    reviewed: reviewed.size,
+    reviewedAfterReminder: reminded.filter((r) => {
+      const at = reviewed.get(key(r.match_id, r.participant_id));
+      return at && new Date(at).getTime() > new Date(r.reminded_at!).getTime();
+    }).length,
+    waitingAfterRequest: requests.filter((r) => !r.reminded_at && !reviewed.has(key(r.match_id, r.participant_id))).length,
+    waitingAfterReminder: reminded.filter((r) => !reviewed.has(key(r.match_id, r.participant_id))).length,
+    medianHours: median(hours),
+    compatible: group('compatible'),
+    control: group('control'),
+  };
+}

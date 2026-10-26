@@ -14,12 +14,14 @@ import { interestLabel } from '@/lib/i18n';
 import pt from '@/lib/i18n/pt';
 import { invitedCount } from '@/lib/inviteService';
 import { latestSnapshot, loadVisitFunnel } from '@/lib/visitService';
+import { loadReviewTracking } from '@/lib/reviewProgressService';
 import { FUNNEL_ORDER, VISITS_SINCE, splitAtSnapshot, stepRates } from '@/lib/visits';
 import { REVIEW_GRACE_MS } from '@/lib/review';
 import { AGE_CLOSE_YEARS } from '@/lib/matching';
 import { matchingConfig, reviewDelayDays } from '@/lib/site';
 import { CATEGORIES } from '@/lib/interests';
 import {
+  reviewProgress,
   partyInterest,
   MIN_N,
   SEGMENTS,
@@ -349,7 +351,7 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
         {await (async () => {
           const [v, snap] = await Promise.all([loadVisitFunnel(), latestSnapshot()]);
           if (!v.since) return <p className="text-sm text-midnight/60">Ainda sem visitas contadas.</p>;
-          const STEP_LABEL = { home: 'Página inicial', login: 'Página de login', accounts: 'Contas criadas', join: 'Formulário aberto', profiles: 'Perfis completos' };
+          const STEP_LABEL = { home: 'Página inicial', login: 'Página de login', accounts: 'Contas criadas', profiles: 'Perfis completos' };
           const split = snap ? splitAtSnapshot(v.total, snap) : null;
           const rates = split && { before: stepRates(split.before), after: stepRates(split.after) };
           const cell = (n: number, r: number | null) => (
@@ -364,7 +366,6 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
             ['Página inicial', v.total.home],
             ['Página de login', v.total.login],
             ['Contas criadas', v.total.accounts],
-            ['Formulário aberto', v.total.join],
             ['Perfis completos', v.total.profiles],
           ] as const;
           const top = Math.max(1, ...steps.map(([, n]) => n));
@@ -431,8 +432,91 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
               <p className="text-xs text-midnight/60">
                 Desde {v.since.split('-').reverse().join('/')} (às {new Date(VISITS_SINCE).toLocaleTimeString('pt-PT', { timeZone: 'Europe/Lisbon', hour: '2-digit', minute: '2-digit' })}). Robôs, a equipa (admins) e as contas de teste não contam nas contas e
                 perfis; as visitas são anónimas, por isso as da equipa contam. Quem entra pelo Google ou por um link já com sessão pode
-                saltar a página de login, e quem já tem conta pode passar pelo login sem criar conta nova: compara os passos como
+                saltar a página de login, e quem já tem conta pode passar pelo login sem criar conta nova. A coluna Formulário (na tabela
+                por dia) não entra no funil: o link de acesso abre um separador novo e quem volta sem perfil abre-o outra vez, por isso
+                conta mais do que as contas criadas. Compara os passos como
                 tendência, não como percentagens exatas. Mais detalhe (origem das visitas, país) na aba Analytics da Vercel.
+              </p>
+            </>
+          );
+        })()}
+      </Section>
+
+      <Section
+        n="1c"
+        title="Andamento das reviews"
+        description="Quantas reviews esperávamos até agora, quantas chegaram e onde as pessoas param pelo caminho: pedido por e-mail, toque no botão, formulário aberto, review enviada."
+      >
+        {await (async () => {
+          const t = await loadReviewTracking();
+          const pr = reviewProgress({
+            matches,
+            people: new Set(participants.filter((p) => !p.deleted_at).map((p) => p.id)),
+            requests: t.requests,
+            reviews,
+            clicks: t.clicks,
+            views: t.views,
+            now: new Date(),
+            delayDays: reviewDelayDays(),
+            graceMs: REVIEW_GRACE_MS,
+          });
+          const pct = (n: number, of: number) => (of > 0 ? ` · ${Math.round((n / of) * 100)}%` : '');
+          const share = (n: number, of: number, what: string) => (of > 0 ? `${Math.round((n / of) * 100)}% ${what}` : '');
+          const steps: [string, number, string][] = [
+            ['Reviews esperadas até agora', pr.due, `matches com ${reviewDelayDays()} ${reviewDelayDays() === 1 ? 'dia' : 'dias'} ou mais, uma por pessoa`],
+            ['Pedidos enviados por e-mail', pr.requested, share(pr.requested, pr.due, 'das esperadas')],
+            ['Tocaram no botão do pedido', pr.clickedOpen, share(pr.clickedOpen, pr.requested, 'dos pedidos')],
+            ['Lembretes enviados', pr.reminded, share(pr.reminded, pr.requested, 'dos pedidos')],
+            ['Tocaram no botão do lembrete', pr.clickedReminder, share(pr.clickedReminder, pr.reminded, 'dos lembretes')],
+            ['Abriram o formulário (por qualquer caminho)', pr.viewed, share(pr.viewed, pr.due, 'das esperadas')],
+            ['Reviews recebidas', pr.reviewed, share(pr.reviewed, pr.due, 'das esperadas')],
+          ];
+          return (
+            <>
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                {[
+                  ['Taxa de resposta', pr.due ? `${Math.round((pr.reviewed / pr.due) * 100)}%` : '—'],
+                  ['Recebidas / esperadas', `${pr.reviewed} / ${pr.due}`],
+                  ['À espera (sem lembrete ainda)', `${pr.waitingAfterRequest}`],
+                  ['Ainda não chegou a altura', `${pr.notDue}`],
+                ].map(([label, value]) => (
+                  <div key={label} className="rounded-2xl bg-paper p-3">
+                    <p className="text-xs uppercase tracking-wide text-midnight/60">{label}</p>
+                    <p className="text-2xl font-bold tabular-nums">{value}</p>
+                  </div>
+                ))}
+              </div>
+              <Table head={['Passo', 'Nº']}>
+                {steps.map(([label, n, note]) => (
+                  <tr key={label} className="tabular-nums">
+                    <td className="px-2 py-1.5">
+                      {label}
+                      {note && <span className="block text-xs text-midnight/50">{note}</span>}
+                    </td>
+                    <td className="px-2 py-1.5 text-right font-semibold">{n}</td>
+                  </tr>
+                ))}
+              </Table>
+              <Table head={['', 'Compatível', 'Controlo']}>
+                <tr className="tabular-nums">
+                  <td className="px-2 py-1.5">Recebidas / esperadas</td>
+                  <td className="px-2 py-1.5 text-right">{pr.compatible.reviewed} / {pr.compatible.due}{pct(pr.compatible.reviewed, pr.compatible.due)}</td>
+                  <td className="px-2 py-1.5 text-right">{pr.control.reviewed} / {pr.control.due}{pct(pr.control.reviewed, pr.control.due)}</td>
+                </tr>
+              </Table>
+              <ul className="space-y-0.5 text-sm">
+                <li>Reviews que chegaram depois do lembrete: <b>{pr.reviewedAfterReminder}</b></li>
+                <li>Ainda sem review depois do lembrete: <b>{pr.waitingAfterReminder}</b></li>
+                <li>
+                  Tempo mediano do pedido à review:{' '}
+                  <b>{pr.medianHours === null ? '—' : pr.medianHours < 24 ? `${Math.round(pr.medianHours)} h` : `${(pr.medianHours / 24).toFixed(1)} dias`}</b>
+                </li>
+              </ul>
+              <p className="text-xs text-midnight/60">
+                Uma review por pessoa e por match (cada match espera até 2). Os toques nos botões dos e-mails e a abertura do formulário
+                só são contados desde 26/10; os e-mails enviados antes disso não têm contagem de toques. Não contamos aberturas de
+                e-mail: hoje a maior parte das apps de e-mail abre ou bloqueia as imagens sozinhas, por isso esse número não seria
+                fiável. Alguns filtros de e-mail empresariais abrem os links sozinhos, o que pode aumentar um pouco os toques. Quem saiu do estudo continua a contar (pode avaliar); quem pediu para apagar os dados não.
               </p>
             </>
           );
