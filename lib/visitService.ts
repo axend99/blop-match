@@ -3,13 +3,14 @@ import { isAdminEmail } from '@/lib/admin';
 import { isE2eEmail } from '@/lib/e2eUsers';
 import { createServiceClient } from '@/lib/supabase/service';
 import { visitFunnel, type FunnelTotals } from '@/lib/visits';
+import { pageAll } from '@/lib/supabase/pageAll';
 
 // Visit funnel for /admin. Team and test accounts are left out of accounts and profiles.
 export async function loadVisitFunnel() {
   const supabase = createServiceClient();
   const [steps, people] = await Promise.all([
-    supabase.from('visit_steps').select('day, step, sessions'),
-    supabase.from('participants').select('email, created_at, is_seed'),
+    pageAll((a, b) => supabase.from('visit_steps').select('day, step, sessions').order('day').order('step').range(a, b)),
+    pageAll((a, b) => supabase.from('participants').select('email, created_at, is_seed').order('id').range(a, b)),
   ]);
   if (steps.error) throw steps.error;
   if (people.error) throw people.error;

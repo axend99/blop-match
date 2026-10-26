@@ -15,7 +15,7 @@ import pt from '@/lib/i18n/pt';
 import { invitedCount } from '@/lib/inviteService';
 import { latestSnapshot, loadVisitFunnel } from '@/lib/visitService';
 import { loadReviewTracking } from '@/lib/reviewProgressService';
-import { countOldLinkRequests } from '@/lib/reviewService';
+import { countOldLinkRequests, emailBacklog } from '@/lib/reviewService';
 import { FUNNEL_ORDER, VISITS_SINCE, splitAtSnapshot, stepRates } from '@/lib/visits';
 import { REVIEW_GRACE_MS } from '@/lib/review';
 import { AGE_CLOSE_YEARS } from '@/lib/matching';
@@ -449,7 +449,8 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
         description="Quantas reviews esperávamos até agora, quantas chegaram e onde as pessoas param pelo caminho: pedido por e-mail, toque no botão, formulário aberto, review enviada."
       >
         {await (async () => {
-          const [t, oldLink] = await Promise.all([loadReviewTracking(), countOldLinkRequests()]);
+          const [t, oldLink, backlog] = await Promise.all([loadReviewTracking(), countOldLinkRequests(), emailBacklog()]);
+          const pendingEmails = backlog.nudges + backlog.requests + backlog.reminders;
           const pr = reviewProgress({
             matches,
             people: new Set(participants.filter((p) => !p.deleted_at).map((p) => p.id)),
@@ -505,6 +506,11 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
                   <td className="px-2 py-1.5 text-right">{pr.control.reviewed} / {pr.control.due}{pct(pr.control.reviewed, pr.control.due)}</td>
                 </tr>
               </Table>
+              <p className={`rounded-2xl p-3 text-sm ${pendingEmails > 0 ? 'bg-pink/30' : 'bg-lime/30'}`}>
+                {pendingEmails === 0
+                  ? 'Sem e-mails em atraso: tudo o que já devia ter saído saiu.'
+                  : `E-mails por enviar neste momento: ${backlog.nudges} “Já falaste?”, ${backlog.requests} pedidos de review, ${backlog.reminders} lembretes. Saem no próximo envio (de hora a hora, das 8h às 21h UTC); se este número não descer de uma hora para a outra, há um problema.`}
+              </p>
               {oldLink > 0 && (
                 <form action={resendReviews} className="space-y-1 rounded-2xl bg-pink/30 p-3 text-sm">
                   <p>

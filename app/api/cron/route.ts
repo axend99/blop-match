@@ -15,8 +15,8 @@ async function step<T>(name: string, run: () => Promise<T>): Promise<T | { error
   }
 }
 
-// Daily routine (SPEC §6): 1) matching, 2) match_nudge, review_open, review_reminder, 3) waiting-list invitation.
-// Each step has a time slice so the run fits in maxDuration; leftovers go out the next day.
+// Routine (SPEC §6), every hour 08–21 UTC from Supabase pg_cron, and daily from Vercel as a fallback: 1) matching, 2) match_nudge, review_open, review_reminder, 3) waiting-list invitation.
+// Each step has a time slice so the run fits in maxDuration; leftovers go out in the next run.
 export async function GET(request: NextRequest) {
   const secret = process.env.CRON_SECRET;
   if (!secret || request.headers.get('authorization') !== `Bearer ${secret}`) {

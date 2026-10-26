@@ -8,6 +8,7 @@ import { REVIEW_GRACE_MS } from '@/lib/review';
 import { siteUrl } from '@/lib/site';
 import { createServiceClient } from '@/lib/supabase/service';
 import { dueWaitlist, waitlistUrl } from '@/lib/waitlist';
+import { pageAll } from '@/lib/supabase/pageAll';
 
 // Admin preview: the invitation in PT and EN to the admin addresses (taps not counted).
 export async function sendWaitlistPreview(): Promise<number> {
@@ -29,8 +30,8 @@ export async function sendWaitlistEmails(deadline: number): Promise<number> {
   if (!waitlistUrl()) return 0;
   const supabase = createServiceClient();
   const [people, sent] = await Promise.all([
-    supabase.from('participants').select('id, name, email, lang, active, deleted_at, is_seed, created_at'),
-    supabase.from('email_log').select('participant_id').eq('kind', 'waitlist'),
+    pageAll((a, b) => supabase.from('participants').select('id, name, email, lang, active, deleted_at, is_seed, created_at').order('id').range(a, b)),
+    pageAll((a, b) => supabase.from('email_log').select('participant_id').eq('kind', 'waitlist').order('id').range(a, b)),
   ]);
   if (people.error) throw people.error;
   if (sent.error) throw sent.error;

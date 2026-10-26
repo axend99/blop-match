@@ -160,7 +160,7 @@ Todos os e-mails estão em EN/PT conforme `participants.lang`, com um botão pri
 | `review_open` | Cron: match com ≥ `REVIEW_DELAY_DAYS` dias, sem pedido enviado a essa pessoa | Link para `/me/review/<matchId>` |
 | `review_reminder` | Cron: ≥ `REMINDER_DELAY_DAYS` dias após `review_open`, sem review | Um único lembrete |
 
-`/api/cron` (diário às 09:00 UTC; ver `vercel.json`): 1) matching para quem tem vagas; 2) `match_nudge`; 3) `review_open`; 4) `review_reminder`. A resposta é um JSON com as contagens.
+`/api/cron` (de hora a hora das 08:00 às 21:00 UTC pelo `pg_cron` do Supabase, migração 0021; o cron diário da Vercel às 09:00 UTC fica como reserva): 1) matching para quem tem vagas; 2) `match_nudge`; 3) `review_open`; 4) `review_reminder`. A resposta é um JSON com as contagens.
 
 ---
 

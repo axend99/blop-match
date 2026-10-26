@@ -8,6 +8,7 @@ import { getDict, interestLabel, isLang } from '@/lib/i18n';
 import { dueNudges, dueReminders, dueReviewRequests, type DueParticipant, type Recipient } from '@/lib/review';
 import { reminderDelayDays, reviewDelayDays, siteUrl } from '@/lib/site';
 import { createServiceClient } from '@/lib/supabase/service';
+import { pageAll } from '@/lib/supabase/pageAll';
 
 type Person = {
   id: string;
@@ -22,12 +23,14 @@ type Person = {
 async function loadState() {
   const supabase = createServiceClient();
   const [people, matches, requests, reviews, nudges, reports] = await Promise.all([
-    supabase.from('participants').select('id, name, email, lang, active, deleted_at, pending_review'),
-    supabase.from('matches').select('id, a_id, b_id, created_at, shared_items'),
-    supabase.from('review_requests').select('match_id, participant_id, requested_at, reminded_at, resent_at'),
-    supabase.from('reviews').select('match_id, reviewer_id'),
-    supabase.from('email_log').select('match_id, participant_id').eq('kind', 'match_nudge'),
-    supabase.from('reports').select('match_id'),
+    pageAll((a, b) => supabase.from('participants').select('id, name, email, lang, active, deleted_at, pending_review').order('id').range(a, b)),
+    pageAll((a, b) => supabase.from('matches').select('id, a_id, b_id, created_at, shared_items').order('id').range(a, b)),
+    pageAll((a, b) =>
+      supabase.from('review_requests').select('match_id, participant_id, requested_at, reminded_at, resent_at').order('match_id').order('participant_id').range(a, b),
+    ),
+    pageAll((a, b) => supabase.from('reviews').select('match_id, reviewer_id').order('id').range(a, b)),
+    pageAll((a, b) => supabase.from('email_log').select('match_id, participant_id').eq('kind', 'match_nudge').order('id').range(a, b)),
+    pageAll((a, b) => supabase.from('reports').select('match_id').order('id').range(a, b)),
   ]);
   for (const r of [people, matches, requests, reviews, nudges, reports]) if (r.error) throw r.error;
 
@@ -220,6 +223,22 @@ function oldLinkRequests(state: State) {
       state.participants.get(r.participantId)?.hasEmail &&
       !state.participants.get(r.participantId)?.deleted,
   );
+}
+
+// E-mails already due but not sent yet (they go out in the next hourly run), for /admin.
+export async function emailBacklog() {
+  const state = await loadState();
+  const now = new Date();
+  const nudgeDays = reviewDelayDays() - 1;
+  const base = { reviewKeys: state.reviewKeys, participants: state.participants, now };
+  return {
+    nudges:
+      nudgeDays < 1
+        ? 0
+        : dueNudges({ ...base, matches: state.matches, nudged: state.nudged, requests: state.requests, reported: state.reported, nudgeDays, reviewDelayDays: reviewDelayDays() }).length,
+    requests: dueReviewRequests({ ...base, matches: state.matches, requests: state.requests, delayDays: reviewDelayDays() }).length,
+    reminders: dueReminders({ ...base, requests: state.requests, reminderDays: reminderDelayDays() }).length,
+  };
 }
 
 export async function countOldLinkRequests(): Promise<number> {
