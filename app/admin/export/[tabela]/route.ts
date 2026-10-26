@@ -25,7 +25,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     );
   } else if (tabela === 'matches') {
     csv = toCsv(
-      ['id', 'a_id', 'a_name', 'a_is_seed', 'a_clicked', 'a_first_click_at', 'b_id', 'b_name', 'b_is_seed', 'b_clicked', 'b_first_click_at', 'type', 'assigned_type', 'score', 'shared_count', 'shared_items', 'shared_by_category', 'created_at'],
+      ['id', 'a_id', 'a_name', 'a_is_seed', 'a_clicked', 'a_first_click_at', 'b_id', 'b_name', 'b_is_seed', 'b_clicked', 'b_first_click_at', 'type', 'assigned_type', 'points', 'score', 'shared_count', 'shared_items', 'shared_by_category', 'created_at'],
       matches.map((m) => ({
         ...m,
         a_name: personById.get(m.a_id)?.name,
