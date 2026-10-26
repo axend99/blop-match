@@ -222,6 +222,22 @@ function oldLinkRequests(state: State) {
   );
 }
 
+// E-mails already due but not sent yet (they go out in the next hourly run), for /admin.
+export async function emailBacklog() {
+  const state = await loadState();
+  const now = new Date();
+  const nudgeDays = reviewDelayDays() - 1;
+  const base = { reviewKeys: state.reviewKeys, participants: state.participants, now };
+  return {
+    nudges:
+      nudgeDays < 1
+        ? 0
+        : dueNudges({ ...base, matches: state.matches, nudged: state.nudged, requests: state.requests, reported: state.reported, nudgeDays, reviewDelayDays: reviewDelayDays() }).length,
+    requests: dueReviewRequests({ ...base, matches: state.matches, requests: state.requests, delayDays: reviewDelayDays() }).length,
+    reminders: dueReminders({ ...base, requests: state.requests, reminderDays: reminderDelayDays() }).length,
+  };
+}
+
 export async function countOldLinkRequests(): Promise<number> {
   return oldLinkRequests(await loadState()).length;
 }
