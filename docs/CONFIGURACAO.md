@@ -45,7 +45,7 @@ Depois de mudar uma variável na Vercel, é preciso fazer **Redeploy**.
 
 ## 4. Gmail
 
-A conta `blopmatch@gmail.com` precisa de verificação em 2 passos ativa para criar a senha de app. A mesma senha de app vai para o Supabase (SMTP do login) e para a Vercel (`SMTP_PASS`, e-mails do estudo). Limite do Gmail: ~500 e-mails por dia.
+A conta `blopmatch@gmail.com` precisa de verificação em 2 passos ativa para criar a senha de app. A mesma senha de app vai para o Supabase (SMTP do login) e para a Vercel (`SMTP_PASS`, e-mails do estudo). Limite do Gmail: ~500 e-mails por 24 h, contando os links de login; o topo do `/admin` mostra o total das últimas 24 h e avisa a partir de 400 (migração `0023_login_email_count`). Acima disso, a alternativa é uma conta Google Workspace do domínio (~2000/dia) ou um serviço de envio de e-mails.
 
 ## 5. Vercel
 

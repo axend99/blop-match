@@ -12,6 +12,7 @@ import { FLAG_CATEGORY, flagField } from '@/lib/adminLabels';
 import { loadAdminData } from '@/lib/adminData';
 import { interestLabel } from '@/lib/i18n';
 import pt from '@/lib/i18n/pt';
+import { GMAIL_DAILY_LIMIT, WARN_AT, emailsLast24h } from '@/lib/emailVolume';
 import { invitedCount } from '@/lib/inviteService';
 import { latestSnapshot, loadVisitFunnel } from '@/lib/visitService';
 import { loadReviewTracking } from '@/lib/reviewProgressService';
@@ -226,6 +227,18 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
     <div className="relative left-1/2 w-[calc(100vw-2rem)] max-w-6xl -translate-x-1/2 space-y-6 text-midnight">
       <AdminNav tab="painel" mode={mode} href={(dados) => link({ dados })} seedCount={seedCount} e2eCount={e2eCount} toReview={pendingCount + openReports} />
       {notice && <p className="rounded-2xl bg-lime/60 p-3 text-sm font-medium">{notice}</p>}
+      {await (async () => {
+        const e = await emailsLast24h();
+        const warn = e.total >= WARN_AT;
+        return (
+          <p className={`rounded-2xl p-3 text-sm ${warn ? 'bg-pink/50 font-semibold' : 'bg-white'}`}>
+            {warn ? '⚠️ ' : ''}E-mails enviados nas últimas 24 h: <b className="tabular-nums">{e.total}</b> de ~{GMAIL_DAILY_LIMIT} (limite do
+            Gmail) · estudo {e.study} · convites {e.invites} · links de login pelo menos {e.logins}.
+            {warn &&
+              ' Perto do limite: se for ultrapassado, os e-mails do estudo voltam a ser tentados de hora a hora, mas os links de login falham e ninguém consegue entrar até baixar.'}
+          </p>
+        );
+      })()}
       {openFlags.length > 0 && (
         <a href="#alertas" className="block rounded-2xl bg-pink/50 p-4 font-medium">
           ⚠️ {openFlags.length} {openFlags.length === 1 ? 'alerta de conteúdo por ver' : 'alertas de conteúdo por ver'}
