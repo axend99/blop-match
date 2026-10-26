@@ -184,6 +184,7 @@ Uma review por pessoa por match. É um formulário de um só ecrã, com as pergu
 | `ig_follow` | Do you follow each other on Instagram now? | `me` / `them` / `both` / `none` | as duas pessoas têm Instagram |
 | `likes_concept` | Do you like the idea of meeting people through shared interests like this? | sim/não | sempre |
 | `best_for` | Do you think this idea works better for… | `friendship` / `dating` / `both` | sempre |
+| `personality` | Would you say your personality is more introverted or extroverted? | `introvert` / `extrovert` / `both` | sempre |
 | `party_interest` | If we organised a party just for BLOP users, to try this in person, would you be interested? | `yes` / `maybe` / `no` | sempre |
 | `comment` | Anything else? | texto, opcional | sempre |
 

@@ -239,6 +239,8 @@ const pt: Dict = {
     bestForOptions: { friendship: 'Amizade', dating: 'Encontros amorosos', both: 'As duas' },
     party: 'Se organizássemos uma festa só para pessoas do BLOP, para testar isto ao vivo, terias interesse? (Se sim ou talvez, podemos enviar-te um e-mail sobre isso.)',
     partyOptions: { yes: 'Sim', maybe: 'Talvez', no: 'Não' },
+    personality: 'Consideras que tens uma personalidade mais introvertida ou extrovertida?',
+    personalityOptions: { introvert: 'Introvertida', extrovert: 'Extrovertida', both: 'Um pouco das duas' },
     comment: 'Mais alguma coisa? (opcional)',
     submit: 'Enviar',
     submitting: 'A enviar…',

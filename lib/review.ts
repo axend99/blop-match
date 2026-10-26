@@ -7,6 +7,7 @@ export const MET = ['yes', 'planned', 'no'] as const;
 export const IG_FOLLOW = ['me', 'them', 'both', 'none'] as const;
 export const BEST_FOR = ['friendship', 'dating', 'both'] as const;
 export const PARTY = ['yes', 'maybe', 'no'] as const;
+export const PERSONALITY = ['introvert', 'extrovert', 'both'] as const;
 export const MAX_COMMENT = 1000;
 
 export type ReviewInput = Record<string, unknown>;
@@ -27,6 +28,7 @@ export type Review = {
   likes_concept: boolean;
   best_for: (typeof BEST_FOR)[number];
   party_interest: (typeof PARTY)[number];
+  personality: (typeof PERSONALITY)[number];
   comment: string | null;
 };
 
@@ -63,6 +65,7 @@ export function validateReview(
     likes_concept: false,
     best_for: 'friendship',
     party_interest: 'no',
+    personality: 'both',
     comment: null,
   };
 
@@ -106,6 +109,8 @@ export function validateReview(
   else errors.best_for = 'required';
   if (oneOf(PARTY, input.party_interest)) data.party_interest = input.party_interest;
   else errors.party_interest = 'required';
+  if (oneOf(PERSONALITY, input.personality)) data.personality = input.personality;
+  else errors.personality = 'required';
 
   if (typeof input.comment === 'string' && input.comment.trim()) {
     const comment = input.comment.trim();

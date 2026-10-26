@@ -239,6 +239,8 @@ const en = {
     bestForOptions: { friendship: 'Friendship', dating: 'Dating', both: 'Both' },
     party: 'If we organised a party just for BLOP users, to try this in person, would you be interested? (If yes or maybe, we may email you about it.)',
     partyOptions: { yes: 'Yes', maybe: 'Maybe', no: 'No' },
+    personality: 'Would you say your personality is more introverted or extroverted?',
+    personalityOptions: { introvert: 'Introverted', extrovert: 'Extroverted', both: 'A bit of both' },
     comment: 'Anything else? (optional)',
     submit: 'Send',
     submitting: 'Sending…',

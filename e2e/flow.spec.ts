@@ -296,6 +296,7 @@ for (const p of PEOPLE) {
       await pick('likes_concept', (p.i + k) % 2);
       await pick('best_for', (p.i + k) % 3);
       await pick('party_interest', (p.i + k) % 3);
+      await pick('personality', (p.i + k) % 3);
       await page.locator('textarea').fill(k % 2 ? `E2E review ${p.name} 👍` : '');
       await send.click();
       // A lost response (sandbox proxy) leaves the page as is; the review may still be saved.

@@ -128,6 +128,7 @@ export function seedReview(rng: () => number, type: 'compatible' | 'control', sh
     likes_concept: chance(rng, 0.8 + (type === 'compatible' ? 0.05 : 0)),
     best_for: pick(rng, ['friendship', 'friendship', 'both', 'both', 'dating'] as const),
     party_interest: pick(rng, ['yes', 'yes', 'maybe', 'no'] as const),
+    personality: pick(rng, ['introvert', 'extrovert', 'both', 'both'] as const),
     comment: chance(rng, 0.15) ? pick(rng, ['Foi giro!', 'Nice chat', 'Combinámos um café', 'Not much in common']) : '',
   };
   const result = validateReview(input, { askInstagram });

@@ -16,6 +16,7 @@ const TALKED = {
   likes_concept: true,
   best_for: 'both',
   party_interest: 'maybe',
+  personality: 'introvert',
   comment: '  Great chat  ',
 };
 
@@ -62,12 +63,13 @@ describe('validateReview', () => {
       likes_concept: true,
       best_for: 'both',
       party_interest: 'maybe',
+      personality: 'introvert',
       comment: null,
     });
   });
 
   it('requires the questions shown in each branch', () => {
-    const idea = { likes_concept: true, best_for: 'friendship', party_interest: 'yes' };
+    const idea = { likes_concept: true, best_for: 'friendship', party_interest: 'yes', personality: 'both' };
     const notContacted = validateReview({ contacted: false, interest_1_7: 3, ...idea });
     expect(notContacted.ok || notContacted.errors).toEqual({ why_not: 'required' });
 
@@ -78,7 +80,7 @@ describe('validateReview', () => {
     expect(talked.ok || talked.errors).toEqual({ flow_1_7: 'required', met: 'required' });
 
     const empty = validateReview({});
-    expect(empty.ok || empty.errors).toEqual({ contacted: 'required', interest_1_7: 'required', likes_concept: 'required', best_for: 'required', party_interest: 'required' });
+    expect(empty.ok || empty.errors).toEqual({ contacted: 'required', interest_1_7: 'required', likes_concept: 'required', best_for: 'required', party_interest: 'required', personality: 'required' });
   });
 
   it('rejects scales outside 1–7 and invalid options', () => {
