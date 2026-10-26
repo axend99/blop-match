@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   partyInterest,
+  personalityShares,
   reviewProgress,
   byCategory,
   conceptOpinion,
@@ -612,5 +613,23 @@ describe('reviewProgress', () => {
       compatible: { due: 2, reviewed: 2 },
       control: { due: 1, reviewed: 0 },
     });
+  });
+});
+
+describe('personalityShares', () => {
+  it('counts each person once, by their latest answer', () => {
+    const r = (reviewer_id: string, personality: string | null, created_at: string) => ({ reviewer_id, personality, created_at });
+    const p = personalityShares([
+      r('a', 'introvert', '2026-10-25T10:00:00Z'),
+      r('a', 'both', '2026-10-26T10:00:00Z'),
+      r('b', 'extrovert', '2026-10-25T10:00:00Z'),
+      r('c', null, '2026-10-25T10:00:00Z'),
+    ]);
+    expect(p.people).toBe(2);
+    expect(p.options).toEqual([
+      { option: 'introvert', count: 0, share: 0 },
+      { option: 'extrovert', count: 1, share: 0.5 },
+      { option: 'both', count: 1, share: 0.5 },
+    ]);
   });
 });

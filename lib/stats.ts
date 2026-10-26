@@ -36,6 +36,7 @@ export type ReviewRow = {
   likes_concept?: boolean | null; // null on reviews sent before the question existed
   best_for?: string | null;
   party_interest?: string | null; // null on reviews sent before the question existed
+  personality?: string | null; // introvert / extrovert / both; null before the question existed
 };
 
 export type ScoreField =
@@ -717,5 +718,26 @@ export function reviewProgress(input: ProgressInput) {
     medianHours: median(hours),
     compatible: group('compatible'),
     control: group('control'),
+  };
+}
+
+// --- Personality (introvert / extrovert / both): one answer per person, their latest review ---
+
+export const PERSONALITY_OPTIONS = ['introvert', 'extrovert', 'both'] as const;
+
+export function personalityShares(reviews: { reviewer_id: string; personality?: string | null; created_at: string }[]) {
+  const latest = new Map<string, { answer: string; at: string }>();
+  for (const r of reviews) {
+    if (!r.personality) continue;
+    const current = latest.get(r.reviewer_id);
+    if (!current || r.created_at > current.at) latest.set(r.reviewer_id, { answer: r.personality, at: r.created_at });
+  }
+  const people = latest.size;
+  return {
+    people,
+    options: PERSONALITY_OPTIONS.map((option) => {
+      const count = [...latest.values()].filter((v) => v.answer === option).length;
+      return { option, count, share: people ? count / people : null };
+    }),
   };
 }

@@ -22,6 +22,7 @@ import { AGE_CLOSE_YEARS } from '@/lib/matching';
 import { matchingConfig, reviewDelayDays } from '@/lib/site';
 import { CATEGORIES } from '@/lib/interests';
 import {
+  personalityShares,
   reviewProgress,
   partyInterest,
   MIN_N,
@@ -70,6 +71,7 @@ const SEGMENT_VALUE: Record<string, Record<string, string>> = {
 const WHY_NOT_LABEL: Record<string, string> = pt.review.whyNotOptions;
 const IG_FOLLOW_LABEL: Record<string, string> = pt.review.igFollowOptions;
 const BEST_FOR_LABEL: Record<string, string> = pt.review.bestForOptions;
+const PERSONALITY_LABEL: Record<string, string> = pt.review.personalityOptions;
 const STATUS: Record<Hypothesis['status'], { label: string; className: string }> = {
   above: { label: 'Acima da meta', className: 'bg-lime text-midnight' },
   below: { label: 'Abaixo da meta', className: 'bg-pink/60 text-midnight' },
@@ -838,7 +840,20 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
                 ))}
               </Table>
               <div className="space-y-2">
-                <h3 className="text-sm font-semibold">Festa só para pessoas do BLOP, para testar ao vivo</h3>
+                {(() => {
+                const ps = personalityShares(rows.map((r) => r.review));
+                return (
+                  <p className="text-sm">
+                    <b>Personalidade</b> (como se descrevem; uma resposta por pessoa, a mais recente):{' '}
+                    {ps.people === 0
+                      ? 'ainda sem respostas.'
+                      : ps.options
+                          .map((o) => `${PERSONALITY_LABEL[o.option]} ${Math.round((o.share ?? 0) * 100)}% (${o.count})`)
+                          .join(' · ') + ` — ${ps.people} ${ps.people === 1 ? 'pessoa' : 'pessoas'}.`}
+                  </p>
+                );
+              })()}
+              <h3 className="text-sm font-semibold">Festa só para pessoas do BLOP, para testar ao vivo</h3>
                 <p className="text-sm">
                   {party.people === 0
                     ? 'Ainda sem respostas.'
