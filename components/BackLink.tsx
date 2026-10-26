@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { NAV_BUTTON } from '@/lib/ui';
 import { getMyParticipant, getUser } from '@/lib/auth';
 import type { Dict } from '@/lib/i18n/en';
 
@@ -9,7 +10,7 @@ export default async function BackLink({ t }: { t: Dict }) {
   const me = user ? await getMyParticipant() : null;
   const [href, label] = me ? ['/me', t.match.back] : user ? ['/join', t.common.backToJoin] : ['/', t.common.backHome];
   return (
-    <Link href={href} className="block text-sm font-medium text-violet">
+    <Link href={href} className={NAV_BUTTON}>
       ← {label}
     </Link>
   );

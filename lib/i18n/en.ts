@@ -6,6 +6,7 @@ const en = {
   },
   common: {
     signOut: 'Sign out',
+    signIn: 'Sign in',
     genericError: 'Something went wrong. Please try again.',
     backHome: 'Home',
     backToJoin: 'Back to my profile',

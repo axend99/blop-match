@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { NAV_BUTTON } from '@/lib/ui';
 import { notFound, redirect } from 'next/navigation';
 import { submitReport } from '@/app/me/report/[matchId]/actions';
 import { getMyParticipant, getUser } from '@/lib/auth';
@@ -24,7 +25,7 @@ export default async function ReportPage({
 
   const t = getDict(await getLang());
   const back = (
-    <Link href={`/me/match/${matchId}`} className="block text-sm font-medium text-violet">
+    <Link href={`/me/match/${matchId}`} className={NAV_BUTTON}>
       ← {t.match.back}
     </Link>
   );

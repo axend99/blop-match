@@ -6,6 +6,7 @@ import BlopLogo from '@/components/BlopLogo';
 import PageAnalytics from '@/components/PageAnalytics';
 import VisitBeacon from '@/components/VisitBeacon';
 import LangSwitcher from '@/components/LangSwitcher';
+import SignInLink from '@/components/SignInLink';
 import SignOutButton from '@/components/SignOutButton';
 import { getUser } from '@/lib/auth';
 import { getDict } from '@/lib/i18n';
@@ -39,7 +40,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
               <BlopLogo />
             </Link>
             <div className="flex items-center gap-2">
-              {user && <SignOutButton label={t.common.signOut} />}
+              {user ? <SignOutButton label={t.common.signOut} /> : <SignInLink label={t.common.signIn} />}
               <LangSwitcher current={lang} label={t.languageLabel} />
             </div>
           </header>

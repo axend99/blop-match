@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { NAV_BUTTON } from '@/lib/ui';
 import { redirect } from 'next/navigation';
 import Blop from '@/components/Blop';
 import { getMyParticipant, getUser } from '@/lib/auth';
@@ -39,7 +40,7 @@ export default async function ProfilePage() {
 
   return (
     <article className="space-y-6">
-      <Link href="/me" className="block text-sm font-medium text-violet">
+      <Link href="/me" className={NAV_BUTTON}>
         ← {t.match.back}
       </Link>
       <div className="flex items-center gap-4">

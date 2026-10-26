@@ -1,5 +1,6 @@
 import Image from 'next/image';
 import Link from 'next/link';
+import { NAV_BUTTON } from '@/lib/ui';
 import { notFound, redirect } from 'next/navigation';
 import ReviewForm from '@/components/ReviewForm';
 import { getMyParticipant, getUser } from '@/lib/auth';
@@ -26,7 +27,7 @@ export default async function ReviewPage({ params }: { params: Promise<{ matchId
   const { title, opensOn, ...formTexts } = t.review;
 
   const back = (
-    <Link href="/me" className="block text-sm font-medium text-violet">
+    <Link href="/me" className={NAV_BUTTON}>
       ← {t.match.back}
     </Link>
   );

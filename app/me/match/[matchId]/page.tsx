@@ -1,5 +1,6 @@
 import Image from 'next/image';
 import Link from 'next/link';
+import { NAV_BUTTON } from '@/lib/ui';
 import { notFound, redirect } from 'next/navigation';
 import Blop from '@/components/Blop';
 import ContactButtons from '@/components/ContactButtons';
@@ -56,9 +57,11 @@ export default async function MatchPage({ params }: { params: Promise<{ matchId:
 
   return (
     <article className="space-y-6 text-center">
-      <Link href="/me" className="block text-left text-sm font-medium text-violet">
-        ← {t.match.back}
-      </Link>
+      <div className="text-left">
+        <Link href="/me" className={NAV_BUTTON}>
+          ← {t.match.back}
+        </Link>
+      </div>
 
       <p className="text-midnight/70">{t.match.intro}</p>
       <Blop variant={deleted ? null : avatarCategory(match.other_interests)} label={t.avatarAlt(name)} className="mx-auto w-56" />
