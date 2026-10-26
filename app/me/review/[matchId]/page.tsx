@@ -2,22 +2,25 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { NAV_BUTTON } from '@/lib/ui';
 import { notFound, redirect } from 'next/navigation';
+import { after } from 'next/server';
 import ReviewForm from '@/components/ReviewForm';
 import { getMyParticipant, getUser } from '@/lib/auth';
 import { getDict } from '@/lib/i18n';
 import { getLang } from '@/lib/i18n/server';
 import { getMyMatches } from '@/lib/myMatches';
 import { formatDate, reviewOpensAt } from '@/lib/site';
+import { createServiceClient } from '@/lib/supabase/service';
 import looking from '@/public/blop/looking.webp';
 
 // The server action also runs the AI check of the comment in after().
 export const maxDuration = 60;
 
 export default async function ReviewPage({ params }: { params: Promise<{ matchId: string }> }) {
-  if (!(await getUser())) redirect('/login');
+  const { matchId } = await params;
+  // Back here after signing in (e.g. a link opened from an e-mail in another browser).
+  if (!(await getUser())) redirect(`/login?next=/me/review/${encodeURIComponent(matchId)}`);
   const me = await getMyParticipant();
   if (!me) redirect('/join');
-  const { matchId } = await params;
   const match = (await getMyMatches()).find((m) => m.match_id === matchId);
   if (!match) notFound();
 
@@ -43,6 +46,14 @@ export default async function ReviewPage({ params }: { params: Promise<{ matchId
       </div>
     );
   }
+
+  // First time this person sees the open form (review progress in /admin); never blocks the page.
+  after(async () => {
+    const { error } = await createServiceClient()
+      .from('review_views')
+      .upsert({ match_id: match.match_id, participant_id: me.id }, { onConflict: 'match_id,participant_id', ignoreDuplicates: true });
+    if (error) console.error('[review] view not recorded', error);
+  });
 
   return (
     <div className="space-y-6">

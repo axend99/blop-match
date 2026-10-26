@@ -16,9 +16,10 @@ export default async function ReportPage({
   params: Promise<{ matchId: string }>;
   searchParams: Promise<{ error?: string; done?: string }>;
 }) {
-  if (!(await getUser())) redirect('/login');
-  if (!(await getMyParticipant())) redirect('/join');
   const { matchId } = await params;
+  // Back here after signing in (e.g. a link opened from an e-mail in another browser).
+  if (!(await getUser())) redirect(`/login?next=/me/report/${encodeURIComponent(matchId)}`);
+  if (!(await getMyParticipant())) redirect('/join');
   const { error, done } = await searchParams;
   const match = (await getMyMatches()).find((m) => m.match_id === matchId);
   if (!match || match.other_deleted) notFound();

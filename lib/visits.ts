@@ -75,7 +75,8 @@ export function splitAtSnapshot(total: FunnelTotals, snapshot: FunnelTotals): { 
 }
 
 // Each step as a share of the previous one, in the panel's order; null when the previous is 0.
-export const FUNNEL_ORDER = ['home', 'login', 'accounts', 'join', 'profiles'] as const;
+// The form step (join) is left out: it counts tabs, and a magic link opens a new one.
+export const FUNNEL_ORDER = ['home', 'login', 'accounts', 'profiles'] as const;
 export function stepRates(t: FunnelTotals): (number | null)[] {
   return FUNNEL_ORDER.map((k, i) => (i === 0 ? null : t[FUNNEL_ORDER[i - 1]] > 0 ? t[k] / t[FUNNEL_ORDER[i - 1]] : null));
 }

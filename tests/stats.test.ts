@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   partyInterest,
+  reviewProgress,
   byCategory,
   conceptOpinion,
   contactClicks,
@@ -558,5 +559,58 @@ describe('partyInterest', () => {
       { id: 'a', answer: 'yes' },
       { id: 'b', answer: 'maybe' },
     ]);
+  });
+});
+
+describe('reviewProgress', () => {
+  it('counts expected vs received reviews and each step in between', () => {
+    const now = new Date('2026-10-30T12:00:00Z');
+    const p = reviewProgress({
+      matches: [
+        { id: 'm1', a_id: 'a', b_id: 'b', type: 'compatible', created_at: '2026-10-25T09:00:00Z' }, // due
+        { id: 'm2', a_id: 'a', b_id: 'c', type: 'control', created_at: '2026-10-25T09:00:00Z' }, // due, c anonymised
+        { id: 'm3', a_id: 'b', b_id: 'd', type: 'compatible', created_at: '2026-10-30T09:00:00Z' }, // not yet due
+      ],
+      people: new Set(['a', 'b', 'd']),
+      requests: [
+        { match_id: 'm1', participant_id: 'a', requested_at: '2026-10-27T09:00:00Z', reminded_at: '2026-10-30T09:00:00Z' },
+        { match_id: 'm1', participant_id: 'b', requested_at: '2026-10-27T09:00:00Z', reminded_at: null },
+        { match_id: 'm2', participant_id: 'a', requested_at: '2026-10-27T09:00:00Z', reminded_at: null },
+      ],
+      reviews: [
+        { match_id: 'm1', reviewer_id: 'a', created_at: '2026-10-30T10:00:00Z' }, // after the reminder: 73 h
+        { match_id: 'm1', reviewer_id: 'b', created_at: '2026-10-27T10:00:00Z' }, // 1 h
+      ],
+      clicks: [
+        { match_id: 'm1', participant_id: 'a', source: 'reminder' },
+        { match_id: 'm1', participant_id: 'b', source: 'open' },
+        { match_id: 'm2', participant_id: 'c', source: 'open' }, // anonymised: left out
+      ],
+      views: [
+        { match_id: 'm1', participant_id: 'a' },
+        { match_id: 'm1', participant_id: 'b' },
+        { match_id: 'm2', participant_id: 'a' },
+      ],
+      now,
+      delayDays: 2,
+      graceMs: 3_600_000,
+    });
+    expect(p).toEqual({
+      sides: 5, // m1: a, b · m2: a (c anonymised) · m3: b, d
+      notDue: 2,
+      due: 3,
+      requested: 3,
+      reminded: 1,
+      clickedOpen: 1,
+      clickedReminder: 1,
+      viewed: 3,
+      reviewed: 2,
+      reviewedAfterReminder: 1,
+      waitingAfterRequest: 1,
+      waitingAfterReminder: 0,
+      medianHours: 37,
+      compatible: { due: 2, reviewed: 2 },
+      control: { due: 1, reviewed: 0 },
+    });
   });
 });

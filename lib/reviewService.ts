@@ -78,7 +78,8 @@ async function send(state: State, kind: Extract<EmailKind, 'review_open' | 'revi
       name: person.name,
       partnerName,
       lang,
-      url: `${siteUrl()}/me/review/${to.matchId}`,
+      // Through /go/review, which counts the tap for /admin.
+      url: `${siteUrl()}/go/review?m=${to.matchId}&p=${person.id}&src=${kind === 'review_open' ? 'open' : 'reminder'}`,
       reportUrl: partnerName ? `${siteUrl()}/login?next=/me/report/${to.matchId}` : undefined,
     }),
   });

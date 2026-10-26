@@ -12,7 +12,7 @@ import { createClient } from '@/lib/supabase/server';
 
 // The participant's own profile, read-only (it cannot be edited during the study).
 export default async function ProfilePage() {
-  if (!(await getUser())) redirect('/login');
+  if (!(await getUser())) redirect('/login?next=/me/profile');
   if (!(await getMyParticipant())) redirect('/join');
   const lang = await getLang();
   const t = getDict(lang);
