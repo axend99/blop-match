@@ -195,6 +195,17 @@ export function dueReviewRequests(args: {
     });
 }
 
+// The review request never lands on the heels of the "have you talked?" e-mail for the same match:
+// it waits until `minHours` after it (the next run sends it). Late or manual runs can't stack them.
+export const NUDGE_TO_REQUEST_MIN_HOURS = 20;
+
+export function spacedFromNudge(due: Recipient[], nudgedAt: Map<string, string>, now: Date, minHours = NUDGE_TO_REQUEST_MIN_HOURS): Recipient[] {
+  return due.filter((r) => {
+    const at = nudgedAt.get(`${r.matchId}|${r.participantId}`);
+    return !at || now.getTime() - new Date(at).getTime() >= minHours * 3_600_000;
+  });
+}
+
 // review_reminder: a single reminder, `reminderDays` after review_open, if still no review.
 export function dueReminders(args: {
   requests: DueRequest[];
