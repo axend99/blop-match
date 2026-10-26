@@ -710,7 +710,7 @@ export function reviewProgress(input: ProgressInput) {
     reviewed: reviewed.size,
     reviewedAfterReminder: reminded.filter((r) => {
       const at = reviewed.get(key(r.match_id, r.participant_id));
-      return at && at > r.reminded_at!;
+      return at && new Date(at).getTime() > new Date(r.reminded_at!).getTime();
     }).length,
     waitingAfterRequest: requests.filter((r) => !r.reminded_at && !reviewed.has(key(r.match_id, r.participant_id))).length,
     waitingAfterReminder: reminded.filter((r) => !reviewed.has(key(r.match_id, r.participant_id))).length,

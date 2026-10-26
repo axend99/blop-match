@@ -516,7 +516,7 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
                 Uma review por pessoa e por match (cada match espera até 2). Os toques nos botões dos e-mails e a abertura do formulário
                 só são contados desde 26/10; os e-mails enviados antes disso não têm contagem de toques. Não contamos aberturas de
                 e-mail: hoje a maior parte das apps de e-mail abre ou bloqueia as imagens sozinhas, por isso esse número não seria
-                fiável. Quem saiu do estudo continua a contar (pode avaliar); quem pediu para apagar os dados não.
+                fiável. Alguns filtros de e-mail empresariais abrem os links sozinhos, o que pode aumentar um pouco os toques. Quem saiu do estudo continua a contar (pode avaliar); quem pediu para apagar os dados não.
               </p>
             </>
           );
