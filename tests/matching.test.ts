@@ -108,6 +108,22 @@ describe('planMatches', () => {
     expect(me.compatibleCount).toBe(0);
   });
 
+  it('breaks similarity ties by closest age, then fewer matches, then the oldest profile', () => {
+    const me = person(ROCK, { age: 25 });
+    const old = person(ROCK, { age: 40 });
+    const near = person(ROCK, { age: 27 });
+    const unknown = person(ROCK, { age: null });
+    const one = { ...CONFIG, maxCompatible: 1, maxControl: 0 };
+    const [p] = planMatches(me, [me, old, near, unknown], one, seeded());
+    expect([p.aId, p.bId]).toContain(near.id);
+
+    const me2 = person(ROCK, { age: 25 });
+    const busy = person(ROCK, { age: 26, compatibleCount: 1 });
+    const free = person(ROCK, { age: 24 });
+    const [q] = planMatches(me2, [me2, busy, free], one, seeded());
+    expect([q.aId, q.bId]).toContain(free.id); // same gap (1 year): fewer matches wins
+  });
+
   it('respects the per-type limits on both sides', () => {
     const me = person(ROCK);
     const full = person(ROCK, { compatibleCount: 3 });

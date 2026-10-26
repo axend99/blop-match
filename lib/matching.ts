@@ -15,6 +15,7 @@ export type Candidate = {
   interests: string[];
   active: boolean;
   createdAt: string;
+  age?: number | null; // tie-breaker: closer ages first
   compatibleCount: number;
   controlCount: number;
   matchedIds: Set<string>;
@@ -74,6 +75,17 @@ function hasSlot(c: Candidate, type: MatchType, config: MatchingConfig): boolean
   return type === 'compatible' ? c.compatibleCount < config.maxCompatible : c.controlCount < config.maxControl;
 }
 
+// Age gap to `person`; unknown ages go last.
+function ageGap(person: Candidate, c: Candidate): number {
+  return person.age == null || c.age == null ? Infinity : Math.abs(person.age - c.age);
+}
+
+// Tie-breakers after similarity: closest age, then fewer matches, then the oldest profile.
+function tieBreak(person: Candidate, a: Candidate, b: Candidate): number {
+  const gap = ageGap(person, a) - ageGap(person, b);
+  return Number.isNaN(gap) || gap === 0 ? byFewestThenOldest(a, b) : gap;
+}
+
 // Fewer matches first, then the oldest profile.
 function byFewestThenOldest(a: Candidate, b: Candidate): number {
   const load = a.compatibleCount + a.controlCount - (b.compatibleCount + b.controlCount);
@@ -105,7 +117,7 @@ export function planMatches(
     if (type === 'compatible') {
       chosen = candidates
         .filter((x) => x.shared.length >= config.minSharedCompatible)
-        .sort((x, y) => y.score - x.score || byFewestThenOldest(x.c, y.c))[0];
+        .sort((x, y) => y.score - x.score || tieBreak(person, x.c, y.c))[0];
     } else {
       // Only pairs below the compatible threshold, so a control always counts as control. If
       // nobody qualifies, the slot stays open and the daily run tries again.
@@ -113,7 +125,7 @@ export function planMatches(
       const none = below.filter((x) => x.shared.length === 0);
       chosen = none.length
         ? none[Math.floor(rng() * none.length)]
-        : below.sort((x, y) => x.score - y.score || byFewestThenOldest(x.c, y.c))[0];
+        : below.sort((x, y) => x.score - y.score || tieBreak(person, x.c, y.c))[0];
     }
     if (!chosen) continue; // no suitable person yet: the slot stays open for a later run
 
