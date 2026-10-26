@@ -99,6 +99,7 @@ async function seed() {
     interests: p.interests,
     active: true,
     createdAt: at(p.created),
+    age: p.age,
     compatibleCount: 0,
     controlCount: 0,
     matchedIds: new Set(),

@@ -13,6 +13,7 @@ type Participant = {
   email: string | null;
   lang: string;
   interests: string[];
+  age: number | null;
   active: boolean;
   pending_review: boolean;
   created_at: string;
@@ -25,7 +26,7 @@ type MatchRow = { id: string; a_id: string; b_id: string; type: 'compatible' | '
 async function loadState() {
   const supabase = createServiceClient();
   const [people, matches] = await Promise.all([
-    supabase.from('participants').select('id, name, email, lang, interests, active, pending_review, created_at, deleted_at'),
+    supabase.from('participants').select('id, name, email, lang, interests, age, active, pending_review, created_at, deleted_at'),
     supabase.from('matches').select('id, a_id, b_id, type'),
   ]);
   if (people.error) throw people.error;
@@ -42,6 +43,7 @@ async function loadState() {
         // Pending people (being verified, or reported) get no new matches.
         active: p.active && !p.deleted_at && !p.pending_review,
         createdAt: p.created_at,
+        age: p.age,
         compatibleCount: 0,
         controlCount: 0,
         matchedIds: new Set<string>(),
