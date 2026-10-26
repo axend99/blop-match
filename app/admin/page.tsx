@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import { cookies } from 'next/headers';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { funnelSnapshot, invite, resolveFlag, waitlistPreview } from '@/app/admin/actions';
+import { funnelSnapshot, invite, resendReviews, resolveFlag, waitlistPreview } from '@/app/admin/actions';
 import AdminNav from '@/components/admin/AdminNav';
 import DoseChart from '@/components/admin/DoseChart';
 import FunnelChart from '@/components/admin/FunnelChart';
@@ -15,6 +15,7 @@ import pt from '@/lib/i18n/pt';
 import { invitedCount } from '@/lib/inviteService';
 import { latestSnapshot, loadVisitFunnel } from '@/lib/visitService';
 import { loadReviewTracking } from '@/lib/reviewProgressService';
+import { countOldLinkRequests } from '@/lib/reviewService';
 import { FUNNEL_ORDER, VISITS_SINCE, splitAtSnapshot, stepRates } from '@/lib/visits';
 import { REVIEW_GRACE_MS } from '@/lib/review';
 import { AGE_CLOSE_YEARS } from '@/lib/matching';
@@ -448,7 +449,7 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
         description="Quantas reviews esperávamos até agora, quantas chegaram e onde as pessoas param pelo caminho: pedido por e-mail, toque no botão, formulário aberto, review enviada."
       >
         {await (async () => {
-          const t = await loadReviewTracking();
+          const [t, oldLink] = await Promise.all([loadReviewTracking(), countOldLinkRequests()]);
           const pr = reviewProgress({
             matches,
             people: new Set(participants.filter((p) => !p.deleted_at).map((p) => p.id)),
@@ -504,6 +505,15 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
                   <td className="px-2 py-1.5 text-right">{pr.control.reviewed} / {pr.control.due}{pct(pr.control.reviewed, pr.control.due)}</td>
                 </tr>
               </Table>
+              {oldLink > 0 && (
+                <form action={resendReviews} className="space-y-1 rounded-2xl bg-pink/30 p-3 text-sm">
+                  <p>
+                    <b>{oldLink}</b> {oldLink === 1 ? 'pessoa recebeu' : 'pessoas receberam'} o pedido de review com o link antigo (antes de
+                    26/10), que depois de entrar não levava ao formulário, e ainda não {oldLink === 1 ? 'respondeu' : 'responderam'}.
+                  </p>
+                  <button className="rounded-full bg-violet px-4 py-1.5 font-semibold text-white">Reenviar com o link novo</button>
+                </form>
+              )}
               <ul className="space-y-0.5 text-sm">
                 <li>Reviews que chegaram depois do lembrete: <b>{pr.reviewedAfterReminder}</b></li>
                 <li>Ainda sem review depois do lembrete: <b>{pr.waitingAfterReminder}</b></li>
