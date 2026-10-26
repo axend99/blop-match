@@ -208,7 +208,7 @@ export async function openReviewNow(matchId: string): Promise<number> {
 
 // Review requests sent with the old link (it did not bring people back to the form after signing
 // in): sent once more with the current link, to those who have not answered yet.
-export const OLD_REVIEW_LINK_BEFORE = '2026-10-26T15:00:00Z';
+export const OLD_REVIEW_LINK_BEFORE = '2026-10-26T15:45:00Z'; // when the fixed link went live
 
 function oldLinkRequests(state: State) {
   return state.requests.filter(
@@ -217,6 +217,7 @@ function oldLinkRequests(state: State) {
       !r.resentAt &&
       !state.reviewKeys.has(`${r.matchId}|${r.participantId}`) &&
       state.participants.get(r.participantId)?.active &&
+      state.participants.get(r.participantId)?.hasEmail &&
       !state.participants.get(r.participantId)?.deleted,
   );
 }
