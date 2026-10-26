@@ -7,6 +7,7 @@ import { runMatchingFor } from '@/lib/matchingService';
 import { moderate } from '@/lib/moderationService';
 import { siteUrl } from '@/lib/site';
 import { createServiceClient } from '@/lib/supabase/service';
+import { pageAll } from '@/lib/supabase/pageAll';
 
 // Who may receive new matches. A person is held (pending_review) while their new profile is
 // being checked, when the check flagged something or failed, and when they were reported.
@@ -31,8 +32,10 @@ export async function mailboxAlerts(email: string, userId: string) {
   const canonical = canonicalEmail(email);
   const supabase = createServiceClient();
   const [banned, people] = await Promise.all([
-    supabase.from('banned_emails').select('email'),
-    supabase.from('participants').select('name, email, user_id').not('email', 'is', null).is('deleted_at', null),
+    pageAll((a, b) => supabase.from('banned_emails').select('email').order('email').range(a, b)),
+    pageAll((a, b) =>
+      supabase.from('participants').select('name, email, user_id').not('email', 'is', null).is('deleted_at', null).order('id').range(a, b),
+    ),
   ]);
   if (banned.error) throw banned.error;
   if (people.error) throw people.error;

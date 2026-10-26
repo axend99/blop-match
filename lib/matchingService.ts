@@ -6,6 +6,7 @@ import { getDict, isLang } from '@/lib/i18n';
 import { planMatches, type Candidate } from '@/lib/matching';
 import { matchingConfig, siteUrl } from '@/lib/site';
 import { createServiceClient } from '@/lib/supabase/service';
+import { pageAll } from '@/lib/supabase/pageAll';
 
 type Participant = {
   id: string;
@@ -26,8 +27,10 @@ type MatchRow = { id: string; a_id: string; b_id: string; type: 'compatible' | '
 async function loadState() {
   const supabase = createServiceClient();
   const [people, matches] = await Promise.all([
-    supabase.from('participants').select('id, name, email, lang, interests, age, active, pending_review, created_at, deleted_at'),
-    supabase.from('matches').select('id, a_id, b_id, type'),
+    pageAll((a, b) =>
+      supabase.from('participants').select('id, name, email, lang, interests, age, active, pending_review, created_at, deleted_at').order('id').range(a, b),
+    ),
+    pageAll((a, b) => supabase.from('matches').select('id, a_id, b_id, type').order('id').range(a, b)),
   ]);
   if (people.error) throw people.error;
   if (matches.error) throw matches.error;
@@ -146,7 +149,9 @@ export async function runMatchingForAll(deadline = Infinity): Promise<{ created:
     created += await createMatches(state, person);
   }
 
-  const { data: sent } = await state.supabase.from('email_log').select('participant_id, match_id').eq('kind', 'new_match');
+  const { data: sent } = await pageAll((a, b) =>
+    state.supabase.from('email_log').select('participant_id, match_id').eq('kind', 'new_match').order('id').range(a, b),
+  );
   const done = new Set((sent ?? []).map((r) => `${r.participant_id}|${r.match_id}`));
   let emailsRetried = 0;
   for (const m of state.matches) {

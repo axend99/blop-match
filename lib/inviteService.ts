@@ -8,6 +8,7 @@ import { getDict } from '@/lib/i18n';
 import { pendingInvites } from '@/lib/invite';
 import { siteUrl } from '@/lib/site';
 import { createServiceClient } from '@/lib/supabase/service';
+import { pageAll } from '@/lib/supabase/pageAll';
 
 const subject = () => `${getDict('en').emails.invite.subject} / ${getDict('pt').emails.invite.subject}`;
 const url = () => `${siteUrl()}/`;
@@ -37,9 +38,9 @@ export async function sendInvitePreview(): Promise<boolean> {
 export async function sendInvites(emails: string[], deadline: number) {
   const supabase = createServiceClient();
   const [invited, banned, people] = await Promise.all([
-    supabase.from('invite_emails').select('email'),
-    supabase.from('banned_emails').select('email'),
-    supabase.from('participants').select('email').not('email', 'is', null),
+    pageAll((a, b) => supabase.from('invite_emails').select('email').order('email').range(a, b)),
+    pageAll((a, b) => supabase.from('banned_emails').select('email').order('email').range(a, b)),
+    pageAll((a, b) => supabase.from('participants').select('email').not('email', 'is', null).order('id').range(a, b)),
   ]);
   for (const r of [invited, banned, people]) if (r.error) throw r.error;
   const { toSend, skipped } = pendingInvites(emails, {
