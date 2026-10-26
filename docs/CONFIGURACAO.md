@@ -23,7 +23,7 @@ Ficam na Vercel (Project → Settings → Environment Variables) e, para correr 
 | `ADMIN_ACCESS_TOKEN` | Token do link de acesso ao `/admin` sem login (≥ 32 caracteres) | gerar: `openssl rand -hex 32` |
 | `REVIEW_DELAY_DAYS` | Dias entre o match e o pedido de review (2; no dia 1 vai o e-mail "Já falaste com o teu match?") | — |
 | `REMINDER_DELAY_DAYS` | Dias entre o pedido e o lembrete (3: o lembrete chega 5 dias depois do match) | — |
-| `MAX_COMPATIBLE`, `MAX_CONTROL`, `MIN_SHARED_COMPATIBLE` | Regras do matching (3, 1, 8): compatível = pelo menos 8 interesses em comum, também na análise | — |
+| `MAX_COMPATIBLE`, `MAX_CONTROL`, `MIN_SHARED_COMPATIBLE` | Regras do matching (3, 1, 9): compatível = pelo menos 9 pontos (1 por interesse em comum + 1 se a diferença de idade for de até 5 anos), também na análise | — |
 
 Depois de mudar uma variável na Vercel, é preciso fazer **Redeploy**.
 

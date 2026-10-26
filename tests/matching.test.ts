@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { analysisType, planMatches, score, shared, sharedByCategory, type Candidate, type MatchingConfig } from '@/lib/matching';
+import { ageClose, analysisType, compatPoints, planMatches, score, shared, sharedByCategory, type Candidate, type MatchingConfig } from '@/lib/matching';
 
 const CONFIG: MatchingConfig = { maxCompatible: 3, maxControl: 1, minSharedCompatible: 2 };
 
@@ -31,9 +31,15 @@ const ROCK = ['music_rock', 'music_pop', 'music_indie', 'fit_gym', 'food_wine', 
 const ROCK_LIKE = ['music_rock', 'music_pop', 'music_jazz', 'sports_surf', 'food_brunch', 'hob_reading'];
 const OPPOSITE = ['music_fado', 'music_kpop', 'music_metal', 'sports_padel', 'food_indian', 'hob_videogames'];
 
-describe('analysisType', () => {
+describe('compatibility points and analysisType', () => {
+  it('adds one point when ages are at most 5 years apart (unknown age: none)', () => {
+    expect([ageClose(25, 30), ageClose(25, 31), ageClose(25, null), ageClose(undefined, 25)]).toEqual([true, false, false, false]);
+    expect(compatPoints(8, 22, 27)).toBe(9);
+    expect(compatPoints(8, 22, 28)).toBe(8);
+  });
+
   it('is compatible from the threshold on, control below', () => {
-    expect([0, 7, 8, 17].map((n) => analysisType(n, 8))).toEqual(['control', 'control', 'compatible', 'compatible']);
+    expect([0, 8, 9, 17].map((n) => analysisType(n, 9))).toEqual(['control', 'control', 'compatible', 'compatible']);
   });
 });
 
@@ -122,6 +128,25 @@ describe('planMatches', () => {
     const free = person(ROCK, { age: 24 });
     const [q] = planMatches(me2, [me2, busy, free], one, seeded());
     expect([q.aId, q.bId]).toContain(free.id); // same gap (1 year): fewer matches wins
+  });
+
+  it('counts close ages as a point for compatible matches', () => {
+    const one = { ...CONFIG, minSharedCompatible: 3, maxCompatible: 1, maxControl: 0 };
+    const me = person(ROCK, { age: 25 });
+    const close = person(ROCK_LIKE, { age: 28 }); // 2 shared + age = 3 points
+    expect(planMatches(me, [me, close], one, seeded())).toHaveLength(1);
+    const me2 = person(ROCK, { age: 25 });
+    const far = person(ROCK_LIKE, { age: 40 }); // 2 shared, no age point
+    expect(planMatches(me2, [me2, far], one, seeded())).toEqual([]);
+  });
+
+  it('ignores age when picking a control', () => {
+    const ctl = { ...CONFIG, maxCompatible: 0, minSharedCompatible: 5 }; // both stay below the threshold
+    const me = person(ROCK, { age: 25 });
+    const near = person(['music_rock', 'music_fado', 'music_kpop', 'sports_padel', 'food_indian', 'hob_videogames'], { age: 25, createdAt: '2026-10-29T00:00:00Z' });
+    const older = person(['music_rock', 'music_fado', 'music_kpop', 'sports_padel', 'food_indian', 'hob_videogames'], { age: 60, createdAt: '2026-10-01T00:00:00Z' });
+    const [p] = planMatches(me, [me, near, older], ctl, seeded());
+    expect([p.aId, p.bId]).toContain(older.id); // same similarity: oldest profile, not closest age
   });
 
   it('respects the per-type limits on both sides', () => {

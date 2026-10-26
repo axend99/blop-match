@@ -51,7 +51,7 @@ REVIEW_DELAY_DAYS=2
 REMINDER_DELAY_DAYS=3
 MAX_COMPATIBLE=3
 MAX_CONTROL=1
-MIN_SHARED_COMPATIBLE=8
+MIN_SHARED_COMPATIBLE=9
 ```
 
 ---
@@ -135,10 +135,10 @@ sharedByCategory(A, B) = { music: n, sports: n, fitness: n, movies: n, animals: 
 1. Candidatos = participantes `active = true`, ≠ pessoa, sem match existente com ela, e com vagas no tipo pretendido. Vagas de cada pessoa: até `MAX_COMPATIBLE` compatíveis e `MAX_CONTROL` de controlo.
 2. Vagas a preencher na pessoa: a lista de tipos em falta (ex.: `[compatible, compatible, compatible, control]`) é **embaralhada**, para que o controlo não seja sempre o último.
 3. Para cada vaga:
-   - **compatible:** candidatos com `|shared| >= MIN_SHARED_COMPATIBLE` e vaga compatível livre; escolher o maior score (desempate: idade mais próxima, depois quem tem menos matches, depois quem é mais antigo; idade desconhecida fica por último).
-   - **control:** candidatos com `|shared| = 0` e vaga de controlo livre; escolher ao acaso. Se não houver ninguém com 0, escolher o de menor score entre quem partilha menos de `MIN_SHARED_COMPATIBLE` (nunca acima da régua). Grava-se sempre o `shared_count` real.
+   - **compatible:** candidatos com pontos de compatibilidade `>= MIN_SHARED_COMPATIBLE` (1 por interesse em comum + 1 se a diferença de idade for de até 5 anos) e vaga compatível livre; escolher o maior score (desempate: idade mais próxima, depois quem tem menos matches, depois quem é mais antigo; idade desconhecida fica por último).
+   - **control:** candidatos com `|shared| = 0` e vaga de controlo livre; escolher ao acaso. Se não houver ninguém com 0, escolher o de menor score entre quem fica abaixo da régua em pontos (desempate: menos matches, depois mais antigo; a idade não conta no controlo). Grava-se sempre o `shared_count` real.
    - Sem candidato: a vaga fica livre para o próximo perfil ou cron (não se força um match só para preencher a quota).
-   - **Na análise** (`/admin`, CSV), o grupo de cada match é recalculado pela régua atual: compatível se `shared_count >= MIN_SHARED_COMPATIBLE`, controlo abaixo disso. O `type` gravado continua a contar para as vagas e aparece no CSV como `assigned_type`.
+   - **Na análise** (`/admin`, CSV), o grupo de cada match é recalculado pela régua atual: compatível se os pontos (`shared_count` + 1 se idade a até 5 anos) `>= MIN_SHARED_COMPATIBLE`, controlo abaixo disso; os pontos vão no CSV (`points`). O `type` gravado continua a contar para as vagas e aparece no CSV como `assigned_type`.
 4. Cada match criado é um registo por par (`a_id < b_id`), com `type`, `score`, `shared_items`, `shared_by_category` e `shared_count`, gravados no momento (snapshot). Conta na vaga do mesmo tipo das duas pessoas.
 5. Envia o e-mail "new match" às duas pessoas.
 

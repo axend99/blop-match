@@ -16,6 +16,7 @@ import { invitedCount } from '@/lib/inviteService';
 import { latestSnapshot, loadVisitFunnel } from '@/lib/visitService';
 import { FUNNEL_ORDER, VISITS_SINCE, splitAtSnapshot, stepRates } from '@/lib/visits';
 import { REVIEW_GRACE_MS } from '@/lib/review';
+import { AGE_CLOSE_YEARS } from '@/lib/matching';
 import { matchingConfig, reviewDelayDays } from '@/lib/site';
 import { CATEGORIES } from '@/lib/interests';
 import {
@@ -230,12 +231,13 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
         <summary className="cursor-pointer font-semibold">Como ler este painel</summary>
         <ul className="mt-3 list-disc space-y-1.5 pl-5 text-midnight/80">
           <li>
-            <b>Match compatível</b>: o par partilha pelo menos {minShared} interesses. <b>Match de controlo</b>: partilha menos do
-            que isso. O grupo é sempre calculado pelo nº de interesses em comum, por isso um match criado com uma régua antiga pode
-            contar como controlo (o tipo original fica no CSV, coluna assigned_type). O matching cria um compatível com a pessoa mais
-            parecida entre as que partilham pelo menos {minShared}, e um controlo sorteado entre quem não tem nada em comum (senão, a
-            menos parecida abaixo da régua); se não houver ninguém adequado, a vaga fica aberta para os dias seguintes. O controlo
-            serve de comparação: mostra o que acontece com poucos interesses em comum.
+            <b>Match compatível</b>: o par soma pelo menos {minShared} pontos de compatibilidade (1 por interesse em comum, mais 1
+            se a diferença de idade for de até {AGE_CLOSE_YEARS} anos). <b>Match de controlo</b>: menos do que isso. O grupo é sempre
+            calculado com a régua atual, por isso um match criado com uma régua antiga pode mudar de grupo (o tipo original fica no
+            CSV, coluna assigned_type, e os pontos na coluna points). O matching cria um compatível com a pessoa mais parecida entre
+            as que chegam à régua (em empate, idade mais próxima), e um controlo sorteado entre quem não tem nada em comum (senão, a
+            menos parecida abaixo da régua; a idade não conta no controlo); se não houver ninguém adequado, a vaga fica aberta para os
+            dias seguintes. O controlo serve de comparação: mostra o que acontece sem compatibilidade.
           </li>
           <li>
             <b>Review</b>: uma pessoa a avaliar um match, {reviewDelayDays()} {reviewDelayDays() === 1 ? 'dia' : 'dias'} depois. Cada match dá até 2 reviews (uma de cada

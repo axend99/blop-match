@@ -1,6 +1,6 @@
 import 'server-only';
 import { isE2eEmail } from '@/lib/e2eUsers';
-import { analysisType } from '@/lib/matching';
+import { analysisType, compatPoints } from '@/lib/matching';
 import { matchingConfig } from '@/lib/site';
 import { filterAdminData, type DataMode, type ReviewRow } from '@/lib/stats';
 import { createServiceClient } from '@/lib/supabase/service';
@@ -47,6 +47,7 @@ export type AdminMatch = {
   b_id: string;
   type: 'compatible' | 'control'; // group for the analysis (analysisType), not the stored one
   assigned_type: 'compatible' | 'control'; // type stored when the match was created
+  points: number; // compatibility points: shared interests + 1 if ages are close
   score: number;
   shared_items: string[];
   shared_count: number;
@@ -90,17 +91,12 @@ export type AdminReport = {
 };
 
 export async function loadAdminData(mode: DataMode) {
-  const [allParticipants, allMatches, allReviews, allFlags, allClicks, reports, waitlistClicks, waitlistSent] = await Promise.all([
+  const [allParticipants, storedMatches, allReviews, allFlags, allClicks, reports, waitlistClicks, waitlistSent] = await Promise.all([
     all<AdminParticipant>(
       'participants',
       'id, name, email, whatsapp, instagram, city, lang, age, age_range, time_in_city, origin, interests, other_text, talk_about, talk_about_code, active, pending_review, deleted_at, is_seed, created_at',
     ),
-    all<Omit<AdminMatch, 'assigned_type'>>('matches', 'id, a_id, b_id, type, score, shared_items, shared_count, shared_by_category, created_at').then(
-      (rows) => {
-        const min = matchingConfig().minSharedCompatible;
-        return rows.map((m): AdminMatch => ({ ...m, assigned_type: m.type, type: analysisType(m.shared_count, min) }));
-      },
-    ),
+    all<Omit<AdminMatch, 'assigned_type' | 'points'>>('matches', 'id, a_id, b_id, type, score, shared_items, shared_count, shared_by_category, created_at'),
     all<AdminReview>(
       'reviews',
       'id, match_id, reviewer_id, contacted, interest_1_7, who_first, comfort_1_7, why_not, talked, flow_1_7, common_ground_1_7, satisfaction_1_7, meet_again_1_7, met, ig_follow, likes_concept, best_for, party_interest, comment, next_step, created_at',
@@ -111,6 +107,13 @@ export async function loadAdminData(mode: DataMode) {
     all<{ participant_id: string | null; source: string }>('waitlist_clicks', 'id, participant_id, source'),
     all<{ participant_id: string; kind: string }>('email_log', 'id, participant_id, kind').then((rows) => rows.filter((r) => r.kind === 'waitlist')),
   ]);
+  // Analysis group from the current rule (points include the age bonus), stored type kept apart.
+  const ageOf = new Map(allParticipants.map((p) => [p.id, p.age]));
+  const min = matchingConfig().minSharedCompatible;
+  const allMatches = storedMatches.map((m): AdminMatch => {
+    const points = compatPoints(m.shared_count, ageOf.get(m.a_id), ageOf.get(m.b_id));
+    return { ...m, assigned_type: m.type, points, type: analysisType(points, min) };
+  });
   const seedCount = allParticipants.filter((p) => p.is_seed).length;
   const e2eCount = allParticipants.filter((p) => isE2eEmail(p.email)).length;
   // Whole base (not filtered): what waits for an admin in the Verificação tab.
