@@ -5,7 +5,7 @@ import ReviewEmail from '@/emails/ReviewEmail';
 import { inBatches } from '@/lib/batch';
 import { sendEmail, sendOther, type EmailKind } from '@/lib/email';
 import { getDict, interestLabel, isLang } from '@/lib/i18n';
-import { dueNudges, dueReminders, dueReviewRequests, type DueParticipant, type Recipient } from '@/lib/review';
+import { dueNudges, dueReminders, dueReviewRequests, spacedFromNudge, type DueParticipant, type Recipient } from '@/lib/review';
 import { reminderDelayDays, reviewDelayDays, siteUrl } from '@/lib/site';
 import { createServiceClient } from '@/lib/supabase/service';
 import { pageAll } from '@/lib/supabase/pageAll';
@@ -29,7 +29,7 @@ async function loadState() {
       supabase.from('review_requests').select('match_id, participant_id, requested_at, reminded_at, resent_at').order('match_id').order('participant_id').range(a, b),
     ),
     pageAll((a, b) => supabase.from('reviews').select('match_id, reviewer_id').order('id').range(a, b)),
-    pageAll((a, b) => supabase.from('email_log').select('match_id, participant_id').eq('kind', 'match_nudge').order('id').range(a, b)),
+    pageAll((a, b) => supabase.from('email_log').select('match_id, participant_id, sent_at').eq('kind', 'match_nudge').order('id').range(a, b)),
     pageAll((a, b) => supabase.from('reports').select('match_id').order('id').range(a, b)),
   ]);
   for (const r of [people, matches, requests, reviews, nudges, reports]) if (r.error) throw r.error;
@@ -56,6 +56,7 @@ async function loadState() {
     })),
     reviewKeys: new Set(reviews.data!.map((r) => `${r.match_id}|${r.reviewer_id}`)),
     nudged: new Set(nudges.data!.map((r) => `${r.match_id}|${r.participant_id}`)),
+    nudgedAt: new Map<string, string>(nudges.data!.map((r) => [`${r.match_id}|${r.participant_id}`, r.sent_at as string])),
     reported: new Set(reports.data!.flatMap((r) => (r.match_id ? [r.match_id as string] : []))),
   };
 }
@@ -150,14 +151,19 @@ async function sendNudges(state: State, deadline: number): Promise<number> {
 // review_open: records the request first (its primary key blocks duplicates between runs),
 // then emails; if the email fails, the request is removed so the next run retries.
 async function sendReviewRequests(state: State, deadline: number): Promise<number> {
-  const due = dueReviewRequests({
-    matches: state.matches,
-    requests: state.requests,
-    reviewKeys: state.reviewKeys,
-    participants: state.participants,
-    now: new Date(),
-    delayDays: reviewDelayDays(),
-  });
+  const now = new Date();
+  const due = spacedFromNudge(
+    dueReviewRequests({
+      matches: state.matches,
+      requests: state.requests,
+      reviewKeys: state.reviewKeys,
+      participants: state.participants,
+      now,
+      delayDays: reviewDelayDays(),
+    }),
+    state.nudgedAt,
+    now,
+  );
   return inBatches(due, BATCH, deadline, async (to) => {
     const { data: inserted, error } = await state.supabase
       .from('review_requests')
@@ -236,7 +242,7 @@ export async function emailBacklog() {
       nudgeDays < 1
         ? 0
         : dueNudges({ ...base, matches: state.matches, nudged: state.nudged, requests: state.requests, reported: state.reported, nudgeDays, reviewDelayDays: reviewDelayDays() }).length,
-    requests: dueReviewRequests({ ...base, matches: state.matches, requests: state.requests, delayDays: reviewDelayDays() }).length,
+    requests: spacedFromNudge(dueReviewRequests({ ...base, matches: state.matches, requests: state.requests, delayDays: reviewDelayDays() }), state.nudgedAt, now).length,
     reminders: dueReminders({ ...base, requests: state.requests, reminderDays: reminderDelayDays() }).length,
   };
 }

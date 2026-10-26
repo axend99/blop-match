@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { dueNudges, dueReminders, dueReviewRequests, validateReview, type DueParticipant } from '@/lib/review';
+import { dueNudges, dueReminders, dueReviewRequests, spacedFromNudge, validateReview, type DueParticipant } from '@/lib/review';
 import { reviewOpensAt } from '@/lib/site';
 
 const TALKED = {
@@ -255,5 +255,21 @@ describe('questions about the idea', () => {
     expect(bad.ok || bad.errors.best_for).toBe('required');
     const no = validateReview({ ...TALKED, likes_concept: false, best_for: 'dating' });
     expect(no.ok && [no.data.likes_concept, no.data.best_for]).toEqual([false, 'dating']);
+  });
+});
+
+describe('spacedFromNudge', () => {
+  it('holds a review request until 20 h after the nudge for the same match and person', () => {
+    const now = new Date('2026-10-26T15:46:00Z');
+    const due = [
+      { matchId: 'm1', participantId: 'a' }, // nudged this morning: wait
+      { matchId: 'm2', participantId: 'a' }, // nudged yesterday: send
+      { matchId: 'm3', participantId: 'a' }, // never nudged: send
+    ];
+    const nudgedAt = new Map([
+      ['m1|a', '2026-10-26T09:16:00Z'],
+      ['m2|a', '2026-10-25T09:16:00Z'],
+    ]);
+    expect(spacedFromNudge(due, nudgedAt, now)).toEqual([due[1], due[2]]);
   });
 });
