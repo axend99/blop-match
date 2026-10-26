@@ -8,6 +8,7 @@ const pt: Dict = {
   },
   common: {
     signOut: 'Sair',
+    signIn: 'Entrar',
     genericError: 'Algo correu mal. Tenta outra vez.',
     backHome: 'Início',
     backToJoin: 'Voltar ao meu perfil',

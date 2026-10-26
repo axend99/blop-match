@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import type { Lang } from '@/lib/i18n';
 import type { Dict } from '@/lib/i18n/en';
 import { NEXT_COOKIE } from '@/lib/next';
+import { NAV_BUTTON } from '@/lib/ui';
 import { createClient } from '@/lib/supabase/client';
 
 // Google's own "Sign in with Google" button (Google Identity Services) on our domain, so the
@@ -140,7 +141,7 @@ export default function LoginForm({ t, lang, next }: { t: Dict['login']; lang: L
         <h2 className="text-xl font-semibold">{t.sentTitle}</h2>
         <p className="text-midnight/70">{t.sentBody}</p>
         <p className="rounded-2xl bg-lime/40 p-3 text-sm">{t.sentSpam}</p>
-        <button type="button" onClick={() => setStatus('idle')} className="text-sm font-medium text-violet underline">
+        <button type="button" onClick={() => setStatus('idle')} className={`${NAV_BUTTON} mx-auto`}>
           {t.useAnotherEmail}
         </button>
       </div>

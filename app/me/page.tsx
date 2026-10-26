@@ -1,7 +1,9 @@
 import Image from 'next/image';
 import Link from 'next/link';
+import { NAV_BUTTON } from '@/lib/ui';
 import { redirect } from 'next/navigation';
 import Blop from '@/components/Blop';
+import RefreshMatches from '@/components/RefreshMatches';
 import ReviewStatus from '@/components/ReviewStatus';
 import { getMyParticipant, getUser } from '@/lib/auth';
 import { avatarCategory } from '@/lib/avatar';
@@ -22,11 +24,12 @@ export default async function MePage() {
 
   return (
     <div className="space-y-8">
+      <RefreshMatches waiting={matches.length === 0 && me.active} />
       <section className="flex items-center gap-4">
         <Blop variant={avatarCategory(me.interests)} label={t.avatarAlt(me.name)} className="size-24 shrink-0" />
         <div className="space-y-1">
           <h1 className="text-3xl font-bold">{t.me.title(me.name)}</h1>
-          <Link href="/me/profile" className="text-sm font-medium text-violet underline">
+          <Link href="/me/profile" className={NAV_BUTTON}>
             {t.me.profileLink}
           </Link>
         </div>
