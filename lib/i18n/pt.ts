@@ -257,7 +257,7 @@ const pt: Dict = {
     sections: [
       {
         heading: 'Quem somos',
-        body: 'O BLOP Match é um estudo académico do projeto BLOP (MIET 2026). Testa se interesses em comum ajudam desconhecidos a criar ligação.',
+        body: 'O BLOP Match é um estudo académico do projeto BLOP, do mestrado MIETE. Testa se interesses em comum ajudam desconhecidos a criar ligação.',
       },
       {
         heading: 'O que recolhemos',
@@ -291,7 +291,7 @@ const pt: Dict = {
   },
   emails: {
     button: 'Ir para a minha página',
-    footer: 'BLOP Match · um estudo de investigação do BLOP (MIET 2026)',
+    footer: 'BLOP Match · um estudo de investigação do BLOP, mestrado MIETE',
     report: 'Algum problema com esta pessoa?',
     reportLink: 'Denuncia',
     newMatch: {
@@ -353,7 +353,7 @@ const pt: Dict = {
   about: {
     title: 'Sobre o estudo',
     whatTitle: 'O que é',
-    what: 'O BLOP Match é uma pequena experiência de amizade do projeto BLOP (MIET 2026). Queremos perceber se interesses em comum tornam mais fácil a ligação entre desconhecidos.',
+    what: 'O BLOP Match é uma pequena experiência de amizade do projeto BLOP, do mestrado MIETE. Queremos perceber se interesses em comum tornam mais fácil a ligação entre desconhecidos.',
     howTitle: 'Como funciona',
     durationTitle: 'Quanto tempo demora',
     privacyTitle: 'Os teus dados',
