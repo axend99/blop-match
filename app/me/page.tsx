@@ -10,7 +10,7 @@ import { avatarCategory } from '@/lib/avatar';
 import { getDict, interestLabel } from '@/lib/i18n';
 import { getLang } from '@/lib/i18n/server';
 import { getMyMatches } from '@/lib/myMatches';
-import { BLOP_INSTAGRAM } from '@/lib/site';
+import { BLOP_INSTAGRAM, reviewOpensAt } from '@/lib/site';
 import { waitlistUrl } from '@/lib/waitlist';
 import looking from '@/public/blop/looking.webp';
 
@@ -21,6 +21,10 @@ export default async function MePage() {
   const lang = await getLang();
   const t = getDict(lang);
   const matches = await getMyMatches();
+  // Reviews open and not answered yet, oldest match first.
+  const toReview = matches
+    .filter((m) => !m.reviewed_by_me && reviewOpensAt(m.created_at) <= new Date())
+    .sort((a, b) => a.created_at.localeCompare(b.created_at));
 
   return (
     <div className="space-y-8">
@@ -36,6 +40,19 @@ export default async function MePage() {
       </section>
 
       {!me.active && <p className="rounded-2xl bg-pink/40 p-4 text-sm">{t.me.leftNotice}</p>}
+
+      {toReview.length > 0 && (
+        <section className="space-y-3 rounded-3xl bg-violet p-6 text-white">
+          <h2 className="text-xl font-semibold">📝 {t.me.toReviewTitle(toReview.length)}</h2>
+          <p className="text-white/85">{t.me.toReviewBody}</p>
+          <Link
+            href={`/me/review/${toReview[0].match_id}`}
+            className="inline-block rounded-full bg-lime px-6 py-3 font-semibold text-midnight active:scale-[0.98]"
+          >
+            {toReview[0].other_deleted ? t.me.toReviewButtonFormer : t.me.toReviewButton(toReview[0].other_name)}
+          </Link>
+        </section>
+      )}
 
       {matches.length === 0 ? (
         <section className="space-y-3 rounded-3xl bg-white p-6 text-center">
