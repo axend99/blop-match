@@ -86,7 +86,7 @@ export default function LoginForm({ t, lang, next }: { t: Dict['login']; lang: L
       if (cancelled || !gisRef.current) return;
       window.google!.accounts.id.renderButton(gisRef.current, {
         type: 'standard',
-        theme: 'outline',
+        theme: 'filled_black', // the recommended option: faster than waiting for the e-mail
         size: 'large',
         shape: 'pill',
         text: 'continue_with',
@@ -151,13 +151,14 @@ export default function LoginForm({ t, lang, next }: { t: Dict['login']; lang: L
   return (
     <div className="space-y-6">
       {inApp && <p className="rounded-2xl bg-lime/40 p-4 text-sm">{t.inAppHint}</p>}
+      <p className="text-center text-sm font-medium text-midnight/70">{t.googleHint}</p>
       <div ref={gisRef} className={gisReady ? 'flex min-h-11 justify-center' : 'h-0 overflow-hidden'} />
       <button
         type="button"
         hidden={gisReady}
         onClick={signInWithGoogle}
         disabled={googleBusy}
-        className="flex w-full items-center justify-center gap-3 rounded-full border border-midnight/15 bg-white px-6 py-4 text-lg font-semibold disabled:opacity-60"
+        className="flex w-full items-center justify-center gap-3 rounded-full bg-midnight px-6 py-4 text-lg font-semibold text-white disabled:opacity-60"
       >
         <svg viewBox="0 0 48 48" className="size-5" aria-hidden="true">
           <path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.7 32.7 29.2 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.4-.4-3.5z" />

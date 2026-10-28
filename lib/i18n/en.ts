@@ -32,6 +32,7 @@ const en = {
     title: "You're one step away from meeting your new crowd",
     subtitle: 'No passwords: sign in with Google or with a link sent to your email.',
     google: 'Continue with Google',
+    googleHint: 'Fastest: one tap, no waiting for an e-mail.',
     or: 'or',
     emailLabel: 'Your email',
     emailPlaceholder: 'you@example.com',

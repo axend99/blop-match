@@ -34,6 +34,7 @@ const pt: Dict = {
     title: 'Estás a um passo de conhecer a tua malta nova',
     subtitle: 'Sem palavras-passe: entra com Google ou com um link enviado para o teu e-mail.',
     google: 'Continuar com Google',
+    googleHint: 'Mais rápido: entras com um toque, sem esperar pelo e-mail.',
     or: 'ou',
     emailLabel: 'O teu e-mail',
     emailPlaceholder: 'tu@exemplo.com',
