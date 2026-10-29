@@ -18,7 +18,7 @@ export default function AdminNav({
   e2eCount,
   toReview = 0,
 }: {
-  tab: 'painel' | 'participantes' | 'verificacao';
+  tab: 'painel' | 'participantes' | 'reviews' | 'verificacao';
   mode: DataMode;
   href: (mode: DataMode) => string;
   seedCount: number;
@@ -35,12 +35,15 @@ export default function AdminNav({
           <button className="rounded-full border border-midnight/20 bg-white px-4 py-2 text-sm font-medium">Sair do admin</button>
         </form>
       </div>
-      <nav className="flex gap-2 text-sm font-medium">
+      <nav className="flex flex-wrap gap-2 text-sm font-medium">
         <Link href={`/admin?dados=${mode}`} className={pill(tab === 'painel')}>
           Painel
         </Link>
         <Link href={`/admin/participantes?dados=${mode}`} className={pill(tab === 'participantes')}>
           Participantes
+        </Link>
+        <Link href={`/admin/reviews?dados=${mode}`} className={pill(tab === 'reviews')}>
+          Reviews
         </Link>
         <Link href="/admin/verificacao" className={pill(tab === 'verificacao')}>
           Verificação{toReview > 0 ? ` (${toReview})` : ''}
