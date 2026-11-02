@@ -327,18 +327,18 @@ const en = {
       button: 'Rate this interaction',
     },
     finalCall: {
-      subject: "It's not you, it's the end of the experiment 💔 (last day to rate)",
+      subject: "It's not you, it's us 💌 (one last thing before we go)",
       greeting: (name: string) => `Hi ${name},`,
-      talk: 'We need to talk. 💔',
-      ending: "The BLOP Match experiment has come to an end, and this is the last e-mail you'll get from us. Thank you for giving it a chance.",
+      talk: "This is one of those messages: it's not you, it's us. 😅",
+      ending: "The BLOP Match experiment is wrapping up, so this is the last e-mail we'll send you. No more matches, no more reminders: we promise to stop texting.",
       important:
-        "But before we go our separate ways, there's one thing we can't let go of: your review. It's the most important part of the whole experiment: the reviews are what turn these matches into results for our master's project at the university. Without them, everything we built together counts for nothing.",
+        "Before we go, one last favour, and it's the big one: your review. The reviews are what turn all these matches into real results for our master's project at the university, so they're the most important part of the whole experiment.",
       deadline: (n: number) =>
-        `We need your review by the end of today, because tomorrow we'll be putting the results together. You still have ${n === 1 ? '1 match' : `${n} matches`} to rate. It takes 2 minutes each and counts even if you never talked. The other person never sees what you answer.`,
+        `We need them by the end of today, because tomorrow we're putting the results together. You still have ${n === 1 ? '1 match' : `${n} matches`} to rate: 2 minutes each, and it counts even if you never talked. The other person never sees your answers.`,
       button: 'Rate my matches',
-      signoff: "That's all from us. Thank you for being part of this, and good luck with your matches! 💜",
+      signoff: "And this isn't goodbye to BLOP: we're already working on what comes next, the full app and the BLOP bracelet. Thanks for being part of the beginning! 💜",
       team: 'The BLOP team',
-      smallPrint: "Unless the experiment moves on to a second phase, in which case you'll be able to choose whether to continue or not.",
+      smallPrint: "This experiment may have next phases. If it does, we'll get in touch to ask whether you'd like to take part.",
     },
     reviewReminder: {
       subject: (name?: string) => (name ? `Reminder: how did it go with ${name}?` : 'Reminder: rate your match'),

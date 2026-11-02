@@ -327,18 +327,18 @@ const pt: Dict = {
       button: 'Avaliar esta interação',
     },
     finalCall: {
-      subject: 'Não és tu, é o fim da experiência 💔 (último dia para avaliar)',
+      subject: 'Não és tu, somos nós 💌 (uma última coisa antes de irmos)',
       greeting: (name: string) => `Olá ${name},`,
-      talk: 'Precisamos de falar. 💔',
-      ending: 'A experiência do BLOP Match chegou ao fim, e este é o último e-mail que vais receber de nós. Obrigado por nos teres dado uma oportunidade.',
+      talk: 'Esta é daquelas mensagens: não és tu, somos nós. 😅',
+      ending: 'A experiência do BLOP Match está a terminar, por isso este é o último e-mail que te enviamos. Acabaram-se os matches e os lembretes: prometemos deixar de te mandar mensagens.',
       important:
-        'Mas antes de seguirmos caminhos diferentes, há uma coisa de que não conseguimos abdicar: a tua review. É a parte mais importante de toda a experiência: são as reviews que transformam estes matches em resultados para o nosso projeto de mestrado na universidade. Sem elas, tudo o que construímos juntos não conta.',
+        'Antes de irmos, um último pedido, e é o mais importante: a tua review. São as reviews que transformam todos estes matches em resultados reais para o nosso projeto de mestrado na universidade, por isso são a parte mais importante de toda a experiência.',
       deadline: (n: number) =>
-        `Precisamos da tua review até ao fim do dia de hoje, porque amanhã vamos tabular os resultados. Ainda tens ${n === 1 ? '1 match' : `${n} matches`} para avaliar. Demora 2 minutos cada e conta mesmo que não tenham falado. A outra pessoa nunca vê o que respondes.`,
+        `Precisamos delas até ao fim do dia de hoje, porque amanhã vamos tabular os resultados. Ainda tens ${n === 1 ? '1 match' : `${n} matches`} para avaliar: 2 minutos cada, e conta mesmo que não tenham falado. A outra pessoa nunca vê as tuas respostas.`,
       button: 'Avaliar os meus matches',
-      signoff: 'É tudo da nossa parte. Obrigado por teres feito parte disto, e boa sorte com os teus matches! 💜',
+      signoff: 'E isto não é um adeus ao BLOP: já estamos a trabalhar no que vem a seguir, a app completa e a pulseira BLOP. Obrigado por fazeres parte do início! 💜',
       team: 'A equipa BLOP',
-      smallPrint: 'Exceto se esta experiência passar a uma segunda fase, em que poderás escolher continuar ou não.',
+      smallPrint: 'Esta experiência pode ter próximas fases. Se tiver, vamos contactar-te para saber se queres ou não participar.',
     },
     reviewReminder: {
       subject: (name?: string) => (name ? `Lembrete: como correu com ${name}?` : 'Lembrete: avalia o teu match'),
