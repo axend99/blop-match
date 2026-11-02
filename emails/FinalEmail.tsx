@@ -12,7 +12,6 @@ export default function FinalEmail({ name, pending, lang, url }: { name: string;
   return (
     <EmailLayout lang={lang} preview={c.subject} footer={t.footer}>
       <Text style={{ fontSize: 18, fontWeight: 600, margin: '0 0 12px' }}>{c.greeting(name)}</Text>
-      <Text style={P}>{c.talk}</Text>
       <Text style={P}>{c.ending}</Text>
       <Text style={P}>{c.important}</Text>
       <Text style={{ ...P, fontWeight: 600 }}>{c.deadline(pending)}</Text>

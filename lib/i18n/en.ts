@@ -327,12 +327,11 @@ const en = {
       button: 'Rate this interaction',
     },
     finalCall: {
-      subject: "It's not you, it's us 💌 (one last thing before we go)",
+      subject: 'This phase of BLOP Match is over 💜 (one last thing)',
       greeting: (name: string) => `Hi ${name},`,
-      talk: "This is one of those messages: it's not you, it's us. 😅",
-      ending: "The BLOP Match experiment is wrapping up, so this is the last e-mail we'll send you. No more matches, no more reminders: we promise to stop texting.",
+      ending: 'This phase of the BLOP Match experiment has come to an end, so from now on we\'ll stop sending you matches and reminders.',
       important:
-        "Before we go, one last favour, and it's the big one: your review. The reviews are what turn all these matches into real results for our master's project at the university, so they're the most important part of the whole experiment.",
+        "Before we wrap up, one last favour, and it's the big one: your review. The reviews are what turn all these matches into real results for our master's project at the university, so they're the most important part of the whole experiment.",
       deadline: (n: number) =>
         `We need them by the end of today, because tomorrow we're putting the results together. You still have ${n === 1 ? '1 match' : `${n} matches`} to rate: 2 minutes each, and it counts even if you never talked. The other person never sees your answers.`,
       button: 'Rate my matches',

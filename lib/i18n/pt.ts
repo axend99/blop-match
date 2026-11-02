@@ -327,12 +327,11 @@ const pt: Dict = {
       button: 'Avaliar esta interação',
     },
     finalCall: {
-      subject: 'Não és tu, somos nós 💌 (uma última coisa antes de irmos)',
+      subject: 'Esta fase do BLOP Match terminou 💜 (falta uma última coisa)',
       greeting: (name: string) => `Olá ${name},`,
-      talk: 'Esta é daquelas mensagens: não és tu, somos nós. 😅',
-      ending: 'A experiência do BLOP Match está a terminar, por isso este é o último e-mail que te enviamos. Acabaram-se os matches e os lembretes: prometemos deixar de te mandar mensagens.',
+      ending: 'Esta fase da experiência do BLOP Match chegou ao fim, por isso a partir de agora deixamos de te enviar matches e lembretes.',
       important:
-        'Antes de irmos, um último pedido, e é o mais importante: a tua review. São as reviews que transformam todos estes matches em resultados reais para o nosso projeto de mestrado na universidade, por isso são a parte mais importante de toda a experiência.',
+        'Antes de fecharmos, um último pedido, e é o mais importante: a tua review. São as reviews que transformam todos estes matches em resultados reais para o nosso projeto de mestrado na universidade, por isso são a parte mais importante de toda a experiência.',
       deadline: (n: number) =>
         `Precisamos delas até ao fim do dia de hoje, porque amanhã vamos tabular os resultados. Ainda tens ${n === 1 ? '1 match' : `${n} matches`} para avaliar: 2 minutos cada, e conta mesmo que não tenham falado. A outra pessoa nunca vê as tuas respostas.`,
       button: 'Avaliar os meus matches',
