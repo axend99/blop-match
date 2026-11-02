@@ -182,13 +182,13 @@ async function sendReviewRequests(state: State, deadline: number): Promise<numbe
 
 // review_reminder: a single reminder per request. Uses the requests loaded at the start of
 // the run, so a request created in this run never gets its reminder in the same run.
-async function sendReviewReminders(state: State, deadline: number): Promise<number> {
+async function sendReviewReminders(state: State, deadline: number, reminderDays = reminderDelayDays()): Promise<number> {
   const due = dueReminders({
     requests: state.requests,
     reviewKeys: state.reviewKeys,
     participants: state.participants,
     now: new Date(),
-    reminderDays: reminderDelayDays(),
+    reminderDays,
   });
   return inBatches(due, BATCH, deadline, async (to) => {
     if (!(await send(state, 'review_reminder', to))) return false;
@@ -245,6 +245,14 @@ export async function emailBacklog() {
     requests: spacedFromNudge(dueReviewRequests({ ...base, matches: state.matches, requests: state.requests, delayDays: reviewDelayDays() }), state.nudgedAt, now).length,
     reminders: dueReminders({ ...base, requests: state.requests, reminderDays: reminderDelayDays() }).length,
   };
+}
+
+// Team shortcut (/api/remind-now): the reminder now for every unanswered request at least 12 h old (instead of 3
+// days after it). Same e-mail and same once-per-request rule as the routine.
+export const EARLY_REMINDER_MIN_HOURS = 12;
+
+export async function sendEarlyReminders(deadline: number): Promise<number> {
+  return sendReviewReminders(await loadState(), deadline, EARLY_REMINDER_MIN_HOURS / 24);
 }
 
 export async function countOldLinkRequests(): Promise<number> {
