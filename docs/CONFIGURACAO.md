@@ -53,6 +53,7 @@ A conta `blopmatch@gmail.com` precisa de verificação em 2 passos ativa para cr
 - `/api/cron` (matching dos que ficaram sem pares, e-mail "Já falaste com o teu match?", pedidos e lembretes de review, convite da lista de espera) corre **de hora a hora, das 08:00 às 21:00 UTC**, pelo agendador do Supabase (`pg_cron` + `pg_net`, migração `0021_hourly_jobs`; o `CRON_SECRET` fica no vault do Supabase como `cron_secret`). O cron diário da Vercel (`vercel.json`, 09:00 UTC) fica como reserva. Cada e-mail é registado uma vez, por isso as execuções nunca repetem envios. Em previews o cron não faz nada, porque os previews usam a mesma base de dados.
 - Se mudar o `CRON_SECRET` na Vercel, atualizar também o vault: `select vault.update_secret((select id from vault.secrets where name = 'cron_secret'), '<novo>');`
 - Domínio: `blop-match.vercel.app` (Settings → Domains).
+- Região das funções: `dub1` (Dublin), em `vercel.json`, ao lado do Supabase (`eu-west-1`, Irlanda). Cada página com sessão faz várias consultas seguidas à base de dados; com o servidor longe da base, cada uma atravessa o Atlântico.
 
 ## 6. Acesso ao `/admin`
 
