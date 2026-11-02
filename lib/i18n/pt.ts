@@ -326,6 +326,20 @@ const pt: Dict = {
       body: 'Está na hora de avaliar o teu match. Conta-nos como correu (mesmo que ainda não tenham falado): demora 2 minutos e ajuda muito a investigação.',
       button: 'Avaliar esta interação',
     },
+    finalCall: {
+      subject: 'Não és tu, é o fim da experiência 💔 (último dia para avaliar)',
+      greeting: (name: string) => `Olá ${name},`,
+      talk: 'Precisamos de falar. 💔',
+      ending: 'A experiência do BLOP Match chegou ao fim, e este é o último e-mail que vais receber de nós. Obrigado por nos teres dado uma oportunidade.',
+      important:
+        'Mas antes de seguirmos caminhos diferentes, há uma coisa de que não conseguimos abdicar: a tua review. É a parte mais importante de toda a experiência: são as reviews que transformam estes matches em resultados para o nosso projeto de mestrado na universidade. Sem elas, tudo o que construímos juntos não conta.',
+      deadline: (n: number) =>
+        `Precisamos da tua review até ao fim do dia de hoje, porque amanhã vamos tabular os resultados. Ainda tens ${n === 1 ? '1 match' : `${n} matches`} para avaliar. Demora 2 minutos cada e conta mesmo que não tenham falado. A outra pessoa nunca vê o que respondes.`,
+      button: 'Avaliar os meus matches',
+      signoff: 'É tudo da nossa parte. Obrigado por teres feito parte disto, e boa sorte com os teus matches! 💜',
+      team: 'A equipa BLOP',
+      smallPrint: 'Exceto se esta experiência passar a uma segunda fase, em que poderás escolher continuar ou não.',
+    },
     reviewReminder: {
       subject: (name?: string) => (name ? `Lembrete: como correu com ${name}?` : 'Lembrete: avalia o teu match'),
       greeting: (name: string) => `Olá ${name},`,

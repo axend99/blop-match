@@ -326,6 +326,20 @@ const en = {
       body: 'Time to look back on your match. Tell us how it went (even if you haven\'t talked yet): it takes 2 minutes and helps the research a lot.',
       button: 'Rate this interaction',
     },
+    finalCall: {
+      subject: "It's not you, it's the end of the experiment 💔 (last day to rate)",
+      greeting: (name: string) => `Hi ${name},`,
+      talk: 'We need to talk. 💔',
+      ending: "The BLOP Match experiment has come to an end, and this is the last e-mail you'll get from us. Thank you for giving it a chance.",
+      important:
+        "But before we go our separate ways, there's one thing we can't let go of: your review. It's the most important part of the whole experiment: the reviews are what turn these matches into results for our master's project at the university. Without them, everything we built together counts for nothing.",
+      deadline: (n: number) =>
+        `We need your review by the end of today, because tomorrow we'll be putting the results together. You still have ${n === 1 ? '1 match' : `${n} matches`} to rate. It takes 2 minutes each and counts even if you never talked. The other person never sees what you answer.`,
+      button: 'Rate my matches',
+      signoff: "That's all from us. Thank you for being part of this, and good luck with your matches! 💜",
+      team: 'The BLOP team',
+      smallPrint: "Unless the experiment moves on to a second phase, in which case you'll be able to choose whether to continue or not.",
+    },
     reviewReminder: {
       subject: (name?: string) => (name ? `Reminder: how did it go with ${name}?` : 'Reminder: rate your match'),
       greeting: (name: string) => `Hi ${name},`,

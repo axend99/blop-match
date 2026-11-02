@@ -4,7 +4,7 @@ import NewMatchEmail from '@/emails/NewMatchEmail';
 import { sendEmail } from '@/lib/email';
 import { getDict, isLang } from '@/lib/i18n';
 import { planMatches, type Candidate } from '@/lib/matching';
-import { matchingConfig, siteUrl } from '@/lib/site';
+import { matchingConfig, siteUrl, studyEnded } from '@/lib/site';
 import { createServiceClient } from '@/lib/supabase/service';
 import { pageAll } from '@/lib/supabase/pageAll';
 
@@ -128,6 +128,7 @@ function release(state: Awaited<ReturnType<typeof loadState>>, aId: string, bId:
 // Runs after a profile is created: fills the new person's slots, which also fills the
 // slots of people who were already waiting.
 export async function runMatchingFor(participantId: string): Promise<number> {
+  if (studyEnded()) return 0; // no new matches after the end of the study
   const state = await loadState();
   const person = state.pool.get(participantId);
   return person ? createMatches(state, person) : 0;

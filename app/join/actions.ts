@@ -10,7 +10,7 @@ import { getDict, interestLabel } from '@/lib/i18n';
 import { interestByCode } from '@/lib/interests';
 import { getLang, setLang } from '@/lib/i18n/server';
 import { validateProfile, type FieldErrors, type ProfileInput } from '@/lib/profile';
-import { siteUrl } from '@/lib/site';
+import { siteUrl, studyEnded } from '@/lib/site';
 import { suggestTalkAbout, type SuggestionResult } from '@/lib/talkSuggestion';
 import { createClient } from '@/lib/supabase/server';
 import { createServiceClient } from '@/lib/supabase/service';
@@ -60,13 +60,14 @@ export async function createProfile(input: Omit<ProfileInput, 'lang'>): Promise<
   }
 
   try {
-    await sendEmail({
-      participantId: participant.id,
-      kind: 'welcome',
-      to: user.email,
-      subject: getDict(profile.lang).emails.welcome.subject,
-      react: createElement(WelcomeEmail, { name: profile.name, lang: profile.lang, url: `${siteUrl()}/me` }),
-    });
+    if (!studyEnded())
+      await sendEmail({
+        participantId: participant.id,
+        kind: 'welcome',
+        to: user.email,
+        subject: getDict(profile.lang).emails.welcome.subject,
+        react: createElement(WelcomeEmail, { name: profile.name, lang: profile.lang, url: `${siteUrl()}/me` }),
+      });
   } catch (err) {
     console.error('[join] welcome email failed', err);
   }
