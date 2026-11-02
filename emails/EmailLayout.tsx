@@ -14,8 +14,8 @@ export default function EmailLayout({
 }: {
   lang: string;
   preview: string;
-  buttonLabel: string;
-  buttonUrl: string;
+  buttonLabel?: string; // omitted when the e-mail places its own button
+  buttonUrl?: string;
   footer: string;
   report?: { text: string; link: string; url: string }; // "Report this person" (match e-mails)
   children: React.ReactNode;
@@ -30,12 +30,14 @@ export default function EmailLayout({
           <Img src={`${siteUrl()}/brand/logo-email.png`} alt="BLOP" width={100} height={81} style={{ margin: '0 0 20px' }} />
           <Section style={{ backgroundColor: '#ffffff', borderRadius: 24, padding: 24 }}>
             {children}
-            <Button
-              href={buttonUrl}
-              style={{ backgroundColor: COLORS.violet, color: '#ffffff', borderRadius: 999, padding: '14px 28px', fontSize: 16, fontWeight: 600, marginTop: 8 }}
-            >
-              {buttonLabel}
-            </Button>
+            {buttonLabel && buttonUrl && (
+              <Button
+                href={buttonUrl}
+                style={{ backgroundColor: COLORS.violet, color: '#ffffff', borderRadius: 999, padding: '14px 28px', fontSize: 16, fontWeight: 600, marginTop: 8 }}
+              >
+                {buttonLabel}
+              </Button>
+            )}
           </Section>
           {report && (
             <Text style={{ fontSize: 13, color: '#6b6478', textAlign: 'center', marginTop: 16 }}>

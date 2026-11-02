@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { runMatchingForAll } from '@/lib/matchingService';
 import { runReviewEmails } from '@/lib/reviewService';
+import { studyEnded } from '@/lib/site';
 import { sendWaitlistEmails } from '@/lib/waitlistService';
 
 export const dynamic = 'force-dynamic';
@@ -25,6 +26,9 @@ export async function GET(request: NextRequest) {
 
   // Preview deployments share the production database: never act on real people from there.
   if (process.env.VERCEL_ENV === 'preview') return NextResponse.json({ skipped: 'preview' });
+
+  // After the end of the study the routine sends nothing more (only the closing e-mail, apart).
+  if (studyEnded()) return NextResponse.json({ skipped: 'study ended' });
 
   const start = Date.now();
   const matching = await step('matching', () => runMatchingForAll(start + 90_000));

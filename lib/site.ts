@@ -30,9 +30,18 @@ export function formatDate(date: Date, lang: string): string {
   }).format(date);
 }
 
+// End of the study (Lisbon 09:00 = UTC in November): from then on no new matches and no e-mails
+// except the closing one, and every review is open so everyone can still rate. The site stays up.
+export const STUDY_ENDS_AT = '2026-11-03T09:00:00Z';
+
+export function studyEnded(now = new Date()): boolean {
+  return now.getTime() >= new Date(STUDY_ENDS_AT).getTime();
+}
+
 export function reviewOpensAt(matchCreatedAt: string): Date {
   const opens = new Date(matchCreatedAt).getTime() + reviewDelayDays() * 24 * 60 * 60 * 1000 - REVIEW_GRACE_MS;
-  return new Date(Math.max(opens, new Date(matchCreatedAt).getTime()));
+  const regular = Math.max(opens, new Date(matchCreatedAt).getTime());
+  return new Date(studyEnded() ? Math.min(regular, new Date(STUDY_ENDS_AT).getTime()) : regular);
 }
 
 export function reminderDelayDays(): number {
