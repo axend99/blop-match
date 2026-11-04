@@ -23,6 +23,8 @@ import { AGE_CLOSE_YEARS } from '@/lib/matching';
 import { matchingConfig, reviewDelayDays } from '@/lib/site';
 import { CATEGORIES } from '@/lib/interests';
 import {
+  contactDetail,
+  type ContactDetailRow,
   personalityShares,
   reviewProgress,
   partyInterest,
@@ -206,7 +208,7 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
   const notice = (await cookies()).get('admin_notice')?.value;
   const segmentGroup: Group | 'all' = grupo === 'compativel' ? 'compatible' : grupo === 'controlo' ? 'control' : 'all';
 
-  const { participants, matches, reviews, flags, clicks, rows, personById, seedCount, e2eCount, pendingCount, openReports, waitlist } = await loadAdminData(mode);
+  const { participants, matches, reviews, flags, clicks, rows, personById, seedCount, e2eCount, pendingCount, openReports, waitlist, tapped } = await loadAdminData(mode);
   const seedShown = participants.filter((p) => p.is_seed).length;
   // Keeps both filters in links.
   const link = (params: { grupo?: string; dados?: DataMode }, hash = '') =>
@@ -606,6 +608,82 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
           por isso são mais estreitos do que deviam; um intervalo que exclui 0 não chega, sozinho, para concluir que há efeito.
           H3: categorias com n ≥ {MIN_N} com e sem item partilhado (ou ≥ 3, como indicativo); o IC de H3 é otimista, porque é a
           melhor de várias categorias.
+        </p>
+      </Section>
+
+      <Section
+        n="2b"
+        title="H0 em detalhe: do match à conversa"
+        description="Onde as pessoas param entre receber um match e ter uma conversa, quem toma a iniciativa, e o que distingue quem contacta de quem não contacta."
+      >
+        {(() => {
+          const d = contactDetail(rows as unknown as ContactDetailRow[], tapped);
+          const line = (label: string, s: Stat, note?: string) => (
+            <tr key={label}>
+              <td className="px-2 py-1.5">
+                {label}
+                {note && <span className="block text-xs text-midnight/50">{note}</span>}
+              </td>
+              <PctCell s={s} />
+            </tr>
+          );
+          const PERSONALITY: Record<string, string> = pt.review.personalityOptions;
+          return (
+            <div className="grid gap-4 lg:grid-cols-2 [&>*]:min-w-0">
+              <div className="space-y-1">
+                <h3 className="text-sm font-semibold">Funil (todas as reviews)</h3>
+                <Table head={['Etapa', '% das reviews']}>
+                  {line('Contactou o match', d.funnel.contacted)}
+                  {line('Teve uma conversa a sério', d.funnel.talked, `${pct(d.talkedOfContacted.value)} de quem contactou`)}
+                  {line('Próximo passo (quer voltar a ver ou já combinou)', d.funnel.nextStep)}
+                  {line('Encontrou-se ou tem encontro combinado', d.funnel.metOrPlanned)}
+                </Table>
+              </div>
+              <div className="space-y-1">
+                <h3 className="text-sm font-semibold">Quem contacta e quem não</h3>
+                <Table head={['', 'Valor']}>
+                  {line('Fui eu a tomar a iniciativa', d.whoFirst[0], 'entre quem contactou')}
+                  <tr>
+                    <td className="px-2 py-1.5">À vontade ao contactar (1–7)</td>
+                    <MeanCell s={d.comfort} />
+                  </tr>
+                  <tr>
+                    <td className="px-2 py-1.5">Interesse no match (1–7): quem contactou</td>
+                    <MeanCell s={d.interestContacted} />
+                  </tr>
+                  <tr>
+                    <td className="px-2 py-1.5">Interesse no match (1–7): quem não contactou</td>
+                    <MeanCell s={d.interestNotContacted} />
+                  </tr>
+                  {d.whyNot
+                    .filter((w) => w.value)
+                    .map((w) => line(`Não contactou: ${WHY_NOT_LABEL[w.key] ?? w.key}`, w, 'entre quem não contactou'))}
+                </Table>
+              </div>
+              <div className="space-y-1">
+                <h3 className="text-sm font-semibold">Toques nos botões × o que disseram</h3>
+                <Table head={['', '%']}>
+                  {line('Tocou no botão de WhatsApp ou Instagram', d.taps.tapped)}
+                  {line('Tocou e diz que contactou', d.taps.tappersContacted, 'tocar não é o mesmo que mandar mensagem')}
+                  {line('Diz que contactou e tinha tocado', d.taps.contactedTapped)}
+                </Table>
+              </div>
+              <div className="space-y-1">
+                <h3 className="text-sm font-semibold">Por match e por perfil (% que contactou)</h3>
+                <Table head={['', '% contactou']}>
+                  {line('Match em que pelo menos um dos dois contactou', d.matches.anySideContacted, `${d.matches.withReview} matches com review`)}
+                  {line('As duas reviews concordam se houve contacto', d.matches.agreeOnContact, `${d.matches.bothReviewed} matches avaliados pelos dois`)}
+                  {d.byGroup.map((g) => line(g.key === 'compatible' ? 'Grupo compatível' : 'Grupo controlo', g))}
+                  {d.byPersonality.map((p) => line(`Personalidade: ${PERSONALITY[p.key] ?? p.key}`, p))}
+                  {d.byTimeInCity.map((t) => line(`Tempo na cidade: ${SEGMENT_VALUE.time_in_city?.[t.key] ?? t.key}`, t))}
+                </Table>
+              </div>
+            </div>
+          );
+        })()}
+        <p className="text-xs text-midnight/60">
+          Base: reviews (uma pessoa a avaliar um match). Com poucos dados, compara sobretudo as tendências, não as décimas. Quem
+          responde à review tende a ser quem se envolveu mais, por isso &quot;fui eu a tomar a iniciativa&quot; costuma sair alto.
         </p>
       </Section>
 

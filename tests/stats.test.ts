@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  contactDetail,
   meanDiffCI,
   propDiffCI,
   rhoCI,
@@ -673,5 +674,28 @@ describe('confidence intervals', () => {
     expect(r[0]).toBeLessThan(0);
     expect(r[1]).toBeGreaterThan(0.11);
     expect(rhoCI(0.5, 3)).toBeNull();
+  });
+});
+
+describe('contactDetail', () => {
+  it('summarises contact, conversation, taps and agreement between the two sides', () => {
+    const r = (o: Partial<ReviewRow> & Record<string, unknown>) => ({ ...row(o), match_id: 'm1', reviewer_id: 'a', ...o }) as never;
+    const rows = [
+      r({ match_id: 'm1', reviewer_id: 'a', who_first: 'me', personality: 'introvert', interest_1_7: 6 }),
+      r({ match_id: 'm1', reviewer_id: 'b', who_first: 'them', personality: 'both', interest_1_7: 5, talked: false }),
+      r({ match_id: 'm2', reviewer_id: 'a', contacted: false, talked: null, why_not: 'not_interested', interest_1_7: 2, personality: 'introvert' }),
+    ];
+    const d = contactDetail(rows, new Map([['m1|a', ['whatsapp']], ['m2|a', ['instagram']]]));
+    expect(d.funnel.contacted).toEqual({ value: 2 / 3, n: 3 });
+    expect(d.talkedOfContacted).toEqual({ value: 0.5, n: 2 });
+    expect(d.whoFirst.map((w) => w.value)).toEqual([0.5, 0.5]);
+    expect(d.interestContacted.value).toBe(5.5);
+    expect(d.interestNotContacted.value).toBe(2);
+    expect(d.whyNot.find((w) => w.key === 'not_interested')?.value).toBe(1);
+    expect(d.taps.tapped).toEqual({ value: 2 / 3, n: 3 });
+    expect(d.taps.tappersContacted).toEqual({ value: 0.5, n: 2 });
+    expect(d.taps.contactedTapped).toEqual({ value: 0.5, n: 2 });
+    expect(d.matches).toMatchObject({ withReview: 2, bothReviewed: 1, anySideContacted: { value: 0.5, n: 2 }, agreeOnContact: { value: 1, n: 1 } });
+    expect(d.byPersonality.find((x) => x.key === 'introvert')).toMatchObject({ value: 0.5, n: 2 });
   });
 });
