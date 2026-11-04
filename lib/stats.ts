@@ -821,3 +821,53 @@ export function personalityShares(reviews: { reviewer_id: string; personality?: 
     }),
   };
 }
+
+// --- H0 in detail: from match to conversation (block 2b) ---
+
+export type ContactDetailRow = ReviewRow & { match_id: string; reviewer_id: string; who_first?: string | null; personality?: string | null };
+
+export function contactDetail(rows: ContactDetailRow[], tapped: Map<string, string[]>) {
+  const key = (r: ContactDetailRow) => `${r.match_id}|${r.reviewer_id}`;
+  const contacted = rows.filter(reachedOut);
+  const notContacted = rows.filter((r) => !r.contacted);
+  const tappers = rows.filter((r) => tapped.has(key(r)));
+  const byMatch = new Map<string, ContactDetailRow[]>();
+  for (const r of rows) byMatch.set(r.match_id, [...(byMatch.get(r.match_id) ?? []), r]);
+  const both = [...byMatch.values()].filter((x) => x.length === 2);
+  const shares = <K extends string>(list: ContactDetailRow[], of: (r: ContactDetailRow) => K | null | undefined, keys: readonly K[]) =>
+    keys.map((k) => ({ key: k, ...rate(list, (r) => of(r) === k) }));
+  const contactBy = <K extends string>(of: (r: ContactDetailRow) => K | null | undefined, keys: readonly K[]) =>
+    keys.map((k) => ({ key: k, ...rate(rows.filter((r) => of(r) === k), reachedOut) }));
+  const interest = (list: ContactDetailRow[]) => ({
+    value: list.length ? list.reduce((a, r) => a + r.interest_1_7, 0) / list.length : null,
+    n: list.length,
+  });
+  return {
+    funnel: {
+      contacted: rate(rows, reachedOut),
+      talked: rate(rows, talked),
+      nextStep: rate(rows, (r) => r.next_step),
+      metOrPlanned: rate(rows, (r) => r.met === 'yes' || r.met === 'planned'),
+    },
+    talkedOfContacted: rate(contacted, talked),
+    whoFirst: shares(contacted, (r) => r.who_first, ['me', 'them'] as const),
+    comfort: mean(contacted, 'comfort_1_7'),
+    interestContacted: interest(contacted),
+    interestNotContacted: interest(notContacted),
+    whyNot: shares(notContacted, (r) => r.why_not, WHY_NOT),
+    taps: {
+      tapped: rate(rows, (r) => tapped.has(key(r))),
+      tappersContacted: rate(tappers, reachedOut),
+      contactedTapped: rate(contacted, (r) => tapped.has(key(r))),
+    },
+    matches: {
+      withReview: byMatch.size,
+      anySideContacted: rate([...byMatch.values()], (x) => x.some(reachedOut)),
+      bothReviewed: both.length,
+      agreeOnContact: rate(both, (x) => x[0].contacted === x[1].contacted),
+    },
+    byGroup: (['compatible', 'control'] as const).map((g) => ({ key: g, ...rate(byGroup(rows, g), reachedOut) })),
+    byPersonality: contactBy((r) => r.personality, ['introvert', 'extrovert', 'both'] as const),
+    byTimeInCity: contactBy((r) => r.time_in_city as 'lt6m' | '6-24m' | '2y+' | 'always', ['lt6m', '6-24m', '2y+', 'always'] as const),
+  };
+}
