@@ -12,6 +12,7 @@ export type ReviewRow = {
   match_id: string;
   type: Group;
   shared_count: number;
+  points?: number; // compatibility points (shared interests + 1 if ages are close); falls back to shared_count
   shared_by_category: Partial<Record<string, number>>;
   shared_items: string[];
   // Profile of the person who answered.
@@ -107,23 +108,83 @@ export function spearman(x: number[], y: number[]): number | null {
 
 // --- Hypotheses (SPEC §8 block 1) ---
 
-export type Status = 'above' | 'below' | 'insufficient';
+// 'indicative': there is a value, but some count is below MIN_N, so it can easily be chance;
+// `meetsTarget` still says on which side of the target it falls.
+export type Status = 'above' | 'below' | 'indicative' | 'insufficient';
 export type Hypothesis = {
   id: 'H0' | 'H1' | 'H2' | 'H3' | 'H4';
-  values: { label: string; value: number | null; kind: 'pp' | 'pct' | 'points' | 'rho' }[];
+  values: { label: string; value: number | null; kind: 'pp' | 'pct' | 'points' | 'rho'; ci?: [number, number] | null }[];
   ns: { label: string; n: number }[];
   status: Status;
+  meetsTarget: boolean | null;
   category?: Category; // H3: the category with the largest difference
 };
+
+// --- 95% confidence intervals, so small samples can be read with their uncertainty ---
+
+// Two-sided 95% Student t critical values (df 1–30); the normal value beyond.
+const T95 = [12.71, 4.3, 3.18, 2.78, 2.57, 2.45, 2.36, 2.31, 2.26, 2.23, 2.2, 2.18, 2.16, 2.14, 2.13, 2.12, 2.11, 2.1, 2.09, 2.09, 2.08, 2.07, 2.07, 2.06, 2.06, 2.06, 2.05, 2.05, 2.05, 2.04];
+export const t95 = (df: number) => (df >= 1 && df <= 30 ? T95[Math.floor(df) - 1] : df <= 60 ? 2.0 : 1.96);
+
+const valuesOf = (rows: ReviewRow[], field: ScoreField) => rows.map((r) => r[field]).filter((v): v is number => v !== null);
+const variance = (xs: number[]) => {
+  const m = xs.reduce((a, b) => a + b, 0) / xs.length;
+  return xs.reduce((a, x) => a + (x - m) ** 2, 0) / (xs.length - 1);
+};
+
+// Difference of two means (a − b), Welch's interval.
+export function meanDiffCI(a: number[], b: number[]): [number, number] | null {
+  if (a.length < 2 || b.length < 2) return null;
+  const va = variance(a) / a.length;
+  const vb = variance(b) / b.length;
+  const se = Math.sqrt(va + vb);
+  const diff = a.reduce((x, y) => x + y, 0) / a.length - b.reduce((x, y) => x + y, 0) / b.length;
+  if (se === 0) return [diff, diff];
+  const df = (va + vb) ** 2 / (va ** 2 / (a.length - 1) + vb ** 2 / (b.length - 1));
+  const half = t95(df) * se;
+  return [diff - half, diff + half];
+}
+
+// Difference of two proportions (a − b), Agresti–Caffo (one success and one failure added to
+// each group, so small or all-or-nothing samples don't look certain), kept within ±1.
+export function propDiffCI(a: Stat, b: Stat): [number, number] | null {
+  if (a.value === null || b.value === null || !a.n || !b.n) return null;
+  const pa = (a.value * a.n + 1) / (a.n + 2);
+  const pb = (b.value * b.n + 1) / (b.n + 2);
+  const se = Math.sqrt((pa * (1 - pa)) / (a.n + 2) + (pb * (1 - pb)) / (b.n + 2));
+  const d = pa - pb;
+  return [Math.max(-1, d - 1.96 * se), Math.min(1, d + 1.96 * se)];
+}
+
+// One proportion, Wilson interval.
+export function wilsonCI(s: Stat): [number, number] | null {
+  if (s.value === null || !s.n) return null;
+  const z = 1.96;
+  const d = 1 + (z * z) / s.n;
+  const c = (s.value + (z * z) / (2 * s.n)) / d;
+  const h = (z * Math.sqrt((s.value * (1 - s.value)) / s.n + (z * z) / (4 * s.n * s.n))) / d;
+  return [c - h, c + h];
+}
+
+// Spearman's ρ, Fisher z interval with the Bonett–Wright standard error (needs n ≥ 4).
+export function rhoCI(rho: number | null, n: number): [number, number] | null {
+  if (rho === null || n < 4) return null;
+  const z = Math.atanh(Math.max(-0.999999, Math.min(0.999999, rho)));
+  const se = Math.sqrt((1 + (rho * rho) / 2) / (n - 3));
+  return [Math.tanh(z - 1.96 * se), Math.tanh(z + 1.96 * se)];
+}
 
 // Targets compare raw values with a tiny tolerance, so float noise (0.7 − 0.55 = 0.1499…)
 // never turns an exact hit into a miss.
 const meets = (v: number | null, target: number) => v !== null && v >= target - 1e-9;
 
 function status(enough: boolean, values: (number | null)[], meets: boolean): Status {
-  if (!enough || values.some((v) => v === null)) return 'insufficient';
+  if (values.some((v) => v === null)) return 'insufficient';
+  if (!enough) return 'indicative';
   return meets ? 'above' : 'below';
 }
+
+const pointsOf = (r: ReviewRow) => r.points ?? r.shared_count;
 
 export type CategoryStat = {
   category: Category;
@@ -171,18 +232,25 @@ export function hypotheses(rows: ReviewRow[]): Hypothesis[] {
   const talkedDiff = difference(talkedC, talkedK);
   const satDiff = difference(satC, satK);
 
+  // H2 uses compatibility points (shared interests + close age), the measure behind the groups.
   const pairs = rows.filter((r) => r.satisfaction_1_7 !== null);
   const rho = spearman(
-    pairs.map((r) => r.shared_count),
+    pairs.map(pointsOf),
     pairs.map((r) => r.satisfaction_1_7 as number),
   );
 
-  // H3: only categories with enough reviews on both sides count; the value is the largest
-  // (signed) difference among them.
-  const eligible = byCategory(rows).filter(
-    (c) => c.satisfactionWith.n >= MIN_N && c.satisfactionWithout.n >= MIN_N && c.difference !== null,
-  );
-  const best = eligible[0];
+  // H3: categories with enough reviews on both sides count; the value is the largest (signed)
+  // difference among them. Without any, the largest among those with at least 3 on each side,
+  // marked indicative.
+  const cats = byCategory(rows).filter((c) => c.difference !== null);
+  const eligible = cats.filter((c) => c.satisfactionWith.n >= MIN_N && c.satisfactionWithout.n >= MIN_N);
+  const best = eligible[0] ?? cats.find((c) => c.satisfactionWith.n >= 3 && c.satisfactionWithout.n >= 3);
+  const bestCI = best
+    ? meanDiffCI(
+        valuesOf(rows.filter((r) => (r.shared_by_category[best.category] ?? 0) > 0), 'satisfaction_1_7'),
+        valuesOf(rows.filter((r) => (r.shared_by_category[best.category] ?? 0) === 0), 'satisfaction_1_7'),
+      )
+    : null;
 
   const cgC = mean(comp, 'common_ground_1_7');
   const cgK = mean(ctrl, 'common_ground_1_7');
@@ -191,15 +259,16 @@ export function hypotheses(rows: ReviewRow[]): Hypothesis[] {
   return [
     {
       id: 'H0',
-      values: [{ label: 'Contacto', value: h0.value, kind: 'pct' }],
+      values: [{ label: 'Contacto', value: h0.value, kind: 'pct', ci: wilsonCI(h0) }],
       ns: [{ label: 'reviews', n: h0.n }],
       status: status(h0.n >= MIN_N, [h0.value], meets(h0.value, 0.4)),
+      meetsTarget: h0.value === null ? null : meets(h0.value, 0.4),
     },
     {
       id: 'H1',
       values: [
-        { label: 'Conversa (comp. − ctrl.)', value: talkedDiff, kind: 'pp' },
-        { label: 'Satisfação (comp. − ctrl.)', value: satDiff, kind: 'points' },
+        { label: 'Conversa (comp. − ctrl.)', value: talkedDiff, kind: 'pp', ci: propDiffCI(talkedC, talkedK) },
+        { label: 'Satisfação (comp. − ctrl.)', value: satDiff, kind: 'points', ci: meanDiffCI(valuesOf(comp, 'satisfaction_1_7'), valuesOf(ctrl, 'satisfaction_1_7')) },
       ],
       ns: [
         { label: 'reviews comp.', n: talkedC.n },
@@ -212,33 +281,37 @@ export function hypotheses(rows: ReviewRow[]): Hypothesis[] {
         [talkedDiff, satDiff],
         meets(talkedDiff, 0.15) && meets(satDiff, 1),
       ),
+      meetsTarget: talkedDiff === null || satDiff === null ? null : meets(talkedDiff, 0.15) && meets(satDiff, 1),
     },
     {
       id: 'H2',
-      values: [{ label: 'ρ de Spearman', value: rho, kind: 'rho' }],
+      values: [{ label: 'ρ de Spearman', value: rho, kind: 'rho', ci: rhoCI(rho, pairs.length) }],
       ns: [{ label: 'reviews com satisfação', n: pairs.length }],
       status: status(pairs.length >= MIN_N, [rho], meets(rho, 0.3)),
+      meetsTarget: rho === null ? null : meets(rho, 0.3),
     },
     {
       id: 'H3',
       category: best?.category,
-      values: [{ label: 'Maior diferença (com − sem item)', value: best?.difference ?? null, kind: 'points' }],
+      values: [{ label: 'Maior diferença (com − sem item)', value: best?.difference ?? null, kind: 'points', ci: bestCI }],
       ns: best
         ? [
             { label: 'com item', n: best.satisfactionWith.n },
             { label: 'sem item', n: best.satisfactionWithout.n },
           ]
         : [],
-      status: status(Boolean(best), [best?.difference ?? null], meets(best?.difference ?? null, 0.75)),
+      status: status(Boolean(eligible[0]), [best?.difference ?? null], meets(best?.difference ?? null, 0.75)),
+      meetsTarget: best?.difference == null ? null : meets(best.difference, 0.75),
     },
     {
       id: 'H4',
-      values: [{ label: 'Coisas em comum (comp. − ctrl.)', value: cgDiff, kind: 'points' }],
+      values: [{ label: 'Coisas em comum (comp. − ctrl.)', value: cgDiff, kind: 'points', ci: meanDiffCI(valuesOf(comp, 'common_ground_1_7'), valuesOf(ctrl, 'common_ground_1_7')) }],
       ns: [
         { label: 'comp.', n: cgC.n },
         { label: 'ctrl.', n: cgK.n },
       ],
       status: status(Math.min(cgC.n, cgK.n) >= MIN_N, [cgDiff], meets(cgDiff, 1)),
+      meetsTarget: cgDiff === null ? null : meets(cgDiff, 1),
     },
   ];
 }
@@ -338,13 +411,20 @@ export function segment(rows: ReviewRow[], key: SegmentKey) {
 
 // --- Dose-response (block 7) ---
 
-export const DOSE_BUCKETS = ['0', '1', '2', '3', '4+'] as const;
+// By compatibility points (the compatible threshold is 9): bands around it.
+export const DOSE_BUCKETS = [
+  { bucket: '0–6', min: 0, max: 6 },
+  { bucket: '7–8', min: 7, max: 8 },
+  { bucket: '9–10', min: 9, max: 10 },
+  { bucket: '11–12', min: 11, max: 12 },
+  { bucket: '13+', min: 13, max: Infinity },
+] as const;
 
 export function doseResponse(rows: ReviewRow[]) {
-  return DOSE_BUCKETS.map((bucket, i) => ({
+  return DOSE_BUCKETS.map(({ bucket, min, max }) => ({
     bucket,
     satisfaction: mean(
-      rows.filter((r) => (i === 4 ? r.shared_count >= 4 : r.shared_count === i)),
+      rows.filter((r) => pointsOf(r) >= min && pointsOf(r) <= max),
       'satisfaction_1_7',
     ),
   }));

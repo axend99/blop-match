@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import {
+  meanDiffCI,
+  propDiffCI,
+  rhoCI,
+  wilsonCI,
   partyInterest,
   personalityShares,
   reviewProgress,
@@ -105,8 +109,11 @@ describe('spearman', () => {
 });
 
 describe('hypotheses', () => {
-  it('H0: insufficient below 15 reviews, then compares the raw rate with 40%', () => {
-    expect(status(many(14, () => row()), 'H0').status).toBe('insufficient');
+  it('H0: indicative below 15 reviews (with the side of the target), then compares the raw rate with 40%', () => {
+    const small = status(many(14, () => row()), 'H0');
+    expect(small.status).toBe('indicative');
+    expect(small.meetsTarget).toBe(true);
+    expect(status([], 'H0').status).toBe('insufficient');
     // 6 of 15 = exactly 40% → above
     const rows = [...many(6, () => row()), ...many(9, () => notContacted())];
     expect(status(rows, 'H0').status).toBe('above');
@@ -122,9 +129,9 @@ describe('hypotheses', () => {
     // satisfaction difference below 1 → below, even with the talked gap
     const compLow = many(15, () => row({ satisfaction_1_7: 4.5 }));
     expect(status([...compLow, ...ctrlTalked, ...ctrlNot], 'H1').status).toBe('below');
-    // control satisfaction answered by only 10 → insufficient
+    // control satisfaction answered by only 10 → indicative
     expect(status([...comp, ...many(10, () => row({ type: 'control', satisfaction_1_7: 4 }))], 'H1').status).toBe(
-      'insufficient',
+      'indicative',
     );
   });
 
@@ -149,12 +156,15 @@ describe('hypotheses', () => {
     expect(h.status).toBe('above');
   });
 
-  it('H2: Spearman between shared count and satisfaction, in its 3 states', () => {
+  it('H2: Spearman between compatibility points and satisfaction, in its states', () => {
     const up = many(15, () => row()).map((r, i) => ({ ...r, shared_count: i, satisfaction_1_7: 1 + Math.floor(i / 3) }));
     expect(status(up, 'H2').status).toBe('above');
     const down = up.map((r, i) => ({ ...r, satisfaction_1_7: 7 - Math.floor(i / 3) }));
     expect(status(down, 'H2').status).toBe('below');
-    expect(status(up.slice(0, 14), 'H2').status).toBe('insufficient');
+    expect(status(up.slice(0, 14), 'H2').status).toBe('indicative');
+    // points (with the age bonus) take precedence over shared_count
+    const byPoints = up.map((r, i) => ({ ...r, shared_count: 14 - i, points: i }));
+    expect(status(byPoints, 'H2').status).toBe('above');
   });
 
   it('H3 takes the largest difference among categories with n ≥ 15 on both sides', () => {
@@ -166,14 +176,17 @@ describe('hypotheses', () => {
     expect(h.category).toBe('music');
     expect(h.values[0].value).toBeCloseTo(1);
     expect(h.status).toBe('above');
-    expect(status([...withMusic, ...withoutMusic.slice(0, 14)], 'H3').status).toBe('insufficient');
+    const small = status([...withMusic, ...withoutMusic.slice(0, 14)], 'H3');
+    expect(small.status).toBe('indicative');
+    expect(small.category).toBe('music');
+    expect(status(withMusic.slice(0, 2), 'H3').status).toBe('insufficient');
   });
 
   it('H4: common ground difference, in its 3 states (exact 1.0 counts)', () => {
     const comp = many(15, () => row({ common_ground_1_7: 5.3 }));
     expect(status([...comp, ...many(15, () => row({ type: 'control', common_ground_1_7: 4.3 }))], 'H4').status).toBe('above');
     expect(status([...comp, ...many(15, () => row({ type: 'control', common_ground_1_7: 4.5 }))], 'H4').status).toBe('below');
-    expect(status([...comp, ...many(14, () => row({ type: 'control', common_ground_1_7: 4 }))], 'H4').status).toBe('insufficient');
+    expect(status([...comp, ...many(14, () => row({ type: 'control', common_ground_1_7: 4 }))], 'H4').status).toBe('indicative');
   });
 
   it('H3 exposes the category separately (translated by the page)', () => {
@@ -246,11 +259,18 @@ describe('blocks', () => {
     expect(s[1]).toMatchObject({ value: 'porto', n: 1, contact: { value: 0, n: 1 } });
   });
 
-  it('dose-response buckets with 4+', () => {
-    const d = doseResponse([row({ shared_count: 0, satisfaction_1_7: 2 }), row({ shared_count: 6, satisfaction_1_7: 6 }), row({ shared_count: 4, satisfaction_1_7: 4 })]);
-    expect(d.map((b) => b.bucket)).toEqual(['0', '1', '2', '3', '4+']);
+  it('dose-response bands by compatibility points (falling back to shared count)', () => {
+    const d = doseResponse([
+      row({ shared_count: 3, satisfaction_1_7: 2 }),
+      row({ shared_count: 8, points: 9, satisfaction_1_7: 6 }),
+      row({ shared_count: 10, satisfaction_1_7: 4 }),
+      row({ shared_count: 14, satisfaction_1_7: 7 }),
+    ]);
+    expect(d.map((b) => b.bucket)).toEqual(['0–6', '7–8', '9–10', '11–12', '13+']);
     expect(d[0].satisfaction).toEqual({ value: 2, n: 1 });
-    expect(d[4].satisfaction).toEqual({ value: 5, n: 2 });
+    expect(d[1].satisfaction).toEqual({ value: null, n: 0 });
+    expect(d[2].satisfaction).toEqual({ value: 5, n: 2 });
+    expect(d[4].satisfaction).toEqual({ value: 7, n: 1 });
   });
 
   it('why_not shares among non-contacted reviews per group', () => {
@@ -631,5 +651,27 @@ describe('personalityShares', () => {
       { option: 'extrovert', count: 1, share: 0.5 },
       { option: 'both', count: 1, share: 0.5 },
     ]);
+  });
+});
+
+describe('confidence intervals', () => {
+  it('Welch interval for a difference of means', () => {
+    const ci = meanDiffCI([6, 7, 6, 7], [4, 5, 4, 5])!;
+    expect(ci[0]).toBeGreaterThan(0.9);
+    expect(ci[1]).toBeLessThan(3.1);
+    expect(meanDiffCI([6], [4, 5])).toBeNull();
+  });
+
+  it('proportion difference, Wilson and Spearman intervals contain the estimate', () => {
+    const p = propDiffCI({ value: 0.6, n: 20 }, { value: 0.4, n: 20 })!;
+    expect(p[0]).toBeLessThan(0.2);
+    expect(p[1]).toBeGreaterThan(0.2);
+    const w = wilsonCI({ value: 0.5, n: 34 })!;
+    expect(w[0]).toBeLessThan(0.5);
+    expect(w[1]).toBeGreaterThan(0.5);
+    const r = rhoCI(0.11, 12)!;
+    expect(r[0]).toBeLessThan(0);
+    expect(r[1]).toBeGreaterThan(0.11);
+    expect(rhoCI(0.5, 3)).toBeNull();
   });
 });

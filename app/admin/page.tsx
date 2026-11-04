@@ -76,7 +76,8 @@ const PERSONALITY_LABEL: Record<string, string> = pt.review.personalityOptions;
 const STATUS: Record<Hypothesis['status'], { label: string; className: string }> = {
   above: { label: 'Acima da meta', className: 'bg-lime text-midnight' },
   below: { label: 'Abaixo da meta', className: 'bg-pink/60 text-midnight' },
-  insufficient: { label: 'Dados insuficientes', className: 'bg-midnight/10 text-midnight/70' },
+  indicative: { label: 'Indicativo (amostra pequena)', className: 'bg-violet/15 text-midnight' },
+  insufficient: { label: 'Sem dados', className: 'bg-midnight/10 text-midnight/70' },
 };
 // What each hypothesis asks and how its number is computed, in plain words.
 const TARGETS: Record<Hypothesis['id'], { title: string; target: string; question: string; how: string }> = {
@@ -96,13 +97,13 @@ const TARGETS: Record<Hypothesis['id'], { title: string; target: string; questio
     title: 'Mais itens em comum, mais satisfação',
     target: 'ρ ≥ 0,3',
     question: 'Quanto mais interesses em comum, maior a satisfação?',
-    how: 'Correlação de Spearman entre o nº de itens em comum e a satisfação, em todas as reviews com satisfação (só quem conversou).',
+    how: 'Correlação de Spearman entre os pontos de compatibilidade (interesses em comum + 1 se a idade for próxima) e a satisfação, em todas as reviews com satisfação (só quem conversou).',
   },
   H3: {
     title: 'Categoria com mais efeito',
     target: '≥ +0,75 ponto',
     question: 'Que tipo de interesse em comum pesa mais?',
-    how: 'Por categoria: satisfação de quem partilha pelo menos um item dessa categoria − de quem não partilha (só quem conversou). Mostra a maior diferença entre as categorias com n ≥ 15 dos dois lados (pode ser negativa).',
+    how: 'Por categoria: satisfação de quem partilha pelo menos um item dessa categoria − de quem não partilha (só quem conversou). Mostra a maior diferença entre as categorias com n ≥ 15 dos dois lados (pode ser negativa); se nenhuma chegar a 15, a maior entre as que têm pelo menos 3 de cada lado, como indicativo.',
   },
   H4: {
     title: 'Sensação de coisas em comum',
@@ -116,6 +117,13 @@ function compositionLabel(key: string, value: string) {
   if (value === '__other') return 'Outras';
   if (key === 'city') return value.charAt(0).toUpperCase() + value.slice(1);
   return SEGMENT_VALUE[key]?.[value] ?? value;
+}
+
+// 95% interval in the same unit as the value.
+function hCI(v: Hypothesis['values'][number]) {
+  if (!v.ci) return null;
+  const f = (x: number) => (v.kind === 'pct' ? pct(x) : v.kind === 'pp' ? signed(x * 100, 1, ' p.p.') : v.kind === 'rho' ? num(x) : signed(x, 2));
+  return `IC 95%: ${f(v.ci[0])} a ${f(v.ci[1])}`;
 }
 
 function hValue(v: Hypothesis['values'][number]) {
@@ -274,7 +282,7 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
             ≥ 0,3.
           </li>
           <li>
-            <b>Dados insuficientes</b>: menos de {MIN_N} respostas em alguma das contagens usadas (ver o n de cada cartão).
+            <b>Indicativo</b>: menos de {MIN_N} respostas em alguma das contagens usadas (ver o n de cada cartão); o valor aparece na mesma, com o intervalo de confiança de 95% (IC 95%), que mostra quanto pode variar só por acaso. <b>Sem dados</b>: ainda não há respostas para calcular.
           </li>
         </ul>
       </details>
@@ -573,11 +581,17 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
               <p className="text-sm">{TARGETS[h.id].question}</p>
               {h.category && <p className="text-sm font-medium">{CATEGORY_LABEL[h.category]}</p>}
               {h.values.map((v) => (
-                <p key={v.label}>
-                  <span className="text-2xl font-bold tabular-nums">{hValue(v)}</span>{' '}
-                  <span className="text-sm text-midnight/60">{v.label}</span>
-                </p>
+                <div key={v.label}>
+                  <p>
+                    <span className="text-2xl font-bold tabular-nums">{hValue(v)}</span>{' '}
+                    <span className="text-sm text-midnight/60">{v.label}</span>
+                  </p>
+                  {hCI(v) && <p className="text-xs tabular-nums text-midnight/60">{hCI(v)}</p>}
+                </div>
               ))}
+              {h.status === 'indicative' && h.meetsTarget !== null && (
+                <p className="text-sm font-medium">{h.meetsTarget ? 'Por agora, acima da meta' : 'Por agora, abaixo da meta'}</p>
+              )}
               <p className="text-sm text-midnight/60">Meta: {TARGETS[h.id].target}</p>
               <p className="text-xs text-midnight/60">{TARGETS[h.id].how}</p>
               <p className="text-xs text-midnight/50">{h.ns.map((x) => `${x.label}: n = ${x.n}`).join(' · ') || 'n = 0'}</p>
@@ -585,9 +599,13 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
           ))}
         </div>
         <p className="text-xs text-midnight/60">
-          Unidade: a review (uma pessoa a avaliar um match; cada match dá até 2 reviews, não independentes). &quot;Dados
-          insuficientes&quot; quando algum grupo usado tem n &lt; {MIN_N}. H3: só contam categorias com n ≥ {MIN_N} com e sem
-          item partilhado; o valor é a maior diferença.
+          Unidade: a review (uma pessoa a avaliar um match; cada match dá até 2 reviews, não independentes). &quot;Indicativo&quot;
+          quando algum grupo usado tem n &lt; {MIN_N}: o valor é calculado na mesma, mas com poucos dados pode ser acaso. O IC 95%
+          (intervalo de confiança) mostra essa incerteza: se o intervalo de uma diferença inclui 0 (ou o de ρ inclui 0), ainda
+          não dá para dizer que há efeito. Os IC são aproximados: tratam cada review como independente, mas cada match dá até 2,
+          por isso são mais estreitos do que deviam; um intervalo que exclui 0 não chega, sozinho, para concluir que há efeito.
+          H3: categorias com n ≥ {MIN_N} com e sem item partilhado (ou ≥ 3, como indicativo); o IC de H3 é otimista, porque é a
+          melhor de várias categorias.
         </p>
       </Section>
 
@@ -764,13 +782,13 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
         </div>
       </Section>
 
-      <Section n={7} title="Dose-resposta (H2): satisfação por nº de itens em comum" description="Satisfação média (só quem conversou) consoante o nº de interesses que o par tem em comum. Se a hipótese H2 estiver certa, sobe da esquerda para a direita.">
+      <Section n={7} title="Dose-resposta (H2): satisfação por pontos de compatibilidade" description="Satisfação média (só quem conversou) consoante os pontos de compatibilidade do par (1 por interesse em comum + 1 se a diferença de idade for de até 5 anos; compatível a partir de 9). Se a hipótese H2 estiver certa, sobe da esquerda para a direita.">
         {(() => {
           const d = doseResponse(rows);
           return (
             <>
               <DoseChart data={d.map((b) => ({ bucket: b.bucket, value: b.satisfaction.value }))} />
-              <Table head={['Itens em comum', 'Satisfação média']}>
+              <Table head={['Pontos de compatibilidade', 'Satisfação média']}>
                 {d.map((b) => (
                   <tr key={b.bucket}>
                     <td className="px-2 py-1.5">{b.bucket}</td>

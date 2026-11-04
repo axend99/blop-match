@@ -140,6 +140,7 @@ export async function loadAdminData(mode: DataMode) {
         type: m.type,
         assigned_type: m.assigned_type,
         shared_count: m.shared_count,
+        points: m.points,
         shared_by_category: m.shared_by_category,
         shared_items: m.shared_items,
         age_range: p.age_range,
