@@ -866,7 +866,17 @@ export function contactDetail(rows: ContactDetailRow[], tapped: Map<string, stri
       bothReviewed: both.length,
       agreeOnContact: rate(both, (x) => x[0].contacted === x[1].contacted),
     },
-    byGroup: (['compatible', 'control'] as const).map((g) => ({ key: g, ...rate(byGroup(rows, g), reachedOut) })),
+    // Each step of the funnel in each group (share of that group's reviews).
+    byGroup: (['compatible', 'control'] as const).map((g) => {
+      const gr = byGroup(rows, g);
+      return {
+        key: g,
+        contacted: rate(gr, reachedOut),
+        talked: rate(gr, talked),
+        nextStep: rate(gr, (r) => r.next_step),
+        metOrPlanned: rate(gr, (r) => r.met === 'yes' || r.met === 'planned'),
+      };
+    }),
     byPersonality: contactBy((r) => r.personality, ['introvert', 'extrovert', 'both'] as const),
     byTimeInCity: contactBy((r) => r.time_in_city as 'lt6m' | '6-24m' | '2y+' | 'always', ['lt6m', '6-24m', '2y+', 'always'] as const),
   };

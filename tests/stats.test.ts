@@ -697,5 +697,7 @@ describe('contactDetail', () => {
     expect(d.taps.contactedTapped).toEqual({ value: 0.5, n: 2 });
     expect(d.matches).toMatchObject({ withReview: 2, bothReviewed: 1, anySideContacted: { value: 0.5, n: 2 }, agreeOnContact: { value: 1, n: 1 } });
     expect(d.byPersonality.find((x) => x.key === 'introvert')).toMatchObject({ value: 0.5, n: 2 });
+    expect(d.byGroup[0]).toMatchObject({ key: 'compatible', contacted: { value: 2 / 3, n: 3 }, talked: { value: 1 / 3, n: 3 } });
+    expect(d.byGroup[1].contacted).toEqual({ value: null, n: 0 });
   });
 });
