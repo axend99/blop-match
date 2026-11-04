@@ -124,7 +124,7 @@ export type Hypothesis = {
 
 // Two-sided 95% Student t critical values (df 1–30); the normal value beyond.
 const T95 = [12.71, 4.3, 3.18, 2.78, 2.57, 2.45, 2.36, 2.31, 2.26, 2.23, 2.2, 2.18, 2.16, 2.14, 2.13, 2.12, 2.11, 2.1, 2.09, 2.09, 2.08, 2.07, 2.07, 2.06, 2.06, 2.06, 2.05, 2.05, 2.05, 2.04];
-export const t95 = (df: number) => (df >= 1 && df <= 30 ? T95[Math.floor(df) - 1] : 1.96);
+export const t95 = (df: number) => (df >= 1 && df <= 30 ? T95[Math.floor(df) - 1] : df <= 60 ? 2.0 : 1.96);
 
 const valuesOf = (rows: ReviewRow[], field: ScoreField) => rows.map((r) => r[field]).filter((v): v is number => v !== null);
 const variance = (xs: number[]) => {
@@ -145,12 +145,15 @@ export function meanDiffCI(a: number[], b: number[]): [number, number] | null {
   return [diff - half, diff + half];
 }
 
-// Difference of two proportions (a − b), normal approximation.
+// Difference of two proportions (a − b), Agresti–Caffo (one success and one failure added to
+// each group, so small or all-or-nothing samples don't look certain), kept within ±1.
 export function propDiffCI(a: Stat, b: Stat): [number, number] | null {
   if (a.value === null || b.value === null || !a.n || !b.n) return null;
-  const se = Math.sqrt((a.value * (1 - a.value)) / a.n + (b.value * (1 - b.value)) / b.n);
-  const d = a.value - b.value;
-  return [d - 1.96 * se, d + 1.96 * se];
+  const pa = (a.value * a.n + 1) / (a.n + 2);
+  const pb = (b.value * b.n + 1) / (b.n + 2);
+  const se = Math.sqrt((pa * (1 - pa)) / (a.n + 2) + (pb * (1 - pb)) / (b.n + 2));
+  const d = pa - pb;
+  return [Math.max(-1, d - 1.96 * se), Math.min(1, d + 1.96 * se)];
 }
 
 // One proportion, Wilson interval.
@@ -163,11 +166,11 @@ export function wilsonCI(s: Stat): [number, number] | null {
   return [c - h, c + h];
 }
 
-// Spearman's ρ, Fisher z interval (needs n ≥ 4).
+// Spearman's ρ, Fisher z interval with the Bonett–Wright standard error (needs n ≥ 4).
 export function rhoCI(rho: number | null, n: number): [number, number] | null {
   if (rho === null || n < 4) return null;
   const z = Math.atanh(Math.max(-0.999999, Math.min(0.999999, rho)));
-  const se = 1 / Math.sqrt(n - 3);
+  const se = Math.sqrt((1 + (rho * rho) / 2) / (n - 3));
   return [Math.tanh(z - 1.96 * se), Math.tanh(z + 1.96 * se)];
 }
 

@@ -602,7 +602,10 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
           Unidade: a review (uma pessoa a avaliar um match; cada match dá até 2 reviews, não independentes). &quot;Indicativo&quot;
           quando algum grupo usado tem n &lt; {MIN_N}: o valor é calculado na mesma, mas com poucos dados pode ser acaso. O IC 95%
           (intervalo de confiança) mostra essa incerteza: se o intervalo de uma diferença inclui 0 (ou o de ρ inclui 0), ainda
-          não dá para dizer que há efeito. H3: categorias com n ≥ {MIN_N} com e sem item partilhado (ou ≥ 3, como indicativo).
+          não dá para dizer que há efeito. Os IC são aproximados: tratam cada review como independente, mas cada match dá até 2,
+          por isso são mais estreitos do que deviam; um intervalo que exclui 0 não chega, sozinho, para concluir que há efeito.
+          H3: categorias com n ≥ {MIN_N} com e sem item partilhado (ou ≥ 3, como indicativo); o IC de H3 é otimista, porque é a
+          melhor de várias categorias.
         </p>
       </Section>
 
