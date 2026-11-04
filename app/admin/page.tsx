@@ -661,6 +661,30 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
                 </Table>
               </div>
               <div className="space-y-1">
+                <h3 className="text-sm font-semibold">Compatível × controlo (% das reviews de cada grupo)</h3>
+                <Table head={['Etapa', 'Compatível', 'Controlo', 'Diferença']}>
+                  {(
+                    [
+                      ['Contactou o match', 'contacted'],
+                      ['Teve uma conversa a sério', 'talked'],
+                      ['Próximo passo', 'nextStep'],
+                      ['Encontrou-se ou tem encontro combinado', 'metOrPlanned'],
+                    ] as const
+                  ).map(([label, k]) => {
+                    const [c, k2] = [d.byGroup[0][k], d.byGroup[1][k]];
+                    const diff = c.value === null || k2.value === null ? null : (c.value - k2.value) * 100;
+                    return (
+                      <tr key={k}>
+                        <td className="px-2 py-1.5">{label}</td>
+                        <PctCell s={c} />
+                        <PctCell s={k2} />
+                        <td className="px-2 py-1.5 text-right tabular-nums">{signed(diff, 1, ' p.p.')}</td>
+                      </tr>
+                    );
+                  })}
+                </Table>
+              </div>
+              <div className="space-y-1">
                 <h3 className="text-sm font-semibold">Toques nos botões × o que disseram</h3>
                 <Table head={['', '%']}>
                   {line('Tocou no botão de WhatsApp ou Instagram', d.taps.tapped)}
@@ -673,7 +697,6 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
                 <Table head={['', '% contactou']}>
                   {line('Match em que pelo menos um dos dois contactou', d.matches.anySideContacted, `${d.matches.withReview} matches com review`)}
                   {line('As duas reviews concordam se houve contacto', d.matches.agreeOnContact, `${d.matches.bothReviewed} matches avaliados pelos dois`)}
-                  {d.byGroup.map((g) => line(g.key === 'compatible' ? 'Grupo compatível' : 'Grupo controlo', g))}
                   {d.byPersonality.map((p) => line(`Personalidade: ${PERSONALITY[p.key] ?? p.key}`, p))}
                   {d.byTimeInCity.map((t) => line(`Tempo na cidade: ${SEGMENT_VALUE.time_in_city?.[t.key] ?? t.key}`, t))}
                 </Table>
