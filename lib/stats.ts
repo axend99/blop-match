@@ -621,9 +621,17 @@ export const SAMPLE_FIELDS = [
   { key: 'lang', label: 'Idioma' },
 ] as const;
 export type SampleField = (typeof SAMPLE_FIELDS)[number]['key'];
+// Composition only (not "same profile"): gender was optional at sign-up (from Nov 2026), and for
+// earlier participants the team estimated it from the first name. Missing values get their own row.
+const GENDER_FIELDS = [
+  { key: 'gender', label: 'Género (declarado)', missing: 'not_given' },
+  { key: 'gender_estimate', label: 'Género (estimado pelo nome)', missing: 'not_estimated' },
+] as const;
 
 type SamplePerson = { id: string; deleted_at: string | null; active: boolean } & Record<SampleField, string> & {
     interests: string[];
+    gender?: string | null;
+    gender_estimate?: string | null;
   };
 type SampleMatch = { a_id: string; b_id: string; type: Group; shared_count: number; shared_by_category: Partial<Record<string, number>> };
 
@@ -649,7 +657,7 @@ export function sample({ participants, matches, categories, cityTop = 6 }: {
     share: share(people.filter((p) => (i === 4 ? (count.get(p.id) ?? 0) >= 4 : (count.get(p.id) ?? 0) === i)).length, people.length),
   }));
 
-  const composition = SAMPLE_FIELDS.map(({ key, label }) => {
+  const composition: { key: string; label: string; values: { value: string; share: Stat }[] }[] = SAMPLE_FIELDS.map(({ key, label }) => {
     const tally = new Map<string, number>();
     for (const p of people) {
       const value = key === 'city' ? cityKey(p.city) : p[key];
@@ -662,6 +670,15 @@ export function sample({ participants, matches, categories, cityTop = 6 }: {
     }
     return { key, label, values: values.map(([value, n]) => ({ value, share: share(n, people.length) })) };
   });
+  for (const { key, label, missing } of GENDER_FIELDS) {
+    const tally = new Map<string, number>();
+    for (const p of people) {
+      const value = p[key] ?? missing;
+      tally.set(value, (tally.get(value) ?? 0) + 1);
+    }
+    const values = [...tally.entries()].sort((a, b) => (a[0] === missing ? 1 : b[0] === missing ? -1 : b[1] - a[1] || a[0].localeCompare(b[0])));
+    composition.push({ key, label, values: values.map(([value, n]) => ({ value, share: share(n, people.length) })) });
+  }
 
   const groups = { compatible: own.filter((m) => m.type === 'compatible'), control: own.filter((m) => m.type === 'control') };
   const perGroup = (pred: (m: SampleMatch) => boolean) => ({

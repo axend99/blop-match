@@ -30,6 +30,8 @@ export type AdminParticipant = {
   age_range: string;
   time_in_city: string;
   origin: string;
+  gender: string | null;
+  gender_estimate: string | null;
   interests: string[];
   other_text: Record<string, string>;
   talk_about: string | null;
@@ -94,7 +96,7 @@ export async function loadAdminData(mode: DataMode) {
   const [allParticipants, storedMatches, allReviews, allFlags, allClicks, reports, waitlistClicks, waitlistSent] = await Promise.all([
     all<AdminParticipant>(
       'participants',
-      'id, name, email, whatsapp, instagram, city, lang, age, age_range, time_in_city, origin, interests, other_text, talk_about, talk_about_code, active, pending_review, deleted_at, is_seed, created_at',
+      'id, name, email, whatsapp, instagram, city, lang, age, age_range, time_in_city, origin, gender, gender_estimate, interests, other_text, talk_about, talk_about_code, active, pending_review, deleted_at, is_seed, created_at',
     ),
     all<Omit<AdminMatch, 'assigned_type' | 'points'>>('matches', 'id, a_id, b_id, type, score, shared_items, shared_count, shared_by_category, created_at'),
     all<AdminReview>(

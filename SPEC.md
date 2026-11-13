@@ -92,6 +92,7 @@ Campos (todos obrigatórios, exceto "outro"):
 - `age`: número inteiro de 18 a 99 (campo numérico); `age_range` (`18-24` | `25-30` | `31-35` | `36+`) é derivado e gravado para a análise
 - `time_in_city`: `lt6m` | `6-24m` | `2y+` | `always`
 - `origin`: `this_city` | `same_country` | `other_country`
+- `gender` (opcional, desde nov 2026): `woman` | `man` | `non_binary` | `undisclosed`; vazio = null. `gender_estimate` (`woman` | `man` | `unclear`): estimado pela equipa a partir do primeiro nome para quem não foi perguntado; só para análise, nunca mostrado.
 - `interests`: sem mínimo por categoria (uma categoria pode ficar vazia), no máximo 5 por categoria, pelo menos 10 no total em pelo menos 3 categorias (validar no cliente e no servidor; contador global no formulário)
 - `other_text`: um campo livre opcional por categoria (não entra no matching)
 - "What I want to talk about" (icebreaker mostrado aos matches, obrigatório no cadastro, não editável depois, não entra no matching): **exatamente um** de `talk_about_code` (um dos interesses que a pessoa marcou) ou `talk_about` (texto livre, até 140 caracteres numa linha)
@@ -202,7 +203,7 @@ No topo, um filtro **Reais / Seed / Tudo** (`?dados=`, padrão Reais) aplica-se 
 
 Abas: **Painel**, **Verificação** (`/admin/verificacao`: "Perfis por verificar" — perfis novos em que a IA marcou o nome ou os textos, ou falhou — com Aprovar, Verificar de novo e Banir; "Denúncias por ver" com Arquivar e Banir) e **Participantes** (`/admin/participantes`: cada pessoa com perfil, contactos, estado e os seus matches — com quem, compatível/controlo, itens em comum, review de cada lado e toques; pesquisa por nome/e-mail; em cada match ainda por avaliar, o botão "Abrir avaliação agora" recua a data do match para a review abrir já e envia o e-mail de review às duas pessoas — atalho para testers). No painel, "Como ler este painel" (definições: compatível, controlo, review, n, p.p., ρ, indicativo e IC 95%) e uma linha de descrição em cada bloco; cada hipótese diz em linguagem simples o que testa e como se calcula.
 
-1. **Amostra** (primeiro bloco): participantes (ativos), matches (compatível/controlo), matches por pessoa (média e 0/1/2/3/4+), reviews e taxa de resposta; composição em % por faixa etária, tempo na cidade, origem, cidade e idioma; % de matches com ≥ 1 item em comum por categoria e com o mesmo perfil por característica, compatível vs controlo. Base: pessoas não anonimizadas e os matches entre elas.
+1. **Amostra** (primeiro bloco): participantes (ativos), matches (compatível/controlo), matches por pessoa (média e 0/1/2/3/4+), reviews e taxa de resposta; composição em % por faixa etária, tempo na cidade, origem, cidade, idioma, género declarado e género estimado pelo nome; % de matches com ≥ 1 item em comum por categoria e com o mesmo perfil por característica, compatível vs controlo. Base: pessoas não anonimizadas e os matches entre elas.
 2. **Placar das hipóteses:** um cartão por hipótese com o valor atual, o IC 95%, a meta e o estado: "Acima da meta", "Abaixo da meta", "Indicativo (amostra pequena)" quando algum grupo tem n < 15 (com o lado da meta em que está) ou "Sem dados".
 
 | # | Métrica | Meta |

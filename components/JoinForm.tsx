@@ -13,6 +13,7 @@ import {
   MAX_OTHER,
   MAX_TALK_ABOUT,
   ORIGINS,
+  GENDERS,
   TIMES_IN_CITY,
   countByCategory,
   validateProfile,
@@ -44,6 +45,7 @@ export default function JoinForm({
   const [age, setAge] = useState('');
   const [timeInCity, setTimeInCity] = useState('');
   const [origin, setOrigin] = useState('');
+  const [gender, setGender] = useState('');
   const [interests, setInterests] = useState<string[]>([]);
   const [otherText, setOtherText] = useState<Partial<Record<Category, string>>>({});
   const [otherOpen, setOtherOpen] = useState<Partial<Record<Category, boolean>>>({});
@@ -124,6 +126,7 @@ export default function JoinForm({
       age,
       time_in_city: timeInCity,
       origin,
+      gender,
       interests,
       other_text: otherText,
       talk_about: talkAbout,
@@ -198,6 +201,9 @@ export default function JoinForm({
         options={TIMES_IN_CITY.map((v) => [v, t.timeInCityOptions[v]])} error={err('time_in_city')} />
       <Choice legend={t.origin} name="origin" value={origin} onChange={setOrigin}
         options={ORIGINS.map((v) => [v, t.originOptions[v]])} error={err('origin')} />
+
+      <Choice legend={t.gender} name="gender" value={gender} onChange={setGender}
+        options={GENDERS.map((v) => [v, t.genderOptions[v]])} error={err('gender')} />
 
       <div className="space-y-6">
         <div>

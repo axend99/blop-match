@@ -63,6 +63,7 @@ const en = {
     age: 'Age',
     timeInCity: 'How long have you lived in this city?',
     origin: 'Where are you from?',
+    gender: 'Gender (optional)',
     interestsTitle: 'Your interests',
     interestsHint: 'Tap a category to open it and pick what really describes you. You need at least 10 interests, from at least 3 categories (up to 5 per category).',
     // Plain string (the form is a client component): {n} items, {c} categories.
@@ -118,6 +119,12 @@ const en = {
       this_city: 'This city',
       same_country: 'Another city in this country',
       other_country: 'Another country',
+    },
+    genderOptions: {
+      woman: 'Woman',
+      man: 'Man',
+      non_binary: 'Non-binary',
+      undisclosed: 'Prefer not to say',
     },
     errors: {
       required: 'This field is required.',
@@ -278,7 +285,7 @@ const en = {
       },
       {
         heading: 'What we collect',
-        body: 'Your profile (first name, email, WhatsApp, Instagram if given, city, language, age, time in the city, origin, interests and what you want to talk about), the reviews you send about your matches, that you tapped the WhatsApp or Instagram button on a match, and when (not your messages), and whether you opened the waiting-list link for the BLOP bracelet and app. Five days after joining we email you an invitation to that waiting list. We also count visits to the site pages anonymously and without cookies (Vercel Web Analytics and our own counter, with just the page and the day).',
+        body: 'Your profile (first name, email, WhatsApp, Instagram if given, city, language, age, gender if given, time in the city, origin, interests and what you want to talk about), the reviews you send about your matches, that you tapped the WhatsApp or Instagram button on a match, and when (not your messages), and whether you opened the waiting-list link for the BLOP bracelet and app. Five days after joining we email you an invitation to that waiting list. For the sample analysis, the team may estimate gender from first names when it was not given; this estimate is never shown to anyone else. We also count visits to the site pages anonymously and without cookies (Vercel Web Analytics and our own counter, with just the page and the day).',
       },
       {
         heading: 'Who sees it',
