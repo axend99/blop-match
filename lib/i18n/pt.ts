@@ -258,6 +258,13 @@ const pt: Dict = {
     yes: 'Sim, sair',
     cancel: 'Cancelar',
   },
+  deleteData: {
+    button: 'Apagar os meus dados',
+    confirm: 'Apagar os teus dados? O teu perfil, contactos e login são apagados e sais do estudo. Não dá para desfazer.',
+    yes: 'Sim, apagar',
+    cancel: 'Cancelar',
+    done: 'Os teus dados foram apagados. Obrigado por teres participado.',
+  },
   notFound: {
     title: 'O Blop não encontra esta página.',
     back: 'Ir para a página inicial',
@@ -287,7 +294,7 @@ const pt: Dict = {
       },
       {
         heading: 'As tuas escolhas',
-        body: '"Sair do estudo" desativa o teu perfil e deixas de receber matches. Para eliminar os teus dados, basta escreveres para founders@meetblop.com.',
+        body: '"Sair do estudo" desativa o teu perfil e deixas de receber matches. "Apagar os meus dados" (no fim da página Sobre) apaga o teu perfil, contactos e login; também podes escrever para founders@meetblop.com.',
       },
       {
         heading: 'Idade',
