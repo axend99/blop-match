@@ -525,6 +525,22 @@ describe('sample', () => {
     shared_by_category: byCat,
   });
 
+  it('breaks down declared and estimated gender, with missing values last', () => {
+    const s = sample({
+      participants: [
+        person('a', { gender: 'woman', gender_estimate: 'woman' }),
+        person('b', { gender: null, gender_estimate: 'man' }),
+        person('c', { gender_estimate: 'woman' }),
+        person('d', { gender: 'man', deleted_at: '2026-10-01' }),
+      ],
+      matches: [],
+      categories: [],
+    });
+    const of = (key: string) => s.composition.find((c) => c.key === key)!.values.map((v) => [v.value, v.share.value]);
+    expect(of('gender')).toEqual([['woman', 1 / 3], ['not_given', 2 / 3]]);
+    expect(of('gender_estimate')).toEqual([['woman', 2 / 3], ['man', 1 / 3]]);
+  });
+
   it('counts people, matches between live people and matches per person', () => {
     const s = sample({
       participants: [person('a'), person('b', { city: ' lisbon ' }), person('c', { active: false }), person('d', { deleted_at: '2026-10-01' })],

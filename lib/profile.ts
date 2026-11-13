@@ -12,6 +12,8 @@ import { toWhatsapp } from '@/lib/phone';
 export const AGE_RANGES = ['18-24', '25-30', '31-35', '36+'] as const;
 export const TIMES_IN_CITY = ['lt6m', '6-24m', '2y+', 'always'] as const;
 export const ORIGINS = ['this_city', 'same_country', 'other_country'] as const;
+export const GENDERS = ['woman', 'man', 'non_binary', 'undisclosed'] as const;
+export type Gender = (typeof GENDERS)[number];
 
 export type AgeRange = (typeof AGE_RANGES)[number];
 export const MIN_AGE = 18;
@@ -40,6 +42,7 @@ export type ProfileInput = {
   age: string | number;
   time_in_city: string;
   origin: string;
+  gender?: string; // optional: empty = not answered
   interests: string[];
   other_text: Record<string, string>;
   talk_about: string;
@@ -57,6 +60,7 @@ export type Profile = {
   age_range: AgeRange;
   time_in_city: TimeInCity;
   origin: Origin;
+  gender: Gender | null;
   interests: string[];
   other_text: Partial<Record<Category, string>>;
   talk_about: string | null;
@@ -141,6 +145,8 @@ export function validateProfile(input: ProfileInput): ValidationResult {
   else if (!(age >= MIN_AGE && age <= MAX_AGE)) errors.age = 'age';
   if (!oneOf(TIMES_IN_CITY, str(input.time_in_city))) errors.time_in_city = 'required';
   if (!oneOf(ORIGINS, str(input.origin))) errors.origin = 'required';
+  const genderText = str(input.gender);
+  if (genderText && !oneOf(GENDERS, genderText)) errors.gender = 'required';
 
   const raw = Array.isArray(input.interests) ? input.interests : [];
   const interests = [...new Set(raw.map(str))];
@@ -192,6 +198,7 @@ export function validateProfile(input: ProfileInput): ValidationResult {
       age_range: ageRange(age),
       time_in_city: input.time_in_city as TimeInCity,
       origin: input.origin as Origin,
+      gender: genderText ? (genderText as Gender) : null,
       interests,
       other_text,
       talk_about,

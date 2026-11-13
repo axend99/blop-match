@@ -70,6 +70,8 @@ const SEGMENT_VALUE: Record<string, Record<string, string>> = {
   time_in_city: pt.join.timeInCityOptions,
   origin: pt.join.originOptions,
   lang: { en: 'Inglês', pt: 'Português' },
+  gender: { ...pt.join.genderOptions, not_given: 'Não indicado / não perguntado' },
+  gender_estimate: { woman: 'Mulher', man: 'Homem', unclear: 'Não dá para saber', not_estimated: 'Sem estimativa' },
 };
 const WHY_NOT_LABEL: Record<string, string> = pt.review.whyNotOptions;
 const IG_FOLLOW_LABEL: Record<string, string> = pt.review.igFollowOptions;

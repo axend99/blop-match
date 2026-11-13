@@ -65,6 +65,7 @@ const pt: Dict = {
     age: 'Idade',
     timeInCity: 'Há quanto tempo vives nesta cidade?',
     origin: 'De onde és?',
+    gender: 'Género (opcional)',
     interestsTitle: 'Os teus interesses',
     interestsHint: 'Toca numa categoria para a abrir e escolhe o que te descreve mesmo. Precisas de pelo menos 10 interesses, em pelo menos 3 categorias (até 5 por categoria).',
     checkCategories: 'Categorias: {n} de 3',
@@ -118,6 +119,12 @@ const pt: Dict = {
       this_city: 'Desta cidade',
       same_country: 'De outra cidade deste país',
       other_country: 'De outro país',
+    },
+    genderOptions: {
+      woman: 'Mulher',
+      man: 'Homem',
+      non_binary: 'Não binário',
+      undisclosed: 'Prefiro não dizer',
     },
     errors: {
       required: 'Campo obrigatório.',
@@ -278,7 +285,7 @@ const pt: Dict = {
       },
       {
         heading: 'O que recolhemos',
-        body: 'O teu perfil (primeiro nome, e-mail, WhatsApp, Instagram se indicado, cidade, idioma, idade, tempo na cidade, origem, interesses e aquilo de que queres falar), as avaliações que envias sobre os teus matches, o facto de tocares no botão de WhatsApp ou Instagram de um match, e quando (não as tuas mensagens), e se abriste o link da lista de espera da pulseira e da app BLOP. Cinco dias depois de entrares enviamos-te por e-mail um convite para essa lista de espera. Contamos também as visitas às páginas do site de forma anónima e sem cookies (Vercel Web Analytics e um contador nosso, só com a página e o dia).',
+        body: 'O teu perfil (primeiro nome, e-mail, WhatsApp, Instagram se indicado, cidade, idioma, idade, género se indicado, tempo na cidade, origem, interesses e aquilo de que queres falar), as avaliações que envias sobre os teus matches, o facto de tocares no botão de WhatsApp ou Instagram de um match, e quando (não as tuas mensagens), e se abriste o link da lista de espera da pulseira e da app BLOP. Cinco dias depois de entrares enviamos-te por e-mail um convite para essa lista de espera. Para a análise da amostra, a equipa pode estimar o género a partir do primeiro nome quando não foi indicado; essa estimativa nunca é mostrada a mais ninguém. Contamos também as visitas às páginas do site de forma anónima e sem cookies (Vercel Web Analytics e um contador nosso, só com a página e o dia).',
       },
       {
         heading: 'Quem vê',

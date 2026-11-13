@@ -210,3 +210,19 @@ describe('optional instagram', () => {
     expect(r.ok && r.data.whatsapp).toBe('+5511987654321');
   });
 });
+
+describe('gender', () => {
+  it('is optional: empty is stored as null', () => {
+    const r = withInput({ gender: '' });
+    expect(r.ok && r.data.gender).toBe(null);
+  });
+  it('keeps a known option', () => {
+    const r = withInput({ gender: 'non_binary' });
+    expect(r.ok && r.data.gender).toBe('non_binary');
+  });
+  it('rejects an unknown value', () => {
+    const r = withInput({ gender: 'other' });
+    expect(r.ok).toBe(false);
+    expect(!r.ok && r.errors.gender).toBe('required');
+  });
+});
