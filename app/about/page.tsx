@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import BackLink from '@/components/BackLink';
 import LeaveStudy from '@/components/LeaveStudy';
+import DeleteMyData from '@/components/DeleteMyData';
 import { getMyParticipant, getUser } from '@/lib/auth';
 import { getDict } from '@/lib/i18n';
 import { getLang } from '@/lib/i18n/server';
@@ -52,12 +53,13 @@ export default async function AboutPage() {
       </section>
 
       {me && (
-        <div className="flex justify-center pt-10">
+        <div className="flex flex-col items-center gap-4 pt-10">
           {me.active ? (
             <LeaveStudy t={t.leave} errorText={t.common.genericError} />
           ) : (
             <p className="text-sm text-midnight/60">{t.me.leftNotice}</p>
           )}
+          <DeleteMyData t={t.deleteData} errorText={t.common.genericError} />
         </div>
       )}
     </article>

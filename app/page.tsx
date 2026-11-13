@@ -4,9 +4,10 @@ import { getDict } from '@/lib/i18n';
 import { getLang } from '@/lib/i18n/server';
 import { reviewDelayDays } from '@/lib/site';
 
-export default async function Home() {
+export default async function Home({ searchParams }: { searchParams: Promise<{ deleted?: string }> }) {
   await redirectIfLoggedIn();
   const t = getDict(await getLang());
+  const deleted = (await searchParams).deleted === '1';
   // Twice: right under the headline (in view without scrolling on most phones) and at the end.
   const cta = (
     <Link
@@ -19,6 +20,11 @@ export default async function Home() {
 
   return (
     <div className="space-y-8">
+      {deleted && (
+        <p role="status" className="rounded-2xl bg-white p-4 text-center text-sm text-midnight/80">
+          {t.deleteData.done}
+        </p>
+      )}
       <section className="space-y-4">
         <p className="text-xs font-medium uppercase tracking-[0.3em] text-midnight/60">{t.home.tagline}</p>
         <h1 className="text-4xl font-bold leading-tight">

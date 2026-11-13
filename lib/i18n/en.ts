@@ -258,6 +258,13 @@ const en = {
     yes: 'Yes, leave',
     cancel: 'Cancel',
   },
+  deleteData: {
+    button: 'Delete my data',
+    confirm: 'Delete your data? Your profile, contacts and login are erased and you leave the study. This cannot be undone.',
+    yes: 'Yes, delete',
+    cancel: 'Cancel',
+    done: 'Your data has been deleted. Thank you for taking part.',
+  },
   notFound: {
     title: "Blop can't find this page.",
     back: 'Go to the home page',
@@ -287,7 +294,7 @@ const en = {
       },
       {
         heading: 'Your choices',
-        body: '"Leave the study" deactivates your profile, so you get no new matches. To delete your data, just write to founders@meetblop.com.',
+        body: '"Leave the study" deactivates your profile, so you get no new matches. "Delete my data" (at the end of the About page) erases your profile, contacts and login; you can also write to founders@meetblop.com.',
       },
       {
         heading: 'Age',
