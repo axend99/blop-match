@@ -2,10 +2,12 @@
 
 import { useState, useTransition } from 'react';
 import { savePassword } from '@/app/join/password/actions';
-import type { Dict } from '@/lib/i18n/en';
 import { validatePassword } from '@/lib/password';
 
-export default function PasswordForm({ t, genericError }: { t: Dict['password']; genericError: string }) {
+// Only plain strings can cross to a client component (the password dictionary also has functions).
+export type PasswordFormTexts = { label: string; placeholder: string; error: string; submit: string };
+
+export default function PasswordForm({ t, genericError }: { t: PasswordFormTexts; genericError: string }) {
   const [value, setValue] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
