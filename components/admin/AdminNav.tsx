@@ -1,6 +1,12 @@
 import Link from 'next/link';
 import { adminSignOut } from '@/app/admin/actions';
-import type { DataMode } from '@/lib/stats';
+import type { DataMode, StudyVersion } from '@/lib/stats';
+
+const VERSIONS: [StudyVersion, string][] = [
+  ['v2', 'V2 (jogo da password)'],
+  ['v1', 'V1 (até 3 nov)'],
+  ['todos', 'Consolidado'],
+];
 
 const MODES: [DataMode, string][] = [
   ['reais', 'Reais'],
@@ -17,6 +23,7 @@ export default function AdminNav({
   seedCount,
   e2eCount,
   toReview = 0,
+  version,
 }: {
   tab: 'painel' | 'participantes' | 'reviews' | 'verificacao';
   mode: DataMode;
@@ -24,6 +31,7 @@ export default function AdminNav({
   seedCount: number;
   e2eCount: number;
   toReview?: number; // profiles waiting + open reports
+  version?: StudyVersion; // omitted on tabs that ignore it (Verificação)
 }) {
   const pill = (active: boolean) =>
     `rounded-full border px-3 py-1 ${active ? 'border-violet bg-violet text-white' : 'border-midnight/20 bg-white'}`;
@@ -49,6 +57,22 @@ export default function AdminNav({
           Verificação{toReview > 0 ? ` (${toReview})` : ''}
         </Link>
       </nav>
+      {version && (
+        <div className="flex flex-wrap items-center gap-2 rounded-2xl bg-violet/10 p-3 text-sm">
+          <span className="font-medium">Versão:</span>
+          {VERSIONS.map(([value, label]) => {
+            const back = tab === 'painel' ? `/admin?dados=${mode}` : `/admin/${tab}?dados=${mode}`;
+            return (
+              <Link key={value} href={`/admin/versao?${new URLSearchParams({ v: value, back })}`} className={pill(version === value)}>
+                {label}
+              </Link>
+            );
+          })}
+          <span className="text-midnight/70">
+            V1: quem entrou até ao fim da 1.ª fase (sem e-mails nem matches novos). V2: quem entra desde então, com o jogo da password.
+          </span>
+        </div>
+      )}
       {(seedCount > 0 || mode !== 'reais') && (
         <div className="flex flex-wrap items-center gap-2 rounded-2xl bg-lime/40 p-3 text-sm">
           <span className="font-medium">Dados:</span>

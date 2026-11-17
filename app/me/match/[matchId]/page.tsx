@@ -12,6 +12,7 @@ import { getDict, interestLabel } from '@/lib/i18n';
 import type { Dict } from '@/lib/i18n/en';
 import { getLang } from '@/lib/i18n/server';
 import { getMyMatches } from '@/lib/myMatches';
+import { getGameResult } from '@/lib/passwordGame';
 import thinking from '@/public/blop/thinking.webp';
 
 // The match "cheat sheet": who they are and what you have in common.
@@ -26,6 +27,7 @@ export default async function MatchPage({ params }: { params: Promise<{ matchId:
 
   const lang = await getLang();
   const t = getDict(lang);
+  const game = me.cohort === 'v2' ? await getGameResult(match.match_id, me) : null;
   const deleted = match.other_deleted;
   const name = deleted ? t.me.formerParticipant : match.other_name;
   const shared = new Set(match.shared_items);
@@ -120,6 +122,33 @@ export default async function MatchPage({ params }: { params: Promise<{ matchId:
       )}
 
       <ReviewStatus t={t.me} lang={lang} createdAt={match.created_at} reviewed={match.reviewed_by_me} matchId={match.match_id} />
+
+      {game && (
+        <section className="space-y-2 rounded-3xl bg-lime/50 p-5">
+          <h2 className="text-lg font-semibold">🤫 {t.password.revealTitle}</h2>
+          {game.state === 'waiting' ? (
+            <p className="text-midnight/80">{t.password.revealWaiting(name)}</p>
+          ) : (
+            <ul className="space-y-1 text-midnight/90">
+              {game.theirPassword && <li className="font-semibold">{t.password.theirPassword(name, game.theirPassword)}</li>}
+              <li>
+                {!game.myGuess
+                  ? t.password.yourGuessNone
+                  : game.myGuessRight
+                    ? t.password.yourGuessRight(game.myGuess)
+                    : t.password.yourGuessWrong(game.myGuess)}
+              </li>
+              <li>
+                {!game.theirGuess
+                  ? t.password.theirGuessNone(name)
+                  : game.theirGuessRight
+                    ? t.password.theirGuessRight(name)
+                    : t.password.theirGuessWrong(name, game.theirGuess)}
+              </li>
+            </ul>
+          )}
+        </section>
+      )}
 
       {!deleted && (
         <Link href={`/me/report/${match.match_id}`} className="block text-sm text-midnight/50 underline">

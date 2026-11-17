@@ -10,6 +10,7 @@ export default function NewMatchEmail({ name, lang, url, reportUrl }: { name: st
       <Text style={{ fontSize: 18, fontWeight: 600, margin: '0 0 12px' }}>{t.newMatch.greeting(name)}</Text>
       <Text style={{ fontSize: 22, fontWeight: 700, margin: '0 0 12px' }}>{t.newMatch.title}</Text>
       <Text style={{ fontSize: 16, lineHeight: '24px', margin: '0 0 12px' }}>{t.newMatch.body}</Text>
+      <Text style={{ fontSize: 16, lineHeight: '24px', margin: '0 0 12px' }}>{t.newMatch.game}</Text>
     </EmailLayout>
   );
 }

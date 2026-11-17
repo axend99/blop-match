@@ -4,7 +4,7 @@ import NewMatchEmail from '@/emails/NewMatchEmail';
 import { sendEmail } from '@/lib/email';
 import { getDict, isLang } from '@/lib/i18n';
 import { planMatches, type Candidate } from '@/lib/matching';
-import { matchingConfig, siteUrl, studyEnded } from '@/lib/site';
+import { matchingConfig, siteUrl } from '@/lib/site';
 import { createServiceClient } from '@/lib/supabase/service';
 import { pageAll } from '@/lib/supabase/pageAll';
 
@@ -19,6 +19,8 @@ type Participant = {
   pending_review: boolean;
   created_at: string;
   deleted_at: string | null;
+  cohort: string;
+  password: string | null;
 };
 
 type MatchRow = { id: string; a_id: string; b_id: string; type: 'compatible' | 'control' };
@@ -28,7 +30,7 @@ async function loadState() {
   const supabase = createServiceClient();
   const [people, matches] = await Promise.all([
     pageAll((a, b) =>
-      supabase.from('participants').select('id, name, email, lang, interests, age, active, pending_review, created_at, deleted_at').order('id').range(a, b),
+      supabase.from('participants').select('id, name, email, lang, interests, age, active, pending_review, created_at, deleted_at, cohort, password').order('id').range(a, b),
     ),
     pageAll((a, b) => supabase.from('matches').select('id, a_id, b_id, type').order('id').range(a, b)),
   ]);
@@ -43,8 +45,9 @@ async function loadState() {
       {
         id: p.id,
         interests: p.interests,
-        // Pending people (being verified, or reported) get no new matches.
-        active: p.active && !p.deleted_at && !p.pending_review,
+        // Pending people (being verified, or reported) get no new matches. Only v2 is matched, and
+        // only once the person has chosen a password (the game is part of every v2 match).
+        active: p.active && !p.deleted_at && !p.pending_review && p.cohort === 'v2' && Boolean(p.password),
         createdAt: p.created_at,
         age: p.age,
         compatibleCount: 0,
@@ -128,7 +131,6 @@ function release(state: Awaited<ReturnType<typeof loadState>>, aId: string, bId:
 // Runs after a profile is created: fills the new person's slots, which also fills the
 // slots of people who were already waiting.
 export async function runMatchingFor(participantId: string): Promise<number> {
-  if (studyEnded()) return 0; // no new matches after the end of the study
   const state = await loadState();
   const person = state.pool.get(participantId);
   return person ? createMatches(state, person) : 0;

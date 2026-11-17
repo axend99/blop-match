@@ -1,0 +1,36 @@
+import { redirect } from 'next/navigation';
+import PasswordForm from '@/components/PasswordForm';
+import { getMyParticipant, getUser } from '@/lib/auth';
+import { getDict } from '@/lib/i18n';
+import { getLang } from '@/lib/i18n/server';
+
+// The server action runs matching in after().
+export const maxDuration = 60;
+
+// v2, right after the profile: what the password game is, and the person's secret word.
+export default async function PasswordPage() {
+  if (!(await getUser())) redirect('/login');
+  const me = await getMyParticipant();
+  if (!me) redirect('/join');
+  if (me.cohort !== 'v2' || me.password) redirect('/me');
+  const t = getDict(await getLang());
+
+  return (
+    <div className="space-y-6">
+      <div className="space-y-3">
+        <h1 className="text-3xl font-bold">{t.password.title}</h1>
+        <p className="text-lg text-midnight/80">{t.password.intro}</p>
+      </div>
+      <ol className="space-y-3 rounded-3xl bg-midnight p-6 text-white">
+        {t.password.rules.map((rule, i) => (
+          <li key={i} className="flex gap-3">
+            <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-violet text-sm font-bold">{i + 1}</span>
+            <span className="text-white/90">{rule}</span>
+          </li>
+        ))}
+      </ol>
+      <p className="rounded-2xl bg-lime/60 p-4 text-sm">{t.password.tip}</p>
+      <PasswordForm t={t.password} genericError={t.common.genericError} />
+    </div>
+  );
+}

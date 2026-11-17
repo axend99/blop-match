@@ -30,18 +30,17 @@ export function formatDate(date: Date, lang: string): string {
   }).format(date);
 }
 
-// End of the study (Lisbon 09:00 = UTC in November): from then on no new matches and no e-mails
-// except the closing one, and every review is open so everyone can still rate. The site stays up.
-export const STUDY_ENDS_AT = '2026-11-03T09:00:00Z';
-
-export function studyEnded(now = new Date()): boolean {
-  return now.getTime() >= new Date(STUDY_ENDS_AT).getTime();
-}
+// End of v1 (Lisbon 09:00 = UTC in November). v1 participants (cohort 'v1') get no more e-mails
+// and no new matches (see lib/email.ts and lib/matchingService.ts); every v1 review is open so
+// they can still rate. v2 (cohort 'v2', sign-ups from then on) follows the normal flow.
+export const V1_ENDS_AT = '2026-11-03T09:00:00Z';
 
 export function reviewOpensAt(matchCreatedAt: string): Date {
-  const opens = new Date(matchCreatedAt).getTime() + reviewDelayDays() * 24 * 60 * 60 * 1000 - REVIEW_GRACE_MS;
-  const regular = Math.max(opens, new Date(matchCreatedAt).getTime());
-  return new Date(studyEnded() ? Math.min(regular, new Date(STUDY_ENDS_AT).getTime()) : regular);
+  const created = new Date(matchCreatedAt).getTime();
+  const opens = created + reviewDelayDays() * 24 * 60 * 60 * 1000 - REVIEW_GRACE_MS;
+  const regular = Math.max(opens, created);
+  const v1End = new Date(V1_ENDS_AT).getTime();
+  return new Date(created < v1End ? Math.min(regular, v1End) : regular);
 }
 
 export function reminderDelayDays(): number {

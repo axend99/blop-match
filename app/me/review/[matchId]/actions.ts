@@ -8,6 +8,7 @@ import { reviewTexts } from '@/lib/moderation';
 import { moderate } from '@/lib/moderationService';
 import { getMyMatches } from '@/lib/myMatches';
 import { validateReview, type ReviewErrors, type ReviewInput } from '@/lib/review';
+import { cleanGuess } from '@/lib/password';
 import { reviewOpensAt } from '@/lib/site';
 import { createServiceClient } from '@/lib/supabase/service';
 
@@ -16,7 +17,7 @@ export type ReviewState = { errors?: ReviewErrors; failed?: boolean };
 // Inserted with the service role: the RLS policy uses a fixed 3-day delay, while the app
 // enforces REVIEW_DELAY_DAYS here. Only validated fields, the caller's own participant id
 // and a match confirmed through get_my_matches() reach the insert.
-export async function submitReview(matchId: string, input: ReviewInput): Promise<ReviewState> {
+export async function submitReview(matchId: string, input: ReviewInput, passwordGuess = ''): Promise<ReviewState> {
   if (!(await getUser())) redirect('/login');
   const me = await getMyParticipant();
   if (!me) redirect('/join');
@@ -30,7 +31,13 @@ export async function submitReview(matchId: string, input: ReviewInput): Promise
 
   const { error } = await createServiceClient()
     .from('reviews')
-    .insert({ ...result.data, match_id: match.match_id, reviewer_id: me.id });
+    .insert({
+      ...result.data,
+      match_id: match.match_id,
+      reviewer_id: me.id,
+      // v2 only (v2 people are only matched with v2), and only when they made contact.
+      password_guess: me.cohort === 'v2' && result.data.contacted ? cleanGuess(passwordGuess) : null,
+    });
   if (error && error.code !== '23505') {
     console.error('[review] insert failed', error);
     return { failed: true };
