@@ -30,8 +30,8 @@ function state(p: AdminParticipant) {
 function reviewText(r: AdminReview | null) {
   if (!r) return 'sem review';
   if (!r.contacted) return `não contactou (${pt.review.whyNotOptions[r.why_not as keyof typeof pt.review.whyNotOptions] ?? r.why_not})`;
-  if (!r.talked) return 'contactou, sem conversa';
-  return `conversou · satisfação ${r.satisfaction_1_7}/7${r.met ? ` · encontro: ${pt.review.metOptions[r.met as keyof typeof pt.review.metOptions]}` : ''}`;
+  if (!r.talked) return `contactou, sem conversa${r.password_guess ? ` · palpite da password: “${r.password_guess}”` : ''}`;
+  return `conversou · satisfação ${r.satisfaction_1_7}/7${r.met ? ` · encontro: ${pt.review.metOptions[r.met as keyof typeof pt.review.metOptions]}` : ''}${r.password_guess ? ` · palpite da password: “${r.password_guess}”` : ''}`;
 }
 
 export default async function ParticipantsPage({ searchParams }: { searchParams: Promise<{ dados?: string; q?: string }> }) {
@@ -39,7 +39,7 @@ export default async function ParticipantsPage({ searchParams }: { searchParams:
   const { dados, q = '' } = await searchParams;
   const mode = dataMode(dados);
   const notice = (await cookies()).get('admin_notice')?.value;
-  const { participants, matches, reviews, clicks, personById, seedCount, e2eCount, pendingCount, openReports } = await loadAdminData(mode);
+  const { version, participants, matches, reviews, clicks, personById, seedCount, e2eCount, pendingCount, openReports } = await loadAdminData(mode);
 
   const query = q.trim().toLowerCase();
   const shown = participants
@@ -52,7 +52,7 @@ export default async function ParticipantsPage({ searchParams }: { searchParams:
   return (
     // Wider than the participant layout on desktop.
     <div className="relative left-1/2 w-[calc(100vw-2rem)] max-w-6xl -translate-x-1/2 space-y-6 text-midnight">
-      <AdminNav tab="participantes" mode={mode} href={(dados) => href({ dados })} seedCount={seedCount} e2eCount={e2eCount} toReview={pendingCount + openReports} />
+      <AdminNav version={version} tab="participantes" mode={mode} href={(dados) => href({ dados })} seedCount={seedCount} e2eCount={e2eCount} toReview={pendingCount + openReports} />
 
       {notice && <p className="rounded-2xl bg-lime/60 p-3 text-sm font-medium">{notice}</p>}
 
@@ -94,6 +94,7 @@ export default async function ParticipantsPage({ searchParams }: { searchParams:
                       ['Tempo na cidade', pt.join.timeInCityOptions[p.time_in_city as keyof typeof pt.join.timeInCityOptions] ?? p.time_in_city],
                       ['Origem', pt.join.originOptions[p.origin as keyof typeof pt.join.originOptions] ?? p.origin],
                       ['Idioma', LANG[p.lang] ?? p.lang],
+                      ['Versão', p.cohort === 'v2' ? `V2 · password: ${p.password ?? 'ainda não escolheu'}` : 'V1'],
                       ['Quer falar sobre', p.talk_about_code ? interestLabel(p.talk_about_code, 'pt') : (p.talk_about ?? '—')],
                     ].map(([k, v]) => (
                       <div key={k} className="break-words">

@@ -2,7 +2,8 @@ import 'server-only';
 import { isE2eEmail } from '@/lib/e2eUsers';
 import { analysisType, compatPoints } from '@/lib/matching';
 import { matchingConfig } from '@/lib/site';
-import { filterAdminData, type DataMode, type ReviewRow } from '@/lib/stats';
+import { getAdminVersion } from '@/lib/adminVersion';
+import { filterAdminData, filterByVersion, type DataMode, type ReviewRow, type StudyVersion } from '@/lib/stats';
 import { createServiceClient } from '@/lib/supabase/service';
 
 // Loads whole tables for /admin, 1000 rows per page in a stable order (PostgREST limit).
@@ -41,6 +42,8 @@ export type AdminParticipant = {
   deleted_at: string | null;
   is_seed: boolean;
   created_at: string;
+  cohort: string;
+  password: string | null;
 };
 
 export type AdminMatch = {
@@ -62,6 +65,7 @@ export type AdminReview = Omit<ReviewRow, 'type' | 'shared_count' | 'shared_by_c
   reviewer_id: string;
   who_first: string | null;
   comment: string | null;
+  password_guess: string | null;
   created_at: string;
 };
 
@@ -92,16 +96,18 @@ export type AdminReport = {
   resolution: string | null;
 };
 
-export async function loadAdminData(mode: DataMode) {
+// `version`: v1 / v2 / both; defaults to the one chosen in /admin (cookie).
+export async function loadAdminData(mode: DataMode, versionArg?: StudyVersion) {
+  const version = versionArg ?? (await getAdminVersion());
   const [allParticipants, storedMatches, allReviews, allFlags, allClicks, reports, waitlistClicks, waitlistSent] = await Promise.all([
     all<AdminParticipant>(
       'participants',
-      'id, name, email, whatsapp, instagram, city, lang, age, age_range, time_in_city, origin, gender, gender_estimate, interests, other_text, talk_about, talk_about_code, active, pending_review, deleted_at, is_seed, created_at',
+      'id, name, email, whatsapp, instagram, city, lang, age, age_range, time_in_city, origin, gender, gender_estimate, interests, other_text, talk_about, talk_about_code, active, pending_review, deleted_at, is_seed, created_at, cohort, password',
     ),
     all<Omit<AdminMatch, 'assigned_type' | 'points'>>('matches', 'id, a_id, b_id, type, score, shared_items, shared_count, shared_by_category, created_at'),
     all<AdminReview>(
       'reviews',
-      'id, match_id, reviewer_id, contacted, interest_1_7, who_first, comfort_1_7, why_not, talked, flow_1_7, common_ground_1_7, satisfaction_1_7, meet_again_1_7, met, ig_follow, likes_concept, best_for, party_interest, personality, comment, next_step, created_at',
+      'id, match_id, reviewer_id, contacted, interest_1_7, who_first, comfort_1_7, why_not, talked, flow_1_7, common_ground_1_7, satisfaction_1_7, meet_again_1_7, met, ig_follow, likes_concept, best_for, party_interest, personality, comment, password_guess, next_step, created_at',
     ),
     all<AdminFlag>('content_flags', 'id, participant_id, match_id, field, text, status, category, reason, created_at, resolved_at'),
     all<AdminClick>('contact_clicks', 'match_id, participant_id, channel, created_at'),
@@ -122,9 +128,9 @@ export async function loadAdminData(mode: DataMode) {
   const pendingCount = allParticipants.filter((p) => p.pending_review && !p.deleted_at && !p.is_seed).length;
   const openReports = reports.filter((r) => !r.resolved_at).length;
   const allPeople = new Map(allParticipants.map((p) => [p.id, p]));
-  const { participants, matches, reviews, flags, clicks } = filterAdminData(
-    { participants: allParticipants, matches: allMatches, reviews: allReviews, flags: allFlags, clicks: allClicks },
-    mode,
+  const { participants, matches, reviews, flags, clicks } = filterByVersion(
+    filterAdminData({ participants: allParticipants, matches: allMatches, reviews: allReviews, flags: allFlags, clicks: allClicks }, mode),
+    version,
   );
 
   const personById = new Map(participants.map((p) => [p.id, p]));
@@ -164,6 +170,7 @@ export async function loadAdminData(mode: DataMode) {
   }
 
   return {
+    version,
     participants,
     matches,
     reviews,

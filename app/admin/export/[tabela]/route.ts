@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { isAdmin } from '@/lib/admin';
 import { loadAdminData } from '@/lib/adminData';
+import { guessIsRight } from '@/lib/password';
 import { toCsv } from '@/lib/csv';
 import { dataMode } from '@/lib/stats';
 
@@ -20,7 +21,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
   let csv: string;
   if (tabela === 'participantes') {
     csv = toCsv(
-      ['id', 'name', 'email', 'whatsapp', 'instagram', 'city', 'lang', 'age', 'age_range', 'time_in_city', 'origin', 'interests', 'other_text', 'talk_about', 'talk_about_code', 'active', 'deleted_at', 'is_seed', 'created_at'],
+      ['id', 'name', 'email', 'whatsapp', 'instagram', 'city', 'lang', 'age', 'age_range', 'time_in_city', 'origin', 'interests', 'other_text', 'talk_about', 'talk_about_code', 'gender', 'gender_estimate', 'cohort', 'password', 'active', 'deleted_at', 'is_seed', 'created_at'],
       participants,
     );
   } else if (tabela === 'matches') {
@@ -46,7 +47,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
         'type', 'assigned_type', 'shared_count', 'shared_items', 'shared_by_category',
         'age', 'age_range', 'time_in_city', 'origin', 'city', 'lang',
         'contacted', 'interest_1_7', 'who_first', 'comfort_1_7', 'why_not', 'talked', 'flow_1_7',
-        'common_ground_1_7', 'satisfaction_1_7', 'meet_again_1_7', 'met', 'next_step', 'ig_follow', 'likes_concept', 'best_for', 'party_interest', 'personality', 'comment',
+        'common_ground_1_7', 'satisfaction_1_7', 'meet_again_1_7', 'met', 'next_step', 'ig_follow', 'likes_concept', 'best_for', 'party_interest', 'personality', 'comment', 'password_guess', 'password_guess_right',
         'clicked_whatsapp', 'clicked_instagram', 'first_click_at', 'clicked_before_review',
       ],
       rows.map((r) => ({
@@ -55,6 +56,11 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
         reviewer_name: personById.get(r.review.reviewer_id)?.name,
         age: personById.get(r.review.reviewer_id)?.age,
         is_seed: seedOf(r.review.reviewer_id),
+        password_guess_right: (() => {
+          const m = matches.find((x) => x.id === r.match_id);
+          const other = m && (m.a_id === r.review.reviewer_id ? m.b_id : m.a_id);
+          return r.review.password_guess ? guessIsRight(r.review.password_guess, (other && personById.get(other)?.password) ?? null) : '';
+        })(),
         clicked_whatsapp: has(r.match_id, r.review.reviewer_id, 'whatsapp'),
         clicked_instagram: has(r.match_id, r.review.reviewer_id, 'instagram'),
         first_click_at: firstTap.get(`${r.match_id}|${r.review.reviewer_id}`),

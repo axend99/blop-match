@@ -21,7 +21,7 @@ const when = (iso: string) => new Date(iso).toLocaleString('pt-PT', { timeZone: 
 export default async function VerificationPage() {
   if (!(await isAdmin())) notFound();
   const notice = (await cookies()).get('admin_notice')?.value;
-  const { seedCount, e2eCount, pendingCount, openReports, reports, allPeople, allFlags } = await loadAdminData('tudo');
+  const { seedCount, e2eCount, pendingCount, openReports, reports, allPeople, allFlags } = await loadAdminData('tudo', 'todos');
 
   const open = reports.filter((r) => !r.resolved_at).sort((a, b) => b.created_at.localeCompare(a.created_at));
   const reported = new Set(open.map((r) => r.reported_id));

@@ -24,6 +24,7 @@ export async function deleteParticipantData(participantId: string, userId: strin
       instagram: null,
       talk_about: null,
       talk_about_code: null,
+      password: null,
       other_text: {},
       active: false,
       deleted_at: new Date().toISOString(),

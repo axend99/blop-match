@@ -38,6 +38,7 @@ import {
   byGroup,
   doseResponse,
   funnel,
+  gameStats,
   hypotheses,
   igFollow,
   conceptOpinion,
@@ -210,7 +211,7 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
   const notice = (await cookies()).get('admin_notice')?.value;
   const segmentGroup: Group | 'all' = grupo === 'compativel' ? 'compatible' : grupo === 'controlo' ? 'control' : 'all';
 
-  const { participants, matches, reviews, flags, clicks, rows, personById, seedCount, e2eCount, pendingCount, openReports, waitlist, tapped } = await loadAdminData(mode);
+  const { version, participants, matches, reviews, flags, clicks, rows, personById, seedCount, e2eCount, pendingCount, openReports, waitlist, tapped } = await loadAdminData(mode);
   const seedShown = participants.filter((p) => p.is_seed).length;
   // Keeps both filters in links.
   const link = (params: { grupo?: string; dados?: DataMode }, hash = '') =>
@@ -237,7 +238,7 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
   return (
     // Wider than the participant layout on desktop.
     <div className="relative left-1/2 w-[calc(100vw-2rem)] max-w-6xl -translate-x-1/2 space-y-6 text-midnight">
-      <AdminNav tab="painel" mode={mode} href={(dados) => link({ dados })} seedCount={seedCount} e2eCount={e2eCount} toReview={pendingCount + openReports} />
+      <AdminNav version={version} tab="painel" mode={mode} href={(dados) => link({ dados })} seedCount={seedCount} e2eCount={e2eCount} toReview={pendingCount + openReports} />
       {notice && <p className="rounded-2xl bg-lime/60 p-3 text-sm font-medium">{notice}</p>}
       {await (async () => {
         const e = await emailsLast24h();
@@ -711,6 +712,45 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
           responde à review tende a ser quem se envolveu mais, por isso &quot;fui eu a tomar a iniciativa&quot; costuma sair alto.
         </p>
       </Section>
+
+      {version !== 'v1' &&
+        (() => {
+          const g = gameStats({ participants, matches, reviews });
+          return (
+            <Section
+              n="2b"
+              title="Jogo da password (v2)"
+              description="Cada pessoa da v2 escolhe uma palavra secreta e tenta dizê-la nas conversas sem que o match perceba; na review, quem contactou diz qual acha que era a do outro. Conta como certo mesmo com maiúsculas, acentos ou pontuação diferentes."
+            >
+              <Table head={['', '%']}>
+                <tr>
+                  <td className="px-2 py-1.5">Pessoas da v2 com password escolhida</td>
+                  <PctCell s={g.withPassword} />
+                </tr>
+                <tr>
+                  <td className="px-2 py-1.5">Reviews com contacto que tentaram adivinhar</td>
+                  <PctCell s={g.guessed} />
+                </tr>
+                <tr>
+                  <td className="px-2 py-1.5">Palpites certos (de todos os palpites)</td>
+                  <PctCell s={g.right} />
+                </tr>
+                <tr>
+                  <td className="px-2 py-1.5">Palpites certos: matches compatíveis</td>
+                  <PctCell s={g.rightByGroup.compatible} />
+                </tr>
+                <tr>
+                  <td className="px-2 py-1.5">Palpites certos: matches de controlo</td>
+                  <PctCell s={g.rightByGroup.control} />
+                </tr>
+              </Table>
+              <p className="text-xs text-midnight/60">
+                As passwords e os palpites de cada pessoa estão na aba Participantes. Os participantes só veem a password do outro
+                depois de os dois avaliarem.
+              </p>
+            </Section>
+          );
+        })()}
 
       <Section n={3} title="Funil por grupo" description="De todas as reviews de cada grupo, que % chegou a cada etapa: contacto, conversa, próximo passo (quer voltar a ver ou já combinou) e encontro.">
         {(() => {

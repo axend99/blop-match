@@ -231,6 +231,11 @@ describe('one hour of slack for the hourly cron window', () => {
     expect(reviewOpensAt(created).toISOString()).toBe('2026-10-20T10:00:00.000Z');
     delete process.env.REVIEW_DELAY_DAYS;
   });
+
+  it('caps v1 matches at the end of v1, but not v2 matches', () => {
+    expect(reviewOpensAt('2026-11-02T12:00:00Z').toISOString()).toBe('2026-11-03T09:00:00.000Z');
+    expect(reviewOpensAt('2026-11-20T10:00:00Z').toISOString()).toBe('2026-11-22T09:00:00.000Z');
+  });
 });
 
 describe('Instagram question', () => {

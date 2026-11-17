@@ -1,5 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import {
+  filterByVersion,
+  gameStats,
+  studyVersion,
   contactDetail,
   meanDiffCI,
   propDiffCI,
@@ -715,5 +718,55 @@ describe('contactDetail', () => {
     expect(d.byPersonality.find((x) => x.key === 'introvert')).toMatchObject({ value: 0.5, n: 2 });
     expect(d.byGroup[0]).toMatchObject({ key: 'compatible', contacted: { value: 2 / 3, n: 3 }, talked: { value: 1 / 3, n: 3 } });
     expect(d.byGroup[1].contacted).toEqual({ value: null, n: 0 });
+  });
+});
+
+describe('gameStats', () => {
+  it('counts passwords, guesses among contacts and right guesses by group', () => {
+    const g = gameStats({
+      participants: [
+        { id: 'a', deleted_at: null, cohort: 'v2', password: 'girassol' },
+        { id: 'b', deleted_at: null, cohort: 'v2', password: 'Coração' },
+        { id: 'c', deleted_at: null, cohort: 'v2', password: null },
+        { id: 'z', deleted_at: null, cohort: 'v1', password: null },
+      ],
+      matches: [
+        { id: 'm1', a_id: 'a', b_id: 'b', type: 'compatible' },
+        { id: 'm2', a_id: 'a', b_id: 'c', type: 'control' },
+      ],
+      reviews: [
+        { match_id: 'm1', reviewer_id: 'a', contacted: true, password_guess: 'coracao' },
+        { match_id: 'm1', reviewer_id: 'b', contacted: true, password_guess: 'girafa' },
+        { match_id: 'm2', reviewer_id: 'a', contacted: true, password_guess: null },
+        { match_id: 'm2', reviewer_id: 'c', contacted: false, password_guess: null },
+      ],
+    });
+    expect(g.people).toBe(3);
+    expect(g.withPassword).toEqual({ value: 2 / 3, n: 3 });
+    expect(g.guessed).toEqual({ value: 2 / 3, n: 3 });
+    expect(g.right).toEqual({ value: 0.5, n: 2 });
+    expect(g.rightByGroup.compatible).toEqual({ value: 0.5, n: 2 });
+    expect(g.rightByGroup.control).toEqual({ value: null, n: 0 });
+  });
+});
+
+describe('filterByVersion', () => {
+  it('keeps one cohort, its matches, reviews, flags and taps; todos keeps everything', () => {
+    const data = {
+      participants: [{ id: 'a', cohort: 'v1' }, { id: 'b', cohort: 'v1' }, { id: 'c', cohort: 'v2' }, { id: 'd', cohort: 'v2' }],
+      matches: [{ a_id: 'a', b_id: 'b' }, { a_id: 'c', b_id: 'd' }],
+      reviews: [{ reviewer_id: 'a' }, { reviewer_id: 'd' }],
+      flags: [{ participant_id: 'c' }],
+      clicks: [{ participant_id: 'b' }],
+    };
+    const v2 = filterByVersion(data, 'v2');
+    expect(v2.participants.map((p) => p.id)).toEqual(['c', 'd']);
+    expect(v2.matches).toEqual([{ a_id: 'c', b_id: 'd' }]);
+    expect(v2.reviews).toEqual([{ reviewer_id: 'd' }]);
+    expect(v2.flags).toHaveLength(1);
+    expect(v2.clicks).toHaveLength(0);
+    expect(filterByVersion(data, 'todos')).toBe(data);
+    expect(studyVersion(undefined)).toBe('v2');
+    expect(studyVersion('todos')).toBe('todos');
   });
 });

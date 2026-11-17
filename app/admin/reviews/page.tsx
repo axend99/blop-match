@@ -48,7 +48,7 @@ export default async function ReviewsPage({ searchParams }: { searchParams: Prom
   if (!(await isAdmin())) notFound();
   const { dados, q = '', grupo } = await searchParams;
   const mode = dataMode(dados);
-  const { reviews, matchById, personById, seedCount, e2eCount, pendingCount, openReports } = await loadAdminData(mode);
+  const { version, reviews, matchById, personById, seedCount, e2eCount, pendingCount, openReports } = await loadAdminData(mode);
 
   const query = q.trim().toLowerCase();
   const name = (id: string | undefined) => (id ? (personById.get(id)?.name ?? '—') : '—');
@@ -72,7 +72,7 @@ export default async function ReviewsPage({ searchParams }: { searchParams: Prom
 
   return (
     <div className="relative left-1/2 w-[calc(100vw-2rem)] max-w-6xl -translate-x-1/2 space-y-6 text-midnight">
-      <AdminNav tab="reviews" mode={mode} href={(dados) => href({ dados })} seedCount={seedCount} e2eCount={e2eCount} toReview={pendingCount + openReports} />
+      <AdminNav version={version} tab="reviews" mode={mode} href={(dados) => href({ dados })} seedCount={seedCount} e2eCount={e2eCount} toReview={pendingCount + openReports} />
 
       <form action="/admin/reviews" className="flex gap-2">
         <input type="hidden" name="dados" value={mode} />

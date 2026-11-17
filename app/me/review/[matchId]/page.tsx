@@ -70,6 +70,14 @@ export default async function ReviewPage({ params }: { params: Promise<{ matchId
         t={formTexts}
         genericError={t.common.genericError}
         askInstagram={Boolean(me.instagram && match.other_instagram)}
+        game={
+          me.cohort === 'v2'
+            ? {
+                label: match.other_deleted ? t.password.guessLabelFormer : t.password.guessLabel(match.other_name),
+                hint: t.password.guessHint,
+              }
+            : undefined
+        }
       />
       {!match.other_deleted && (
         <Link href={`/me/report/${match.match_id}`} className="block text-center text-sm text-midnight/50 underline">

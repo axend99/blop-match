@@ -270,3 +270,15 @@ Estudo académico do projeto BLOP, do mestrado MIETE. Dados recolhidos: os do pe
 
 **Fase 6 — Seed, deploy e teste:** `scripts/seed.ts` com 100 participantes falsos (mesclando perfis parecidos e opostos; `is_seed = true`, inativos, sem conta nem e-mail, por isso nenhum fluxo automático lhes toca), matching e reviews aleatórias (compatíveis ligeiramente melhores) e toques de contacto; `npm run seed:clean` para limpar o seed (aborta se houver matches entre seed e pessoas reais); guia em `docs/CONFIGURACAO.md`; deploy na Vercel; lista final das variáveis de ambiente e passos de configuração (Google OAuth redirect, SMTP no Supabase e na Vercel).
 ✓ O link público funciona no telemóvel de ponta a ponta.
+
+## 11. v2: coortes e jogo da password (nov 2026)
+
+- **Coortes** (`participants.cohort`): quem entrou até ao fim da 1.ª fase é `v1` (os 75 do relatório); quem entra depois é `v2` (valor por omissão). Migração `0026_v2_password_game.sql`.
+- **v1 não recebe nada**: `sendEmail` (`lib/email.ts`) não envia nenhum e-mail a quem não é `v2`, e o matching (`lib/matchingService.ts`) só usa pessoas `v2` com password. A v1 continua a poder entrar, ver os matches antigos e avaliar (todas as reviews v1 estão abertas: `V1_ENDS_AT` em `lib/site.ts`). A v2 segue o fluxo normal (boas-vindas, matches, nudge, review, lembrete, lista de espera).
+- **Password** (`participants.password`): depois do perfil, `/join/password` explica o jogo e pede uma palavra secreta (só letras, 2–20; `lib/password.ts`). Não se altera depois. Sem password não há matches; `/me` reencaminha para lá e mostra a password como lembrete. Só o próprio a vê (RLS da própria linha).
+- **Objetivo**: dizer a própria password o máximo de vezes nas conversas sem que o match perceba, e descobrir a do match.
+- **Review** (só v2, quando contactou): "Qual achas que era a password de X?" (opcional, `reviews.password_guess`). Certo = igual ignorando maiúsculas, acentos e pontuação.
+- **Revelação**: na página do match, depois de os dois avaliarem: a password do outro, se cada um acertou e o palpite do outro (`lib/passwordGame.ts`, lida no servidor com a service role; nada antes das duas reviews).
+- **E-mail de novo match**: uma linha a lembrar o jogo.
+- **Admin**: filtro de versão (V2 por omissão, V1, Consolidado), guardado num cookie e válido em todas as abas e no CSV; cartão "Jogo da password" (com password, palpites, certos por grupo); a aba Participantes mostra a versão, a password e os palpites; o CSV inclui `cohort`, `password`, `password_guess` e `password_guess_right`.
+- **Eliminação de dados** apaga também a password.

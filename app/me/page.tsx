@@ -18,6 +18,7 @@ export default async function MePage() {
   if (!(await getUser())) redirect('/login');
   const me = await getMyParticipant();
   if (!me) redirect('/join');
+  if (me.cohort === 'v2' && !me.password) redirect('/join/password');
   const lang = await getLang();
   const t = getDict(lang);
   const matches = await getMyMatches();
@@ -40,6 +41,14 @@ export default async function MePage() {
       </section>
 
       {!me.active && <p className="rounded-2xl bg-pink/40 p-4 text-sm">{t.me.leftNotice}</p>}
+
+      {me.password && (
+        <section className="space-y-1 rounded-3xl bg-lime/60 p-5">
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-midnight/70">🤫 {t.password.reminderTitle}</h2>
+          <p className="text-2xl font-bold">{me.password}</p>
+          <p className="text-sm text-midnight/80">{t.password.reminderBody}</p>
+        </section>
+      )}
 
       {toReview.length > 0 && (
         <section className="space-y-3 rounded-3xl bg-violet p-6 text-white">

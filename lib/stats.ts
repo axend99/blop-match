@@ -1,3 +1,4 @@
+import { guessIsRight } from '@/lib/password';
 import { CATEGORIES, INTERESTS, interestsByCategory, type Category } from '@/lib/interests';
 
 // Pure statistics for /admin (SPEC §8). The unit of analysis is the review: one person
@@ -567,6 +568,65 @@ export function filterAdminData<
 >(data: { participants: P[]; matches: M[]; reviews: R[]; flags: F[]; clicks: C[] }, mode: DataMode) {
   if (mode === 'tudo') return data;
   const keep = new Set(data.participants.filter((p) => p.is_seed === (mode === 'seed')).map((p) => p.id));
+  return {
+    participants: data.participants.filter((p) => keep.has(p.id)),
+    matches: data.matches.filter((m) => keep.has(m.a_id) && keep.has(m.b_id)),
+    reviews: data.reviews.filter((r) => keep.has(r.reviewer_id)),
+    flags: data.flags.filter((f) => keep.has(f.participant_id)),
+    clicks: data.clicks.filter((c) => keep.has(c.participant_id)),
+  };
+}
+
+// --- v2 password game: who chose a password, who guessed, who got it right ---
+
+export function gameStats({ participants, matches, reviews }: {
+  participants: { id: string; deleted_at: string | null; cohort: string; password: string | null }[];
+  matches: { id: string; a_id: string; b_id: string; type: Group }[];
+  reviews: { match_id: string; reviewer_id: string; contacted: boolean; password_guess: string | null }[];
+}) {
+  const v2 = participants.filter((p) => p.cohort === 'v2' && !p.deleted_at);
+  const passwordOf = new Map(v2.map((p) => [p.id, p.password]));
+  const matchById = new Map(matches.map((m) => [m.id, m]));
+  const rows = reviews.flatMap((r) => {
+    const m = matchById.get(r.match_id);
+    if (!m || !passwordOf.has(r.reviewer_id)) return [];
+    const other = m.a_id === r.reviewer_id ? m.b_id : m.a_id;
+    return [{ ...r, type: m.type, right: guessIsRight(r.password_guess, passwordOf.get(other) ?? null) }];
+  });
+  const contacted = rows.filter((r) => r.contacted);
+  const guessed = contacted.filter((r) => r.password_guess);
+  const rightIn = (rs: typeof rows) => share(rs.filter((r) => r.right).length, rs.length);
+  return {
+    people: v2.length,
+    withPassword: share(v2.filter((p) => p.password).length, v2.length),
+    guessed: share(guessed.length, contacted.length), // of the reviews where they made contact
+    right: rightIn(guessed), // of the guesses
+    rightByGroup: {
+      compatible: rightIn(guessed.filter((r) => r.type === 'compatible')),
+      control: rightIn(guessed.filter((r) => r.type === 'control')),
+    },
+  };
+}
+
+// --- Study version: v1 (everyone who joined before v2), v2 (the password game) or both ---
+
+export type StudyVersion = 'v1' | 'v2' | 'todos';
+
+export function studyVersion(value: string | undefined): StudyVersion {
+  return value === 'v1' || value === 'todos' ? value : 'v2';
+}
+
+// Same shape as filterAdminData: v2 people are only matched with v2, so a match belongs to the
+// version of its two people.
+export function filterByVersion<
+  P extends { id: string; cohort: string },
+  M extends { a_id: string; b_id: string },
+  R extends { reviewer_id: string },
+  F extends { participant_id: string },
+  C extends { participant_id: string },
+>(data: { participants: P[]; matches: M[]; reviews: R[]; flags: F[]; clicks: C[] }, version: StudyVersion) {
+  if (version === 'todos') return data;
+  const keep = new Set(data.participants.filter((p) => p.cohort === version).map((p) => p.id));
   return {
     participants: data.participants.filter((p) => keep.has(p.id)),
     matches: data.matches.filter((m) => keep.has(m.a_id) && keep.has(m.b_id)),

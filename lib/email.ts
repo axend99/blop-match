@@ -48,6 +48,10 @@ export async function sendEmail({ participantId, kind, matchId = null, to, subje
   }
 
   const supabase = createServiceClient();
+  // v1 participants (joined before v2) get no more e-mails of any kind.
+  const { data: person } = await supabase.from('participants').select('cohort').eq('id', participantId).maybeSingle();
+  if (!person || person.cohort !== 'v2') return false;
+
   const { data: log, error: logError } = await supabase
     .from('email_log')
     .insert({ participant_id: participantId, kind, match_id: matchId })
