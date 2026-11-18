@@ -218,6 +218,9 @@ const pt: Dict = {
     titleFormer: 'Como correu com o teu match?',
     intro: 'Demora 2 minutos.',
     // Texto simples (marcador {name}): estes textos também vão para o formulário no browser.
+    contactFirst: (name: string) => `Antes de avaliares, fala com ${name}: manda uma mensagem e vê como corre a conversa. Esta avaliação é sobre esse contacto.`,
+    contactFirstFormer: 'Antes de avaliares, fala com esta pessoa: manda uma mensagem e vê como corre a conversa. Esta avaliação é sobre esse contacto.',
+    passwordRetry: 'Falhaste a password? Podes voltar a falar com a pessoa e tentar descobri-la na conversa (nunca lha perguntes diretamente!), e depois voltar a tentar na página do match.',
     privateNote: '🔒 {name} nunca vê o que respondes. As tuas respostas são confidenciais: só a equipa de investigação as lê, para o estudo.',
     privateNoteFormer: '🔒 As tuas respostas são confidenciais: só a equipa de investigação as lê, para o estudo.',
     opensOn: (date: string) => `Podes avaliar esta interação a partir de ${date}.`,

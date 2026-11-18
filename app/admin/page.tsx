@@ -21,7 +21,7 @@ import { countOldLinkRequests, emailBacklog } from '@/lib/reviewService';
 import { FUNNEL_ORDER, VISITS_SINCE, splitAtSnapshot, stepRates } from '@/lib/visits';
 import { REVIEW_GRACE_MS } from '@/lib/review';
 import { AGE_CLOSE_YEARS } from '@/lib/matching';
-import { matchingConfig, reviewDelayDays, reviewOpensAt, V1_ENDS_AT } from '@/lib/site';
+import { matchingConfig, reviewDelayDays, reviewDueAt, V1_ENDS_AT } from '@/lib/site';
 import { leaderboard, nicknameLabel, PRIZE_PLACES, scores as gameScores } from '@/lib/game';
 import { CATEGORIES } from '@/lib/interests';
 import {
@@ -722,7 +722,7 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
           // The game is v2 only: matches from before v2 never count (also between people who joined v2 later).
           const gameMatches = matches
             .filter((m) => m.created_at >= V1_ENDS_AT)
-            .map((m) => ({ ...m, reviewOpen: reviewOpensAt(m.created_at) <= new Date() }));
+            .map((m) => ({ ...m, reviewOpen: reviewDueAt(m.created_at) <= new Date() }));
           const g = gameStats({ participants, matches: gameMatches, reviews, guesses });
           // Same leaderboard as the participants see, with real names (prize: top 3).
           const v2 = participants.filter((p) => p.cohort === 'v2' && !p.deleted_at);

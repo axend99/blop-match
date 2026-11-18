@@ -2,6 +2,7 @@ import { appendFileSync } from 'node:fs';
 import { expect, test, type Page } from '@playwright/test';
 import { adminDb } from './db';
 import { E2E_EMAILS } from '@/lib/e2eUsers';
+import { interestsByCategory } from '@/lib/interests';
 
 // 10 scripted participants going through the real app (sign-up, password game, matches, contact
 // buttons, guesses, reviews, experience review, leaderboard), plus "curious" behaviour. Person 10
@@ -124,7 +125,11 @@ test('cria as 10 contas', async () => {
   if (!v1Row) {
     const { data: users } = await db.auth.admin.listUsers({ perPage: 1000 });
     const user = users.users.find((u) => u.email === V1_PERSON.email)!;
-    const { data: ref } = await db.from('participants').select('interests').eq('email', PEOPLE[1].email).maybeSingle();
+    // Same picks as person 2 makes in the form (3 per category in music, sports, fitness, movies).
+    const interests = (['music', 'sports', 'fitness', 'movies'] as const).flatMap((category, c) => {
+      const all = interestsByCategory(category).map((x) => x.code);
+      return TASTES[1].map((k) => all[(k + c) % all.length]);
+    });
     const { error } = await db.from('participants').insert({
       user_id: user.id,
       email: V1_PERSON.email,
@@ -137,7 +142,7 @@ test('cria as 10 contas', async () => {
       age_range: '25-30',
       time_in_city: 'lt6m',
       origin: 'other_country',
-      interests: ref?.interests ?? ['music_rock', 'music_pop', 'sports_football', 'fit_gym', 'movies_comedy', 'act_beach'],
+      interests,
       talk_about: 'E2E v1: best coffee in town',
       consent_at: '2026-10-20T10:00:00Z',
       created_at: '2026-10-20T10:00:00Z',
@@ -353,10 +358,11 @@ for (const p of PEOPLE) {
         await ig.click();
         (await popup)?.close();
       }
-      // Review not open yet.
+      // Reviews open right away, asking to contact the person first.
       await go(page, href.replace('/me/match/', '/me/review/'));
       await checkPage(page, who, others);
-      if ((await page.locator('input[name="contacted"]').count()) > 0) finding(who, 'review aberta antes do prazo', href);
+      if ((await page.locator('input[name="contacted"]').count()) === 0) finding(who, 'review não está aberta logo', href);
+      if ((await page.getByText(p.lang === 'pt' ? 'Antes de avaliares' : 'Before rating').count()) === 0) finding(who, 'aviso "fala primeiro" em falta na review', href);
     }
 
     // Curious: someone else's match, the admin, the info pages, language switch, back links.

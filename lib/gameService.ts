@@ -1,7 +1,7 @@
 import 'server-only';
 import { leaderboard, LEADERBOARD_SIZE, letterCount, MAX_GUESSES, scores, type Score } from '@/lib/game';
 import { guessCounts } from '@/lib/password';
-import { reviewOpensAt, V1_ENDS_AT } from '@/lib/site';
+import { reviewDueAt, V1_ENDS_AT } from '@/lib/site';
 import { createServiceClient } from '@/lib/supabase/service';
 
 // Loads the v2 password game with the service role and returns only what `meId` may see. My own
@@ -67,7 +67,7 @@ export async function loadGame(meId: string): Promise<GameState> {
 
   const all = scores({
     people: v2.map((p) => ({ id: p.id })),
-    matches: matches.map((m) => ({ ...m, reviewOpen: reviewOpensAt(m.created_at) <= new Date() })),
+    matches: matches.map((m) => ({ ...m, reviewOpen: reviewDueAt(m.created_at) <= new Date() })),
     reviews: reviews ?? [],
     guesses,
   });
