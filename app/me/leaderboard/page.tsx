@@ -1,11 +1,11 @@
-import Link from 'next/link';
+import StudyTabs from '@/components/StudyTabs';
+import { getMyStudy } from '@/lib/myStudy';
 import { redirect } from 'next/navigation';
 import { getMyParticipant, getUser } from '@/lib/auth';
 import { nicknameLabel, PRIZE_PLACES } from '@/lib/game';
 import { loadGame, type BoardRow } from '@/lib/gameService';
 import { getDict } from '@/lib/i18n';
 import { getLang } from '@/lib/i18n/server';
-import { NAV_BUTTON } from '@/lib/ui';
 
 // Password game leaderboard (v2): top 10 and, below, my own place if I'm not in it. People appear
 // with their first name only if they chose to; otherwise with their nickname.
@@ -31,9 +31,7 @@ export default async function LeaderboardPage() {
 
   return (
     <div className="space-y-6">
-      <Link href="/me" className={NAV_BUTTON}>
-        ← {t.match.back}
-      </Link>
+      <StudyTabs t={t.tabs} active="leaderboard" pending={(await getMyStudy(me)).pending} showLeaderboard />
       <div className="space-y-2">
         <h1 className="text-3xl font-bold">{t.game.boardTitle}</h1>
         <p className="text-midnight/70">{t.game.boardIntro}</p>

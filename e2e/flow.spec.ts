@@ -228,6 +228,14 @@ for (const p of PEOPLE) {
       const res = await go(page, `/me/match/${foreign[0].id}`);
       if (res?.status() !== 404) finding(who, 'abriu o match de outra pessoa', res?.status());
     }
+    // Study tabs: matches, reviews (each match + the app), leaderboard.
+    await go(page, '/me');
+    const tabs = page.getByRole('navigation', { name: p.lang === 'pt' ? 'Secções do estudo' : 'Study sections' });
+    if ((await tabs.getByRole('link').count()) !== 3) finding(who, 'tabs do estudo em falta', await tabs.getByRole('link').count());
+    await tabs.getByRole('link', { name: p.lang === 'pt' ? 'Avaliações' : 'Reviews' }).click();
+    await page.waitForURL(/\/me\/reviews$/).catch(() => finding(who, 'tab de avaliações não abriu', page.url()));
+    await checkPage(page, who, others);
+    if ((await page.locator('a[href="/me/experience"]').count()) === 0) finding(who, 'avaliação da app em falta na tab de avaliações');
     const admin = await go(page, '/admin');
     if (admin?.status() !== 404) finding(who, '/admin acessível a participante', admin?.status());
     await go(page, '/about');

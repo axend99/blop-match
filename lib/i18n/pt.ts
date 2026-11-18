@@ -369,6 +369,22 @@ const pt: Dict = {
     banner: 'A 2.ª ronda do BLOP Match começou, com o jogo da password.',
     bannerButton: 'Ver as novidades',
   },
+  tabs: {
+    label: 'Secções do estudo',
+    matches: 'Matches',
+    reviews: 'Avaliações',
+    leaderboard: 'Ranking',
+  },
+  reviewsPage: {
+    title: 'Avaliações',
+    intro: 'Avalia cada match depois da conversa, e diz-nos uma vez o que achas do BLOP.',
+    matchesTitle: 'Os teus matches',
+    none: 'Ainda não tens matches. Assim que tiveres, aparecem aqui.',
+    appTitle: 'O BLOP em si',
+    appBody: '1 minuto, só uma vez: o que achas da ideia.',
+    appButton: 'Responder',
+    appDone: 'Respondido ✓ Obrigado!',
+  },
   leave: {
     button: 'Sair do estudo',
     confirm: 'Sair do estudo? Deixas de receber novos matches. Os matches atuais continuam visíveis.',
