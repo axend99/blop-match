@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { dueNudges, dueReminders, dueReviewRequests, spacedFromNudge, validateExperience, validateReview, type DueParticipant } from '@/lib/review';
-import { reviewOpensAt } from '@/lib/site';
+import { reviewDueAt, reviewOpensAt } from '@/lib/site';
 
 const TALKED = {
   contacted: true,
@@ -217,17 +217,21 @@ describe('one hour of slack for the hourly cron window', () => {
     expect(due(minutesAgo(2 * DAY_MIN - 61))).toHaveLength(0);
   });
 
-  it('opens the review page with the same slack, never before the match', () => {
+  it('the review is due with the same slack as the e-mail, never before the match', () => {
     const created = '2026-10-20T10:00:00Z';
-    expect(reviewOpensAt(created).toISOString()).toBe('2026-10-22T09:00:00.000Z'); // default: 2 days
+    expect(reviewDueAt(created).toISOString()).toBe('2026-10-22T09:00:00.000Z'); // default: 2 days
     process.env.REVIEW_DELAY_DAYS = '0';
-    expect(reviewOpensAt(created).toISOString()).toBe('2026-10-20T10:00:00.000Z');
+    expect(reviewDueAt(created).toISOString()).toBe('2026-10-20T10:00:00.000Z');
     delete process.env.REVIEW_DELAY_DAYS;
   });
 
+  it('opens the review right away (the page asks to contact the person first)', () => {
+    expect(reviewOpensAt('2026-11-20T10:00:00Z').toISOString()).toBe('2026-11-20T10:00:00.000Z');
+  });
+
   it('caps v1 matches at the end of v1, but not v2 matches', () => {
-    expect(reviewOpensAt('2026-11-02T12:00:00Z').toISOString()).toBe('2026-11-03T09:00:00.000Z');
-    expect(reviewOpensAt('2026-11-20T10:00:00Z').toISOString()).toBe('2026-11-22T09:00:00.000Z');
+    expect(reviewDueAt('2026-11-02T12:00:00Z').toISOString()).toBe('2026-11-03T09:00:00.000Z');
+    expect(reviewDueAt('2026-11-20T10:00:00Z').toISOString()).toBe('2026-11-22T09:00:00.000Z');
   });
 });
 

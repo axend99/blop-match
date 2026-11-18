@@ -7,7 +7,7 @@ import type { Dict } from '@/lib/i18n/en';
 import { IG_FOLLOW, LOW_INTEREST_MAX, LOW_REASONS, MAX_COMMENT, MET, WHO_FIRST, WHY_NOT, validateReview, type ReviewErrors, type ReviewField } from '@/lib/review';
 
 // Only plain strings can cross to a client component.
-export type ReviewFormTexts = Omit<Dict['review'], 'title' | 'opensOn'>;
+export type ReviewFormTexts = Omit<Dict['review'], 'title' | 'opensOn' | 'contactFirst' | 'contactFirstFormer' | 'passwordRetry'>;
 type T = ReviewFormTexts;
 type Answers = Record<string, unknown>;
 

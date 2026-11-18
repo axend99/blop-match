@@ -27,7 +27,8 @@ export default async function ReviewPage({ params }: { params: Promise<{ matchId
   const lang = await getLang();
   const t = getDict(lang);
   const opensAt = reviewOpensAt(match.created_at);
-  const { title, opensOn, ...formTexts } = t.review;
+  // Only plain strings go to the client form.
+  const { title, opensOn, contactFirst, contactFirstFormer, passwordRetry, ...formTexts } = t.review;
 
   const back = (
     <Link href="/me" className={NAV_BUTTON}>
@@ -61,6 +62,11 @@ export default async function ReviewPage({ params }: { params: Promise<{ matchId
       <div className="space-y-2">
         <h1 className="text-3xl font-bold">{match.other_deleted ? t.review.titleFormer : title(match.other_name)}</h1>
         <p className="text-midnight/70">{t.review.intro}</p>
+        {/* Reviews open right away: ask to contact the person first. */}
+        <div className="space-y-2 rounded-2xl bg-pink/40 p-4 text-sm">
+          <p className="font-semibold">💬 {match.other_deleted ? contactFirstFormer : contactFirst(match.other_name)}</p>
+          {me.cohort === 'v2' && !match.other_deleted && <p>🤫 {passwordRetry}</p>}
+        </div>
         <p className="rounded-2xl bg-lime/40 p-3 text-sm font-medium">
           {match.other_deleted ? t.review.privateNoteFormer : t.review.privateNote.replace('{name}', match.other_name)}
         </p>

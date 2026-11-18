@@ -38,7 +38,14 @@ export function formatDate(date: Date, lang: string): string {
 // they can still rate. v2 (cohort 'v2', sign-ups from then on) follows the normal flow.
 export const V1_ENDS_AT = '2026-11-03T09:00:00Z';
 
+// Reviews open as soon as the match exists (the review page asks to contact the person first).
 export function reviewOpensAt(matchCreatedAt: string): Date {
+  return new Date(matchCreatedAt);
+}
+
+// When the review is due: the review e-mail goes out then (same delay as the cron), and from then
+// on the app reminds the person (the /me card, the tab badge).
+export function reviewDueAt(matchCreatedAt: string): Date {
   const created = new Date(matchCreatedAt).getTime();
   const opens = created + reviewDelayDays() * 24 * 60 * 60 * 1000 - REVIEW_GRACE_MS;
   const regular = Math.max(opens, created);

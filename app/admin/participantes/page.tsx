@@ -9,7 +9,7 @@ import { loadAdminData, type AdminParticipant, type AdminReview } from '@/lib/ad
 import { interestLabel } from '@/lib/i18n';
 import pt from '@/lib/i18n/pt';
 import { nicknameLabel } from '@/lib/game';
-import { reviewOpensAt } from '@/lib/site';
+import { reviewDueAt } from '@/lib/site';
 import { dataMode, participantMatches, type DataMode } from '@/lib/stats';
 
 // Who the participants are and each one's matches (admin, in Portuguese).
@@ -140,7 +140,7 @@ export default async function ParticipantsPage({ searchParams }: { searchParams:
                           </p>
                           {(!mine || !theirs) &&
                             !p.is_seed &&
-                            (reviewOpensAt(match.created_at) > new Date() ? (
+                            (reviewDueAt(match.created_at) > new Date() ? (
                               <form action={openReview}>
                                 <input type="hidden" name="matchId" value={match.id} />
                                 <button className="rounded-full border border-violet px-3 py-1 text-xs font-semibold text-violet">

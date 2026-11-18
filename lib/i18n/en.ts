@@ -218,6 +218,9 @@ const en = {
     titleFormer: 'How did it go with your match?',
     intro: 'It takes 2 minutes.',
     // Plain strings ({name} placeholder): these texts also go to the client form.
+    contactFirst: (name: string) => `Before rating, talk to ${name}: send a message and see how the conversation goes. This review is about that contact.`,
+    contactFirstFormer: 'Before rating, talk to this person: send a message and see how the conversation goes. This review is about that contact.',
+    passwordRetry: "Missed their password? You can talk to them again and try to find it out in the conversation (never ask for it directly!), then guess again on their page.",
     privateNote: '🔒 {name} never sees what you answer. Your answers are confidential: only the research team reads them, for the study.',
     privateNoteFormer: '🔒 Your answers are confidential: only the research team reads them, for the study.',
     opensOn: (date: string) => `You can rate this interaction from ${date}.`,
