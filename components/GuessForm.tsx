@@ -10,7 +10,7 @@ export type GuessFormTexts = {
   left: string;
   placeholder: string;
   submit: string;
-  right: string;
+  right: string[]; // by attempt: right[0] = found on the first try
   wrong: string[]; // by tries left: wrong[0] = last try used
   repeat: string;
   invalid: string;
@@ -33,7 +33,7 @@ export default function GuessForm({ matchId, t }: { matchId: string; t: GuessFor
           const result = await guessPassword(matchId, value);
           if (result.result) {
             setValue('');
-            setMessage({ ok: result.result.right, text: result.result.right ? t.right : (t.wrong[result.result.left] ?? t.wrong[0]) });
+            setMessage({ ok: result.result.right, text: result.result.right ? (t.right[result.result.attempt - 1] ?? t.right[0]) : (t.wrong[result.result.left] ?? t.wrong[0]) });
           } else {
             setMessage({ ok: false, text: result.error === 'repeat' ? t.repeat : result.error === 'invalid' ? t.invalid : t.error });
           }

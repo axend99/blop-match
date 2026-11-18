@@ -16,9 +16,15 @@ describe('scores', () => {
   });
 
   it('counts a right guess straight away, without waiting for the review', () => {
-    const s = scores({ people, matches, reviews: [], guesses: [{ match_id: 'm1', guesser_id: 'a', right: true }] });
-    expect(s.get('a')).toMatchObject({ points: 3, rightGuesses: 1, badges: ['first_guess'] });
+    const s = scores({ people, matches, reviews: [], guesses: [{ match_id: 'm1', guesser_id: 'a', right: true, attempt: 1 }] });
+    expect(s.get('a')).toMatchObject({ points: 5, rightGuesses: 1, badges: ['first_guess'] });
     expect(s.get('b')).toMatchObject({ points: 0 }); // being found out costs nothing
+  });
+
+  it('gives 5, 3 or 1 points by the try that found it', () => {
+    const g = (match_id: string, attempt: number, right: boolean) => ({ match_id, guesser_id: 'a', attempt, right });
+    const s = scores({ people, matches, reviews: [], guesses: [g('m1', 1, false), g('m1', 2, true), g('m2', 1, false), g('m2', 2, false), g('m2', 3, true)] });
+    expect(s.get('a')).toMatchObject({ points: 3 + 1, rightGuesses: 2 });
   });
 
   it('adds the times said (max 3 per match), the first message (both may claim it) and each review', () => {

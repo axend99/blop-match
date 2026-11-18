@@ -737,7 +737,7 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
             <Section
               n="2b"
               title="Jogo da password (v2)"
-              description="Cada pessoa da v2 escolhe uma palavra secreta e tenta dizê-la nas conversas o máximo de vezes. Pode adivinhar a do match quando quiser, com 2 pistas (número de letras e tipo de palavra) e 3 tentativas por match, e vê logo se acertou. Conta como certo a mesma palavra noutro idioma (heart = coração) ou noutra forma (plural, género, gralha), verificado pelo Claude. Pontos: +3 por password descoberta, +1 por cada vez que disse a sua (declarado na review, até 3 por match), +1 por mandar a primeira mensagem (declarado), +1 por review."
+              description="Cada pessoa da v2 escolhe uma palavra secreta e tenta dizê-la nas conversas o máximo de vezes. Pode adivinhar a do match quando quiser, com 2 pistas (número de letras e tipo de palavra) e 3 tentativas por match, e vê logo se acertou. Conta como certo a mesma palavra noutro idioma (heart = coração) ou noutra forma (plural, género, gralha), verificado pelo Claude. Pontos: +5 / +3 / +1 por password descoberta à 1.ª / 2.ª / 3.ª tentativa, +1 por cada vez que disse a sua (declarado na review, até 3 por match), +1 por mandar a primeira mensagem (declarado), +1 por review."
             >
               <Table head={['', '%']}>
                 <tr>

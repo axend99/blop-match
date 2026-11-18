@@ -16,6 +16,7 @@ export type Candidate = {
   active: boolean;
   createdAt: string;
   age?: number | null; // tie-breaker: closer ages first
+  lang?: string; // only people with the same language are matched (password game clues, conversation)
   compatibleCount: number;
   controlCount: number;
   matchedIds: Set<string>;
@@ -106,6 +107,12 @@ function byFewestThenOldest(a: Candidate, b: Candidate): number {
 
 // Proposes matches for `person` against `pool`. Counts and pairs are updated in memory
 // (on `person` and the pool entries) so later slots in the same run respect the limits.
+// v2: matches only between people of the same language (the password clue counts letters, and the
+// conversation needs a shared language). People without one set are not held back.
+function sameLang(a: Candidate, b: Candidate): boolean {
+  return !a.lang || !b.lang || a.lang === b.lang;
+}
+
 export function planMatches(
   person: Candidate,
   pool: Candidate[],
@@ -122,7 +129,7 @@ export function planMatches(
 
   for (const type of shuffle(slots, rng)) {
     const candidates = pool
-      .filter((c) => c.active && c.id !== person.id && !person.matchedIds.has(c.id) && hasSlot(c, type, config))
+      .filter((c) => c.active && c.id !== person.id && !person.matchedIds.has(c.id) && hasSlot(c, type, config) && sameLang(person, c))
       .map((c) => {
         const common = shared(person.interests, c.interests);
         return { c, shared: common, points: compatPoints(common.length, person.age, c.age), score: score(person.interests, c.interests) };

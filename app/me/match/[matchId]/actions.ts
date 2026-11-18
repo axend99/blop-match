@@ -8,7 +8,7 @@ import { addGuess, sendGuessAlert } from '@/lib/guessService';
 import { getMyMatches } from '@/lib/myMatches';
 import { cleanGuess } from '@/lib/password';
 
-export type GuessState = { result?: { right: boolean; left: number }; error?: 'invalid' | 'full' | 'repeat' | 'failed' };
+export type GuessState = { result?: { right: boolean; attempt: number; left: number }; error?: 'invalid' | 'full' | 'repeat' | 'failed' };
 
 // A guess of the match's password, any time (3 tries per match); the answer comes back at once.
 export async function guessPassword(matchId: string, input: string): Promise<GuessState> {
@@ -32,5 +32,5 @@ export async function guessPassword(matchId: string, input: string): Promise<Gue
   });
   revalidatePath(`/me/match/${matchId}`);
   revalidatePath('/me');
-  return { result: { right: result.right, left: result.left } };
+  return { result: { right: result.right, attempt: result.attempt, left: result.left } };
 }

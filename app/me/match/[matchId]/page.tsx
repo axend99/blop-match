@@ -13,6 +13,7 @@ import type { Dict } from '@/lib/i18n/en';
 import { getLang } from '@/lib/i18n/server';
 import { getMyMatches } from '@/lib/myMatches';
 import GuessForm from '@/components/GuessForm';
+import { FOUND_POINTS, foundPoints } from '@/lib/game';
 import { loadGame } from '@/lib/gameService';
 import thinking from '@/public/blop/thinking.webp';
 
@@ -142,7 +143,7 @@ export default async function MatchPage({ params }: { params: Promise<{ matchId:
                 left: t.password.guessesLeft(game.guessesLeft),
                 placeholder: t.password.guessPlaceholder,
                 submit: t.password.guessSubmit,
-                right: t.password.guessRight,
+                right: FOUND_POINTS.map((points) => t.password.guessRight(points)),
                 wrong: [0, 1, 2].map((left) => t.password.guessWrong(left)),
                 repeat: t.password.guessRepeat,
                 invalid: t.password.guessInvalid,
@@ -162,7 +163,11 @@ export default async function MatchPage({ params }: { params: Promise<{ matchId:
               </ul>
             </div>
           )}
-          {game.found && <p className="font-semibold">{t.password.foundIt(game.myGuesses.find((g) => g.right)!.guess)}</p>}
+          {game.found &&
+            (() => {
+              const i = game.myGuesses.findIndex((g) => g.right);
+              return <p className="font-semibold">{t.password.foundIt(game.myGuesses[i].guess, foundPoints(i + 1))}</p>;
+            })()}
           {game.theirPassword && !game.found && <p className="font-semibold">{t.password.theirPassword(name, game.theirPassword)}</p>}
           {!game.iReviewed
             ? game.theirGuessCount > 0 && <p className="rounded-2xl bg-white p-3 font-medium">{t.password.theyTried(name)}</p>

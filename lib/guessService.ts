@@ -9,7 +9,7 @@ import { guessCounts, guessIsRight } from '@/lib/password';
 import { siteUrl } from '@/lib/site';
 import { createServiceClient } from '@/lib/supabase/service';
 
-export type GuessOutcome = { ok: true; right: boolean; left: number } | { ok: false; error: 'full' | 'repeat' | 'failed' };
+export type GuessOutcome = { ok: true; right: boolean; attempt: number; left: number } | { ok: false; error: 'full' | 'repeat' | 'failed' };
 
 // Saves one guess of the other person's password (up to MAX_GUESSES per match, none after a right
 // one) and says at once whether it was right (translations count). Callers check that the match is
@@ -37,7 +37,7 @@ export async function addGuess({ matchId, meId, guess }: { matchId: string; meId
     return { ok: false, error: 'failed' };
   }
   const right = guessCounts(isRight, guess, password);
-  return { ok: true, right, left: right ? 0 : MAX_GUESSES - tries.length - 1 };
+  return { ok: true, right, attempt: tries.length + 1, left: right ? 0 : MAX_GUESSES - tries.length - 1 };
 }
 
 // "X tried to guess your password 👀": once per match and guesser (email_log blocks repeats).

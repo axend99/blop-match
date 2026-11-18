@@ -2,13 +2,17 @@
 // tests/game.test.ts); lib/gameService.ts loads the data.
 //
 // Rules: each person guesses their match's password at any time, up to MAX_GUESSES tries per
-// match, and sees right away whether they got it. Points: finding the password, each time you
+// match, and sees right away whether they got it. Points: finding the password (5, 3 or 1 by try),
+// each time you
 // managed to say yours (self-reported in the review, up to 3 per match), sending the first message
 // (self-reported; both may claim it) and each review. Nothing rewards hiding the word.
 
 export const MAX_GUESSES = 3;
 export const MAX_SAID = 3;
-export const POINTS = { detective: 3, said: 1, firstMessage: 1, review: 1 } as const;
+export const POINTS = { said: 1, firstMessage: 1, review: 1 } as const;
+// Finding the password: more points the sooner you get it (1st, 2nd, 3rd try).
+export const FOUND_POINTS = [5, 3, 1] as const;
+export const foundPoints = (attempt: number) => FOUND_POINTS[attempt - 1] ?? 0;
 export const PRIZE_PLACES = 3;
 export const LEADERBOARD_SIZE = 10;
 export const SMOOTH_TALKER_TIMES = 5;
@@ -20,7 +24,7 @@ export type GamePerson = { id: string };
 export type GameMatch = { id: string; a_id: string; b_id: string; reviewOpen: boolean };
 export type GameReview = { match_id: string; reviewer_id: string; who_first: string | null; password_said: number | null };
 // `right` already resolved (stored verdict, or the plain comparison when there is none).
-export type GameGuess = { match_id: string; guesser_id: string; right: boolean };
+export type GameGuess = { match_id: string; guesser_id: string; right: boolean; attempt: number };
 
 export type Score = {
   points: number;
@@ -43,7 +47,11 @@ export function scores({ people, matches, reviews, guesses }: {
     const mine = matches.filter((m) => m.a_id === p.id || m.b_id === p.id);
     const myGuesses = guesses.filter((g) => g.guesser_id === p.id);
     const myReviews = mine.flatMap((m) => reviewOf.get(`${m.id}|${p.id}`) ?? []);
-    const rightGuesses = mine.filter((m) => myGuesses.some((g) => g.match_id === m.id && g.right)).length;
+    const hits = mine.flatMap((m) => {
+      const first = myGuesses.filter((g) => g.match_id === m.id && g.right).sort((x, y) => x.attempt - y.attempt)[0];
+      return first ? [first.attempt] : [];
+    });
+    const rightGuesses = hits.length;
     const said = myReviews.reduce((sum, r) => sum + Math.min(MAX_SAID, Math.max(0, r.password_said ?? 0)), 0);
     const firstMessages = myReviews.filter((r) => r.who_first === 'me').length;
     const open = mine.filter((m) => m.reviewOpen);
@@ -55,7 +63,8 @@ export function scores({ people, matches, reviews, guesses }: {
     if (open.length > 0 && open.every((m) => reviewOf.has(`${m.id}|${p.id}`))) badges.push('full_detective');
     result.set(p.id, {
       points:
-        rightGuesses * POINTS.detective + said * POINTS.said + firstMessages * POINTS.firstMessage + myReviews.length * POINTS.review,
+        hits.reduce((sum, attempt) => sum + foundPoints(attempt), 0) +
+        said * POINTS.said + firstMessages * POINTS.firstMessage + myReviews.length * POINTS.review,
       rightGuesses,
       said,
       firstMessages,
