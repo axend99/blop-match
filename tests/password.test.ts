@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { cleanGuess, guessIsRight, validatePassword } from '@/lib/password';
+import { cleanGuess, guessCounts, guessIsRight, validatePassword } from '@/lib/password';
 
 describe('validatePassword', () => {
   it('accepts one word of 2 to 20 letters, trimmed, any alphabet', () => {
@@ -36,5 +36,15 @@ describe('guessIsRight', () => {
     expect(guessIsRight(null, 'girassol')).toBe(false);
     expect(guessIsRight('girassol', null)).toBe(false);
     expect(guessIsRight('!!!', '!!!')).toBe(false);
+  });
+});
+
+describe('guessCounts', () => {
+  it('trusts the stored verdict and falls back to the plain comparison', () => {
+    expect(guessCounts(true, 'coração', 'heart')).toBe(true);
+    expect(guessCounts(false, 'Heart', 'heart')).toBe(false);
+    expect(guessCounts(null, 'Heart', 'heart')).toBe(true);
+    expect(guessCounts(undefined, 'coração', 'heart')).toBe(false);
+    expect(guessCounts(true, null, 'heart')).toBe(false);
   });
 });

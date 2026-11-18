@@ -33,3 +33,10 @@ export function guessIsRight(guess: string | null, password: string | null): boo
   if (!guess || !password) return false;
   return fold(guess) !== '' && fold(guess) === fold(password);
 }
+
+// The verdict stored with the review (AI check, translations included) wins; without one, the
+// plain comparison above decides.
+export function guessCounts(stored: boolean | null | undefined, guess: string | null, password: string | null): boolean {
+  if (!guess) return false;
+  return stored ?? guessIsRight(guess, password);
+}

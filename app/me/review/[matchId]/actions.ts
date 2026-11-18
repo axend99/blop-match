@@ -9,6 +9,7 @@ import { moderate } from '@/lib/moderationService';
 import { getMyMatches } from '@/lib/myMatches';
 import { validateReview, type ReviewErrors, type ReviewInput } from '@/lib/review';
 import { cleanGuess } from '@/lib/password';
+import { checkGuess } from '@/lib/guessCheck';
 import { reviewOpensAt } from '@/lib/site';
 import { createServiceClient } from '@/lib/supabase/service';
 
@@ -29,14 +30,27 @@ export async function submitReview(matchId: string, input: ReviewInput, password
   const result = validateReview(input, { askInstagram: Boolean(me.instagram && match.other_instagram) });
   if (!result.ok) return { errors: result.errors };
 
-  const { error } = await createServiceClient()
+  const supabase = createServiceClient();
+  // v2 only (v2 people are only matched with v2), and only when they made contact.
+  const guess = me.cohort === 'v2' && result.data.contacted ? cleanGuess(passwordGuess) : null;
+  // Right or wrong is decided now (translations count: heart = coração) and never shown
+  // before both people have reviewed (lib/passwordGame.ts).
+  let guessRight: boolean | null = null;
+  if (guess) {
+    const { data: m } = await supabase.from('matches').select('a_id, b_id').eq('id', match.match_id).maybeSingle();
+    const otherId = m && (m.a_id === me.id ? m.b_id : m.a_id);
+    const { data: other } = otherId ? await supabase.from('participants').select('password').eq('id', otherId).maybeSingle() : { data: null };
+    guessRight = await checkGuess(guess, other?.password ?? null);
+  }
+
+  const { error } = await supabase
     .from('reviews')
     .insert({
       ...result.data,
       match_id: match.match_id,
       reviewer_id: me.id,
-      // v2 only (v2 people are only matched with v2), and only when they made contact.
-      password_guess: me.cohort === 'v2' && result.data.contacted ? cleanGuess(passwordGuess) : null,
+      password_guess: guess,
+      password_guess_right: guessRight,
     });
   if (error && error.code !== '23505') {
     console.error('[review] insert failed', error);

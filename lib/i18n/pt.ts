@@ -22,6 +22,7 @@ const pt: Dict = {
       'Entra e conta-nos um pouco sobre ti e os teus interesses (cerca de 5 minutos).',
       'Enviamos-te um e-mail quando tiveres um match. Vais ver o primeiro nome dessa pessoa, o que têm em comum, o WhatsApp e o Instagram (se o tiver indicado).',
       'Diz olá e começa uma conversa, a partir do que têm em comum.',
+      'Joga o jogo da password: escolhe uma palavra secreta e di-la o máximo de vezes que conseguires nas conversas, sem que o teu match perceba. E tenta descobrir a dele!',
     ],
     review: (days: number) =>
       `${days} ${days === 1 ? 'dia' : 'dias'} depois de cada match, pedimos-te que avalies a interação. Demora 2 minutos.`,

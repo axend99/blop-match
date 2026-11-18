@@ -748,6 +748,21 @@ describe('gameStats', () => {
     expect(g.rightByGroup.compatible).toEqual({ value: 0.5, n: 2 });
     expect(g.rightByGroup.control).toEqual({ value: null, n: 0 });
   });
+
+  it('uses the verdict stored with the review (a translation can be right)', () => {
+    const g = gameStats({
+      participants: [
+        { id: 'a', deleted_at: null, cohort: 'v2', password: 'heart' },
+        { id: 'b', deleted_at: null, cohort: 'v2', password: 'girassol' },
+      ],
+      matches: [{ id: 'm1', a_id: 'a', b_id: 'b', type: 'compatible' }],
+      reviews: [
+        { match_id: 'm1', reviewer_id: 'b', contacted: true, password_guess: 'coração', password_guess_right: true },
+        { match_id: 'm1', reviewer_id: 'a', contacted: true, password_guess: 'sunflower', password_guess_right: null },
+      ],
+    });
+    expect(g.right).toEqual({ value: 0.5, n: 2 });
+  });
 });
 
 describe('filterByVersion', () => {

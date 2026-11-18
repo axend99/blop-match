@@ -1,4 +1,4 @@
-import { guessIsRight } from '@/lib/password';
+import { guessCounts } from '@/lib/password';
 import { CATEGORIES, INTERESTS, interestsByCategory, type Category } from '@/lib/interests';
 
 // Pure statistics for /admin (SPEC §8). The unit of analysis is the review: one person
@@ -582,7 +582,7 @@ export function filterAdminData<
 export function gameStats({ participants, matches, reviews }: {
   participants: { id: string; deleted_at: string | null; cohort: string; password: string | null }[];
   matches: { id: string; a_id: string; b_id: string; type: Group }[];
-  reviews: { match_id: string; reviewer_id: string; contacted: boolean; password_guess: string | null }[];
+  reviews: { match_id: string; reviewer_id: string; contacted: boolean; password_guess: string | null; password_guess_right?: boolean | null }[];
 }) {
   const v2 = participants.filter((p) => p.cohort === 'v2' && !p.deleted_at);
   const passwordOf = new Map(v2.map((p) => [p.id, p.password]));
@@ -591,7 +591,7 @@ export function gameStats({ participants, matches, reviews }: {
     const m = matchById.get(r.match_id);
     if (!m || !passwordOf.has(r.reviewer_id)) return [];
     const other = m.a_id === r.reviewer_id ? m.b_id : m.a_id;
-    return [{ ...r, type: m.type, right: guessIsRight(r.password_guess, passwordOf.get(other) ?? null) }];
+    return [{ ...r, type: m.type, right: guessCounts(r.password_guess_right, r.password_guess, passwordOf.get(other) ?? null) }];
   });
   const contacted = rows.filter((r) => r.contacted);
   const guessed = contacted.filter((r) => r.password_guess);
