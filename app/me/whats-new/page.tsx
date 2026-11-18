@@ -1,9 +1,10 @@
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
-import Blop from '@/components/Blop';
+import Image from 'next/image';
 import { getMyParticipant, getUser } from '@/lib/auth';
 import { getDict } from '@/lib/i18n';
 import { getLang } from '@/lib/i18n/server';
+import celebrate from '@/public/blop/celebrate.webp';
 
 // v1 → v2: what's new, shown to v1 people when they come back. Next: review the profile, then
 // the password, which moves them to v2.
@@ -17,7 +18,7 @@ export default async function WhatsNewPage() {
 
   return (
     <article className="space-y-6">
-      <Blop variant={null} label="" className="mx-auto w-40" />
+      <Image src={celebrate} alt="" priority className="mx-auto w-40" />
       <div className="space-y-2 text-center">
         <h1 className="text-3xl font-bold">{u.title}</h1>
         <p className="text-lg text-midnight/80">{u.intro}</p>

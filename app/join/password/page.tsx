@@ -3,6 +3,8 @@ import PasswordForm from '@/components/PasswordForm';
 import { getMyParticipant, getUser } from '@/lib/auth';
 import { getDict } from '@/lib/i18n';
 import { getLang } from '@/lib/i18n/server';
+import Image from 'next/image';
+import wink from '@/public/blop/wink.webp';
 
 // The server action runs matching in after().
 export const maxDuration = 60;
@@ -20,6 +22,7 @@ export default async function PasswordPage() {
   return (
     <div className="space-y-6">
       <div className="space-y-3">
+        <Image src={wink} alt="" priority className="mx-auto w-36" />
         <h1 className="text-3xl font-bold">{t.password.title}</h1>
         <p className="text-lg text-midnight/80">{t.password.intro}</p>
       </div>
