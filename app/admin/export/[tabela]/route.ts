@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { isAdmin } from '@/lib/admin';
 import { loadAdminData } from '@/lib/adminData';
-import { guessIsRight } from '@/lib/password';
+import { guessCounts } from '@/lib/password';
 import { toCsv } from '@/lib/csv';
 import { dataMode } from '@/lib/stats';
 
@@ -59,7 +59,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
         password_guess_right: (() => {
           const m = matches.find((x) => x.id === r.match_id);
           const other = m && (m.a_id === r.review.reviewer_id ? m.b_id : m.a_id);
-          return r.review.password_guess ? guessIsRight(r.review.password_guess, (other && personById.get(other)?.password) ?? null) : '';
+          return r.review.password_guess ? guessCounts(r.review.password_guess_right, r.review.password_guess, (other && personById.get(other)?.password) ?? null) : '';
         })(),
         clicked_whatsapp: has(r.match_id, r.review.reviewer_id, 'whatsapp'),
         clicked_instagram: has(r.match_id, r.review.reviewer_id, 'instagram'),

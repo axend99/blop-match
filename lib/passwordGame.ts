@@ -1,5 +1,5 @@
 import 'server-only';
-import { guessIsRight } from '@/lib/password';
+import { guessCounts } from '@/lib/password';
 import { createServiceClient } from '@/lib/supabase/service';
 
 export type GameResult =
@@ -20,7 +20,7 @@ export async function getGameResult(matchId: string, me: { id: string; password:
   const supabase = createServiceClient();
   const [{ data: match }, { data: reviews }] = await Promise.all([
     supabase.from('matches').select('a_id, b_id').eq('id', matchId).maybeSingle(),
-    supabase.from('reviews').select('reviewer_id, password_guess').eq('match_id', matchId),
+    supabase.from('reviews').select('reviewer_id, password_guess, password_guess_right').eq('match_id', matchId),
   ]);
   if (!match) return null;
   const otherId = match.a_id === me.id ? match.b_id : match.a_id;
@@ -35,8 +35,8 @@ export async function getGameResult(matchId: string, me: { id: string; password:
     state: 'revealed',
     theirPassword,
     myGuess: mine.password_guess,
-    myGuessRight: guessIsRight(mine.password_guess, theirPassword),
+    myGuessRight: guessCounts(mine.password_guess_right, mine.password_guess, theirPassword),
     theirGuess: theirs.password_guess,
-    theirGuessRight: guessIsRight(theirs.password_guess, me.password),
+    theirGuessRight: guessCounts(theirs.password_guess_right, theirs.password_guess, me.password),
   };
 }
