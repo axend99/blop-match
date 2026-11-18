@@ -6,7 +6,7 @@ import { dataMode } from '@/lib/stats';
 
 export const dynamic = 'force-dynamic';
 
-const TABLES = ['participantes', 'matches', 'reviews', 'palpites'] as const;
+const TABLES = ['participantes', 'matches', 'reviews', 'palpites', 'experiencia'] as const;
 type Table = (typeof TABLES)[number];
 
 export async function GET(request: NextRequest, { params }: { params: Promise<{ tabela: string }> }) {
@@ -14,7 +14,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
   if (!(await isAdmin()) || !TABLES.includes(tabela as Table)) return new NextResponse('Not found', { status: 404 });
 
   const mode = dataMode(request.nextUrl.searchParams.get('dados') ?? undefined);
-  const { participants, matches, rows, guesses, personById, tapped, firstTap } = await loadAdminData(mode);
+  const { participants, matches, rows, guesses, experiences, personById, tapped, firstTap } = await loadAdminData(mode);
   const seedOf = (id: string) => personById.get(id)?.is_seed ?? false;
   const has = (match: string, person: string, channel: string) => (tapped.get(`${match}|${person}`) ?? []).includes(channel);
   const mineIn = (match: string, person: string) => guesses.filter((g) => g.match_id === match && g.guesser_id === person);
@@ -38,6 +38,12 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
         b_clicked: tapped.get(`${m.id}|${m.b_id}`) ?? [],
         b_first_click_at: firstTap.get(`${m.id}|${m.b_id}`),
       })),
+    );
+  } else if (tabela === 'experiencia') {
+    // The BLOP experience review (once per person, since 18/11/2026).
+    csv = toCsv(
+      ['participant_id', 'name', 'cohort', 'likes_concept', 'best_for', 'personality', 'party_interest', 'game_fun_1_7', 'comment', 'created_at'],
+      experiences.map((e) => ({ ...e, name: personById.get(e.participant_id)?.name, cohort: personById.get(e.participant_id)?.cohort })),
     );
   } else if (tabela === 'palpites') {
     // v2 password game: every guess, with the match type and whether the guesser had reviewed by then.

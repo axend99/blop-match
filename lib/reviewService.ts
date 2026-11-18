@@ -6,7 +6,7 @@ import { inBatches } from '@/lib/batch';
 import { sendEmail, sendOther, type EmailKind } from '@/lib/email';
 import { getDict, interestLabel, isLang } from '@/lib/i18n';
 import { dueNudges, dueReminders, dueReviewRequests, spacedFromNudge, type DueParticipant, type Recipient } from '@/lib/review';
-import { reminderDelayDays, reviewDelayDays, siteUrl } from '@/lib/site';
+import { reminderDelayDays, reviewDelayDays, siteUrl, V1_ENDS_AT } from '@/lib/site';
 import { createServiceClient } from '@/lib/supabase/service';
 import { pageAll } from '@/lib/supabase/pageAll';
 
@@ -45,7 +45,8 @@ async function loadState() {
     supabase,
     byId,
     participants,
-    matches: matches.data!.map((m) => ({ id: m.id, aId: m.a_id, bId: m.b_id, createdAt: m.created_at })),
+    // v1 matches (before v2) get no more review e-mails, even when their people joined v2.
+    matches: matches.data!.filter((m) => m.created_at >= V1_ENDS_AT).map((m) => ({ id: m.id, aId: m.a_id, bId: m.b_id, createdAt: m.created_at })),
     matchById: new Map(matches.data!.map((m) => [m.id, m])),
     requests: requests.data!.map((r) => ({
       matchId: r.match_id,

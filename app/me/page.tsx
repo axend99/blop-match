@@ -11,20 +11,28 @@ import { avatarCategory } from '@/lib/avatar';
 import { getDict, interestLabel } from '@/lib/i18n';
 import { getLang } from '@/lib/i18n/server';
 import { loadGame } from '@/lib/gameService';
+import { createServiceClient } from '@/lib/supabase/service';
 import { getMyMatches } from '@/lib/myMatches';
 import { BLOP_INSTAGRAM, reviewOpensAt } from '@/lib/site';
 import { waitlistUrl } from '@/lib/waitlist';
 import looking from '@/public/blop/looking.webp';
 
-export default async function MePage() {
+export default async function MePage({ searchParams }: { searchParams: Promise<{ old?: string }> }) {
   if (!(await getUser())) redirect('/login');
   const me = await getMyParticipant();
   if (!me) redirect('/join');
   if (me.cohort === 'v2' && !me.password) redirect('/join/password');
+  // v1 people coming back: what's new first (they can still choose to see their old matches).
+  const v1 = me.cohort === 'v1' && me.active;
+  if (v1 && !(await searchParams).old) redirect('/me/whats-new');
   const lang = await getLang();
   const t = getDict(lang);
   const matches = await getMyMatches();
   const game = me.cohort === 'v2' ? await loadGame(me.id) : null;
+  // After the first match review, until answered: the BLOP experience review.
+  const askExperience =
+    matches.some((m) => m.reviewed_by_me) &&
+    !(await createServiceClient().from('experience_reviews').select('participant_id').eq('participant_id', me.id).maybeSingle()).data;
   // Reviews open and not answered yet, oldest match first.
   const toReview = matches
     .filter((m) => !m.reviewed_by_me && reviewOpensAt(m.created_at) <= new Date())
@@ -45,7 +53,26 @@ export default async function MePage() {
 
       {!me.active && <p className="rounded-2xl bg-pink/40 p-4 text-sm">{t.me.leftNotice}</p>}
 
+      {v1 && (
+        <section className="space-y-3 rounded-3xl bg-violet p-6 text-white">
+          <p className="text-lg font-semibold">🎉 {t.upgrade.banner}</p>
+          <Link href="/me/whats-new" className="inline-block rounded-full bg-lime px-6 py-3 font-semibold text-midnight active:scale-[0.98]">
+            {t.upgrade.bannerButton}
+          </Link>
+        </section>
+      )}
+
       {game && me.password && <GameCard game={game} password={me.password} name={me.name} t={t} />}
+
+      {askExperience && (
+        <section className="space-y-3 rounded-3xl bg-pink/50 p-6">
+          <h2 className="text-xl font-semibold">💜 {t.experience.cardTitle}</h2>
+          <p className="text-midnight/80">{t.experience.cardBody}</p>
+          <Link href="/me/experience" className="inline-block rounded-full bg-violet px-6 py-3 font-semibold text-white active:scale-[0.98]">
+            {t.experience.cardButton}
+          </Link>
+        </section>
+      )}
 
       {toReview.length > 0 && (
         <section className="space-y-3 rounded-3xl bg-violet p-6 text-white">

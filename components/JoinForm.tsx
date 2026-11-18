@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useRef, useState, useTransition } from 'react';
-import { createProfile, suggestTalk } from '@/app/join/actions';
+import { createProfile, suggestTalk, updateProfile } from '@/app/join/actions';
 import Blop from '@/components/Blop';
 import { interestLabel, type Lang } from '@/lib/i18n';
 import type { Dict } from '@/lib/i18n/en';
@@ -26,36 +26,55 @@ type T = Dict['join'];
 const inputClass =
   'w-full rounded-2xl border bg-white px-4 py-3 text-lg outline-none focus:border-violet focus:ring-2 focus:ring-violet/30';
 
+// Saved profile, to edit it (v1 people reviewing their profile to join v2).
+export type InitialProfile = {
+  name: string;
+  whatsapp: string | null;
+  instagram: string | null;
+  city: string;
+  age: number | null;
+  time_in_city: string;
+  origin: string;
+  gender: string | null;
+  interests: string[];
+  other_text: Partial<Record<Category, string>> | null;
+  talk_about: string | null;
+  talk_about_code: string | null;
+};
+
 export default function JoinForm({
   t,
   lang,
   genericError,
   countries,
+  initial,
 }: {
   t: T;
   lang: Lang;
   genericError: string;
   countries: Country[];
+  initial?: InitialProfile; // edit mode: prefilled, consent already given, saves with updateProfile
 }) {
-  const [name, setName] = useState('');
-  const [country, setCountry] = useState<string>(countries[0]?.code ?? 'PT');
-  const [phone, setPhone] = useState('');
-  const [instagram, setInstagram] = useState('');
-  const [city, setCity] = useState('');
-  const [age, setAge] = useState('');
-  const [timeInCity, setTimeInCity] = useState('');
-  const [origin, setOrigin] = useState('');
-  const [gender, setGender] = useState('');
-  const [interests, setInterests] = useState<string[]>([]);
-  const [otherText, setOtherText] = useState<Partial<Record<Category, string>>>({});
+  const phoneStart = initial?.whatsapp ? splitInternational(initial.whatsapp) : undefined;
+  const [name, setName] = useState(initial?.name ?? '');
+  const [country, setCountry] = useState<string>(phoneStart?.country ?? countries[0]?.code ?? 'PT');
+  const [phone, setPhone] = useState(phoneStart ? formatNational(phoneStart.national, phoneStart.country) : '');
+  const [instagram, setInstagram] = useState(initial?.instagram ?? '');
+  const [city, setCity] = useState(initial?.city ?? '');
+  const [age, setAge] = useState(initial?.age ? String(initial.age) : '');
+  const [timeInCity, setTimeInCity] = useState(initial?.time_in_city ?? '');
+  const [origin, setOrigin] = useState(initial?.origin ?? '');
+  const [gender, setGender] = useState(initial?.gender ?? '');
+  const [interests, setInterests] = useState<string[]>(initial?.interests ?? []);
+  const [otherText, setOtherText] = useState<Partial<Record<Category, string>>>(initial?.other_text ?? {});
   const [otherOpen, setOtherOpen] = useState<Partial<Record<Category, boolean>>>({});
-  const [talkAbout, setTalkAbout] = useState('');
-  const [talkAboutCode, setTalkAboutCode] = useState('');
+  const [talkAbout, setTalkAbout] = useState(initial?.talk_about ?? '');
+  const [talkAboutCode, setTalkAboutCode] = useState(initial?.talk_about_code ?? '');
   const codeRef = useRef('');
   codeRef.current = talkAboutCode;
   const [opened, setOpened] = useState<Category[]>([]); // categories shown open (several at once)
   const [suggestion, setSuggestion] = useState<'idle' | 'busy' | 'done' | 'limit' | 'failed'>('idle');
-  const [consent, setConsent] = useState(false);
+  const [consent, setConsent] = useState(Boolean(initial));
   const [errors, setErrors] = useState<FieldErrors>({});
   const [failed, setFailed] = useState(false);
   const [pending, startTransition] = useTransition();
@@ -140,7 +159,7 @@ export default function JoinForm({
     }
     setErrors({});
     startTransition(async () => {
-      const result = await createProfile(input);
+      const result = await (initial ? updateProfile(input) : createProfile(input));
       if (result?.errors) setErrors(result.errors);
       if (result?.failed) setFailed(true);
     });
@@ -395,7 +414,7 @@ export default function JoinForm({
         )}
       </fieldset>
 
-      <div className="space-y-2">
+      <div className={`space-y-2 ${initial ? 'hidden' : ''}`}>
         <label className="flex gap-3">
           <input type="checkbox" checked={consent} onChange={(e) => setConsent(e.target.checked)}
             className="mt-1 size-5 shrink-0 accent-violet" />
@@ -420,7 +439,7 @@ export default function JoinForm({
           disabled={pending}
           className="w-full rounded-full bg-violet px-6 py-4 text-lg font-semibold text-white shadow-lg shadow-violet/30 disabled:opacity-60"
         >
-          {pending ? t.submitting : t.submit}
+          {pending ? t.submitting : initial ? t.updateSubmit : t.submit}
         </button>
       </div>
     </form>

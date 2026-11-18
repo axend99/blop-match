@@ -54,5 +54,11 @@ export async function submitReview(matchId: string, input: ReviewInput, password
   }
 
   revalidatePath('/me');
-  redirect('/me');
+  // The BLOP experience review comes once, right after the first match review.
+  const { data: experience } = await createServiceClient()
+    .from('experience_reviews')
+    .select('participant_id')
+    .eq('participant_id', me.id)
+    .maybeSingle();
+  redirect(experience ? '/me' : '/me/experience');
 }

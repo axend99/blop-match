@@ -2,7 +2,8 @@ import type { Metadata } from 'next';
 import { cookies } from 'next/headers';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { funnelSnapshot, invite, resendReviews, resolveFlag, waitlistPreview } from '@/app/admin/actions';
+import { funnelSnapshot, invite, resendReviews, resolveFlag, v2Invite, waitlistPreview } from '@/app/admin/actions';
+import { v2InviteAudience } from '@/lib/v2InviteService';
 import AdminNav from '@/components/admin/AdminNav';
 import DoseChart from '@/components/admin/DoseChart';
 import FunnelChart from '@/components/admin/FunnelChart';
@@ -20,7 +21,7 @@ import { countOldLinkRequests, emailBacklog } from '@/lib/reviewService';
 import { FUNNEL_ORDER, VISITS_SINCE, splitAtSnapshot, stepRates } from '@/lib/visits';
 import { REVIEW_GRACE_MS } from '@/lib/review';
 import { AGE_CLOSE_YEARS } from '@/lib/matching';
-import { matchingConfig, reviewDelayDays, reviewOpensAt } from '@/lib/site';
+import { matchingConfig, reviewDelayDays, reviewOpensAt, V1_ENDS_AT } from '@/lib/site';
 import { leaderboard, nicknameLabel, PRIZE_PLACES, scores as gameScores } from '@/lib/game';
 import { CATEGORIES } from '@/lib/interests';
 import {
@@ -212,7 +213,7 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
   const notice = (await cookies()).get('admin_notice')?.value;
   const segmentGroup: Group | 'all' = grupo === 'compativel' ? 'compatible' : grupo === 'controlo' ? 'control' : 'all';
 
-  const { version, participants, matches, reviews, flags, clicks, guesses, rows, personById, seedCount, e2eCount, pendingCount, openReports, waitlist, tapped } = await loadAdminData(mode);
+  const { version, participants, matches, reviews, flags, clicks, guesses, experiences, rows, personById, seedCount, e2eCount, pendingCount, openReports, waitlist, tapped } = await loadAdminData(mode);
   const seedShown = participants.filter((p) => p.is_seed).length;
   // Keeps both filters in links.
   const link = (params: { grupo?: string; dados?: DataMode }, hash = '') =>
@@ -718,7 +719,10 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
 
       {version !== 'v1' &&
         (() => {
-          const gameMatches = matches.map((m) => ({ ...m, reviewOpen: reviewOpensAt(m.created_at) <= new Date() }));
+          // The game is v2 only: matches from before v2 never count (also between people who joined v2 later).
+          const gameMatches = matches
+            .filter((m) => m.created_at >= V1_ENDS_AT)
+            .map((m) => ({ ...m, reviewOpen: reviewOpensAt(m.created_at) <= new Date() }));
           const g = gameStats({ participants, matches: gameMatches, reviews, guesses });
           // Same leaderboard as the participants see, with real names (prize: top 3).
           const v2 = participants.filter((p) => p.cohort === 'v2' && !p.deleted_at);
@@ -788,6 +792,13 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
                 {g.triesMean === null ? '—' : g.triesMean.toFixed(1).replace('.', ',')}. Média de vezes que disse a password (0 a 3+):{' '}
                 {g.saidMean === null ? '—' : g.saidMean.toFixed(1).replace('.', ',')}. As reviews só contam matches com a avaliação
                 já aberta. As passwords e os palpites de cada pessoa estão na aba Participantes.
+              </p>
+              <p className="text-xs text-midnight/60">
+                Quão divertido foi o jogo (1–7, na avaliação da experiência):{' '}
+                {(() => {
+                  const fun = experiences.filter((e) => e.game_fun_1_7 != null).map((e) => e.game_fun_1_7!);
+                  return fun.length ? `${(fun.reduce((a, b) => a + b, 0) / fun.length).toFixed(1).replace('.', ',')} (n = ${fun.length})` : '— (n = 0)';
+                })()}
               </p>
               <h3 className="pt-2 font-semibold">Ranking (prémio: entrada grátis na festa para os {PRIZE_PLACES} primeiros lugares)</h3>
               {board.length === 0 ? (
@@ -1213,6 +1224,35 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
         </form>
       </Section>
 
+      {await (async () => {
+        const audience = await v2InviteAudience();
+        return (
+          <Section
+            n="8d"
+            title="Convidar a v1 para a 2.ª ronda"
+            description="E-mail (na língua de cada pessoa) para quem participou na v1 e continua no estudo: novidades, o jogo da password e o link para rever o perfil e escolher a password. Só sai quando carregas no botão; cada pessoa recebe-o uma vez."
+          >
+            <p className="text-sm">
+              Por convidar: <b className="tabular-nums">{audience.pending.length}</b> · já convidados: <b className="tabular-nums">{audience.invited}</b>
+            </p>
+            <form action={v2Invite} className="space-y-2">
+              <label className="flex items-center gap-2 text-sm">
+                <input type="checkbox" name="confirm" required /> Confirmo que quero enviar o convite a {audience.pending.length}{' '}
+                {audience.pending.length === 1 ? 'pessoa' : 'pessoas'} da v1
+              </label>
+              <div className="flex flex-wrap gap-2">
+                <button name="mode" value="send" className="rounded-full bg-violet px-4 py-2 text-sm font-semibold text-white">
+                  Enviar convites
+                </button>
+                <button name="mode" value="preview" formNoValidate className="rounded-full border border-midnight/20 bg-white px-4 py-2 text-sm font-medium">
+                  Enviar teste aos admins
+                </button>
+              </div>
+            </form>
+          </Section>
+        );
+      })()}
+
       <Section n={9} title="Tabelas brutas (CSV)" description="Os dados completos para abrir no Excel ou noutra ferramenta (respeitam o filtro Reais/Seed/Tudo).">
         <div className="flex flex-wrap gap-2">
           {[
@@ -1220,13 +1260,14 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
             ['matches', `Matches (${matches.length})`],
             ['reviews', `Reviews (${reviews.length})`],
             ['palpites', `Palpites da password (${guesses.length})`],
+            ['experiencia', `Avaliação da experiência (${experiences.length})`],
           ].map(([table, label]) => (
             <a key={table} href={`/admin/export/${table}?dados=${mode}`} className="rounded-full bg-violet px-4 py-2 text-sm font-semibold text-white">
               ⬇ {label}
             </a>
           ))}
         </div>
-        <p className="text-xs text-midnight/60">Cada review inclui os dados do match e do perfil de quem respondeu. Palpites: cada tentativa do jogo da password (v2).</p>
+        <p className="text-xs text-midnight/60">Cada review inclui os dados do match e do perfil de quem respondeu. Palpites: cada tentativa do jogo da password (v2). Experiência: a avaliação do BLOP, uma vez por pessoa (desde 18/11/2026; nas estatísticas, as respostas entram nas reviews dessa pessoa).</p>
       </Section>
 
       <section id="alertas">

@@ -28,10 +28,6 @@ export type Review = {
   meet_again_1_7: number | null;
   met: (typeof MET)[number] | null;
   ig_follow: (typeof IG_FOLLOW)[number] | null;
-  likes_concept: boolean;
-  best_for: (typeof BEST_FOR)[number];
-  party_interest: (typeof PARTY)[number];
-  personality: (typeof PERSONALITY)[number];
   comment: string | null;
   low_interest_reasons: (typeof LOW_REASONS)[number][] | null;
 };
@@ -66,10 +62,6 @@ export function validateReview(
     meet_again_1_7: null,
     met: null,
     ig_follow: null,
-    likes_concept: false,
-    best_for: 'friendship',
-    party_interest: 'no',
-    personality: 'both',
     comment: null,
     low_interest_reasons: null,
   };
@@ -113,22 +105,48 @@ export function validateReview(
     else errors.ig_follow = 'required';
   }
 
-  // About the idea itself (always asked).
-  if (isBool(input.likes_concept)) data.likes_concept = input.likes_concept;
-  else errors.likes_concept = 'required';
-  if (oneOf(BEST_FOR, input.best_for)) data.best_for = input.best_for;
-  else errors.best_for = 'required';
-  if (oneOf(PARTY, input.party_interest)) data.party_interest = input.party_interest;
-  else errors.party_interest = 'required';
-  if (oneOf(PERSONALITY, input.personality)) data.personality = input.personality;
-  else errors.personality = 'required';
-
   if (typeof input.comment === 'string' && input.comment.trim()) {
     const comment = input.comment.trim();
     if (comment.length > MAX_COMMENT) errors.comment = 'tooLong';
     else data.comment = comment;
   }
 
+  return Object.keys(errors).length ? { ok: false, errors } : { ok: true, data };
+}
+
+// --- The BLOP experience review: once per person, apart from the match reviews ---
+
+export type Experience = {
+  likes_concept: boolean;
+  best_for: (typeof BEST_FOR)[number];
+  personality: (typeof PERSONALITY)[number];
+  party_interest: (typeof PARTY)[number];
+  game_fun_1_7: number | null; // v2 only (the password game), optional
+  comment: string | null;
+};
+export type ExperienceField = keyof Experience;
+export type ExperienceErrors = Partial<Record<ExperienceField, ReviewErrorKey>>;
+
+export function validateExperience(
+  input: ReviewInput,
+  { askGame = false }: { askGame?: boolean } = {},
+): { ok: true; data: Experience } | { ok: false; errors: ExperienceErrors } {
+  const errors: ExperienceErrors = {};
+  const data: Experience = { likes_concept: false, best_for: 'friendship', personality: 'both', party_interest: 'no', game_fun_1_7: null, comment: null };
+  if (isBool(input.likes_concept)) data.likes_concept = input.likes_concept;
+  else errors.likes_concept = 'required';
+  if (oneOf(BEST_FOR, input.best_for)) data.best_for = input.best_for;
+  else errors.best_for = 'required';
+  if (oneOf(PERSONALITY, input.personality)) data.personality = input.personality;
+  else errors.personality = 'required';
+  if (oneOf(PARTY, input.party_interest)) data.party_interest = input.party_interest;
+  else errors.party_interest = 'required';
+  if (askGame && isScale(input.game_fun_1_7)) data.game_fun_1_7 = input.game_fun_1_7;
+  if (typeof input.comment === 'string' && input.comment.trim()) {
+    const comment = input.comment.trim();
+    if (comment.length > MAX_COMMENT) errors.comment = 'tooLong';
+    else data.comment = comment;
+  }
   return Object.keys(errors).length ? { ok: false, errors } : { ok: true, data };
 }
 

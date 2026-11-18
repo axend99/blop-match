@@ -10,6 +10,8 @@ import { getDict, interestLabel } from '@/lib/i18n';
 import { interestByCode } from '@/lib/interests';
 import { getLang, setLang } from '@/lib/i18n/server';
 import { validateProfile, type FieldErrors, type ProfileInput } from '@/lib/profile';
+import { profileTexts } from '@/lib/moderation';
+import { moderate } from '@/lib/moderationService';
 import { siteUrl } from '@/lib/site';
 import { suggestTalkAbout, type SuggestionResult } from '@/lib/talkSuggestion';
 import { createClient } from '@/lib/supabase/server';
@@ -87,10 +89,36 @@ export async function createProfile(input: Omit<ProfileInput, 'lang'>): Promise<
 }
 
 // "Write it for me": an AI sentence for "what I want to talk about", about one of the
-// person's chosen interests. Signed-in people without a profile only.
+// person's chosen interests. Signed-in people without a profile, or v1 people reviewing theirs.
 export async function suggestTalk(code: string): Promise<SuggestionResult> {
   const user = await getUser();
-  if (!user || !interestByCode(code) || (await getMyParticipant())) return { error: 'failed' };
+  const me = user ? await getMyParticipant() : null;
+  if (!user || !interestByCode(code) || (me && me.cohort !== 'v1')) return { error: 'failed' };
   const lang = await getLang();
   return suggestTalkAbout(user.id, { interest: interestLabel(code, lang), lang });
+}
+
+// v1 → v2: the person reviews their saved profile (same form and checks as joining). The texts
+// are checked again by AI (alerts in /admin only); then the password step moves them to v2.
+export async function updateProfile(input: Omit<ProfileInput, 'lang'>): Promise<JoinState> {
+  if (!(await getUser())) redirect('/login');
+  const me = await getMyParticipant();
+  if (!me) redirect('/join');
+  const lang = await getLang();
+  const result = validateProfile({ ...input, lang });
+  if (!result.ok) return { errors: result.errors };
+
+  const { error } = await createServiceClient().from('participants').update(result.data).eq('id', me.id);
+  if (error) {
+    console.error('[profile] update failed', error);
+    return { failed: true };
+  }
+  after(async () => {
+    try {
+      await moderate(me.id, profileTexts(result.data));
+    } catch (err) {
+      console.error('[profile] moderation failed', err);
+    }
+  });
+  redirect(me.cohort === 'v2' && me.password ? '/me' : '/join/password');
 }

@@ -1,7 +1,7 @@
 import 'server-only';
 import { leaderboard, LEADERBOARD_SIZE, letterCount, MAX_GUESSES, scores, type Score } from '@/lib/game';
 import { guessCounts } from '@/lib/password';
-import { reviewOpensAt } from '@/lib/site';
+import { reviewOpensAt, V1_ENDS_AT } from '@/lib/site';
 import { createServiceClient } from '@/lib/supabase/service';
 
 // Loads the v2 password game with the service role and returns only what `meId` may see. My own
@@ -46,7 +46,8 @@ export async function loadGame(meId: string): Promise<GameState> {
   const { data: allMatches } = ids.length
     ? await supabase.from('matches').select('id, a_id, b_id, created_at').in('a_id', ids)
     : { data: [] };
-  const matches = (allMatches ?? []).filter((m) => byId.has(m.b_id));
+  // The game is v2 only: matches from before v2 never count, even between people who joined v2.
+  const matches = (allMatches ?? []).filter((m) => byId.has(m.b_id) && m.created_at >= V1_ENDS_AT);
   const matchIds = matches.map((m) => m.id);
   const [{ data: reviews }, { data: rawGuesses }] = matchIds.length
     ? await Promise.all([

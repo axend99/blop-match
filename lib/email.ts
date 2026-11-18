@@ -4,7 +4,7 @@ import nodemailer, { type Transporter } from 'nodemailer';
 import { createServiceClient } from '@/lib/supabase/service';
 import { siteUrl } from '@/lib/site';
 
-export type EmailKind = 'welcome' | 'new_match' | 'match_nudge' | 'review_open' | 'review_reminder' | 'waitlist' | 'final_call' | 'guess_alert';
+export type EmailKind = 'welcome' | 'new_match' | 'match_nudge' | 'review_open' | 'review_reminder' | 'waitlist' | 'final_call' | 'guess_alert' | 'v2_invite';
 
 type SendEmailArgs = {
   participantId: string;
@@ -48,9 +48,9 @@ export async function sendEmail({ participantId, kind, matchId = null, to, subje
   }
 
   const supabase = createServiceClient();
-  // v1 participants (joined before v2) get no more e-mails of any kind.
+  // v1 participants (joined before v2) get no more e-mails, except the invitation to join v2.
   const { data: person } = await supabase.from('participants').select('cohort').eq('id', participantId).maybeSingle();
-  if (!person || person.cohort !== 'v2') return false;
+  if (!person || (person.cohort !== 'v2' && kind !== 'v2_invite')) return false;
 
   const { data: log, error: logError } = await supabase
     .from('email_log')
