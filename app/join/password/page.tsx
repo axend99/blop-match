@@ -14,6 +14,7 @@ export default async function PasswordPage() {
   if (!me) redirect('/join');
   if (me.cohort !== 'v2' || me.password) redirect('/me');
   const t = getDict(await getLang());
+  const example = t.password.examples[Math.floor(Math.random() * t.password.examples.length)];
 
   return (
     <div className="space-y-6">
@@ -31,7 +32,7 @@ export default async function PasswordPage() {
       </ol>
       <p className="rounded-2xl bg-lime/60 p-4 text-sm">{t.password.tip}</p>
       <PasswordForm
-        t={{ label: t.password.label, placeholder: t.password.placeholder, error: t.password.error, submit: t.password.submit }}
+        t={{ label: t.password.label, placeholder: `${t.password.placeholder} ${example}`, error: t.password.error, submit: t.password.submit }}
         genericError={t.common.genericError}
       />
     </div>
