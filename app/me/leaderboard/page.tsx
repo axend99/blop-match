@@ -6,8 +6,6 @@ import { loadGame, type BoardRow } from '@/lib/gameService';
 import { getDict } from '@/lib/i18n';
 import { getLang } from '@/lib/i18n/server';
 import { NAV_BUTTON } from '@/lib/ui';
-import Image from 'next/image';
-import cool from '@/public/blop/cool.webp';
 
 // Password game leaderboard (v2): top 10 and, below, my own place if I'm not in it. People appear
 // with their first name only if they chose to; otherwise with their nickname.
@@ -37,7 +35,6 @@ export default async function LeaderboardPage() {
         ← {t.match.back}
       </Link>
       <div className="space-y-2">
-        <Image src={cool} alt="" priority className="mx-auto w-36" />
         <h1 className="text-3xl font-bold">{t.game.boardTitle}</h1>
         <p className="text-midnight/70">{t.game.boardIntro}</p>
         <p className="rounded-2xl bg-lime/60 p-3 font-medium">{t.game.prize}</p>
