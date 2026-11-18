@@ -3,8 +3,9 @@ import { expect, test, type Page } from '@playwright/test';
 import { adminDb } from './db';
 import { E2E_EMAILS } from '@/lib/e2eUsers';
 
-// 10 scripted participants going through the real app (sign-up, matches, contact buttons,
-// reviews), plus "curious" behaviour. Findings go to E2E_REPORT (one JSON line each).
+// 10 scripted participants going through the real app (sign-up, password game, matches, contact
+// buttons, guesses, reviews, experience review, leaderboard), plus "curious" behaviour. Person 10
+// starts as a v1 participant and joins v2. Findings go to E2E_REPORT (one JSON line each).
 // Runs in production: accounts are real (blopmatch+e2e01…10@gmail.com), matches between them
 // are backdated so reviews open, and at the end they are deactivated (never matched again).
 
@@ -12,7 +13,8 @@ const REPORT = process.env.E2E_REPORT ?? 'e2e-report.jsonl';
 const db = adminDb();
 test.describe.configure({ mode: 'serial' });
 
-type Person = { i: number; email: string; name: string; lang: 'en' | 'pt'; phone: string; instagram: string };
+type Person = { i: number; email: string; name: string; lang: 'en' | 'pt'; phone: string; instagram: string; password: string; showName: boolean; age: number };
+const PASSWORDS = ['flamingo', 'vulcão', 'penguin', 'trampolim', 'volcano', 'pinguim', 'octopus', 'polvo', 'giggle', 'canguru'];
 // Fictional numbers (US 555-01xx), so no real person is ever messaged.
 const PEOPLE: Person[] = E2E_EMAILS.map((email, k) => ({
   i: k + 1,
@@ -21,7 +23,11 @@ const PEOPLE: Person[] = E2E_EMAILS.map((email, k) => ({
   lang: k % 2 ? 'pt' : 'en',
   phone: `+1 202 555 01${String(k + 1).padStart(2, '0')}`,
   instagram: [3, 6, 9].includes(k + 1) ? '' : `e2e.test${k + 1}`,
+  password: PASSWORDS[k],
+  showName: k % 3 === 0, // the others appear with a nickname on the leaderboard
+  age: 24 + (k % 4), // close ages: v2 never matches people more than 5 years apart
 }));
+const V1_PERSON = PEOPLE[9]; // starts in v1 (inserted directly), then joins v2 through the app
 // Overlapping tastes so there are compatible matches, plus a few different people.
 const TASTES = [
   [0, 1, 2], [0, 1, 3], [0, 2, 3], [1, 2, 3], [4, 5, 6], [4, 5, 7], [0, 1, 2], [5, 6, 7], [8, 9, 10], [0, 4, 8],
@@ -68,6 +74,24 @@ async function go(page: Page, url: string) {
   }
 }
 
+// The v2 password step: one secret word, the leaderboard choice. Curious: a bad word first.
+async function choosePassword(page: Page, p: Person, who: string) {
+  const save = page.getByRole('button', { name: p.lang === 'pt' ? 'Guardar e ver os meus matches' : 'Save and see my matches' });
+  if (p.i === 1 || p.i === 2) {
+    await page.getByRole('textbox').fill('two words');
+    await save.click();
+    if ((await page.getByRole('alert').count()) === 0) finding(who, 'password inválida aceite sem erro');
+  }
+  const placeholder = await page.getByRole('textbox').getAttribute('placeholder');
+  if (!placeholder || /sunflower|girassol/.test(placeholder)) finding(who, 'exemplo da password inesperado', placeholder);
+  await page.getByRole('textbox').fill(p.password);
+  if (p.showName) await page.getByRole('checkbox').check();
+  await save.click();
+  await expect(page).toHaveURL(/\/me$/, { timeout: 40_000 });
+  await checkPage(page, who);
+  if ((await page.getByText(p.password, { exact: true }).count()) === 0) finding(who, 'password não aparece no /me', p.password);
+}
+
 async function login(page: Page, p: Person) {
   await page.context().addCookies([{ name: 'lang', value: p.lang, url: test.info().project.use.baseURL! }]);
   // A sign-in link works once, so a failed attempt gets a fresh link.
@@ -93,6 +117,33 @@ test('cria as 10 contas', async () => {
   for (const p of PEOPLE) {
     if (existing.has(p.email)) continue;
     const { error } = await db.auth.admin.createUser({ email: p.email, email_confirm: true });
+    if (error) throw error;
+  }
+  // Person 10: a v1 participant from the first round (no password), to test joining v2.
+  const { data: v1Row } = await db.from('participants').select('id').eq('email', V1_PERSON.email).maybeSingle();
+  if (!v1Row) {
+    const { data: users } = await db.auth.admin.listUsers({ perPage: 1000 });
+    const user = users.users.find((u) => u.email === V1_PERSON.email)!;
+    const { data: ref } = await db.from('participants').select('interests').eq('email', PEOPLE[1].email).maybeSingle();
+    const { error } = await db.from('participants').insert({
+      user_id: user.id,
+      email: V1_PERSON.email,
+      name: V1_PERSON.name,
+      whatsapp: V1_PERSON.phone.replace(/\s/g, ''),
+      instagram: V1_PERSON.instagram || null,
+      city: 'Lisbon',
+      lang: V1_PERSON.lang,
+      age: V1_PERSON.age,
+      age_range: '25-30',
+      time_in_city: 'lt6m',
+      origin: 'other_country',
+      interests: ref?.interests ?? ['music_rock', 'music_pop', 'sports_football', 'fit_gym', 'movies_comedy', 'act_beach'],
+      talk_about: 'E2E v1: best coffee in town',
+      consent_at: '2026-10-20T10:00:00Z',
+      created_at: '2026-10-20T10:00:00Z',
+      cohort: 'v1',
+      pending_review: false,
+    });
     if (error) throw error;
   }
 });
@@ -130,7 +181,7 @@ for (const p of PEOPLE) {
       finding(who, 'colar +1 não mudou o país para EUA', await page.locator('select[aria-label]').inputValue());
     await page.locator('#instagram').fill(p.instagram);
     await page.locator('#city').fill(p.i % 3 ? 'Lisbon' : 'Porto');
-    await page.locator('#age').fill(String(20 + p.i * 3));
+    await page.locator('#age').fill(String(p.age));
     for (const name of ['time_in_city', 'origin']) {
       await page.locator(`input[name="${name}"]`).nth(p.i % 3).check({ force: true });
     }
@@ -148,8 +199,10 @@ for (const p of PEOPLE) {
     await page.locator('input[type="checkbox"]').check();
     const submit = page.getByRole('button', { name: p.lang === 'pt' ? 'Participar' : 'Join', exact: true });
     await submit.dblclick(); // curious: double tap
-    await expect(page).toHaveURL(/\/me/, { timeout: 30_000 });
+    // v2: the password game step comes right after the profile.
+    await expect(page).toHaveURL(/\/join\/password/, { timeout: 30_000 });
     await checkPage(page, who);
+    await choosePassword(page, p, who);
 
     // Already registered: /join goes back to /me.
     await go(page, '/join');
@@ -158,15 +211,58 @@ for (const p of PEOPLE) {
 }
 
 test('perfis gravados corretamente', async () => {
-  const { data, error } = await db.from('participants').select('email, whatsapp, instagram, age, active').in('email', E2E_EMAILS);
+  const { data, error } = await db
+    .from('participants')
+    .select('email, whatsapp, instagram, age, active, cohort, password, password_kind, nickname, leaderboard_show_name, upgraded_at')
+    .in('email', E2E_EMAILS);
   if (error) throw error;
   if (data.length !== 10) finding('base de dados', 'faltam perfis', `${data.length}/10`);
   for (const row of data) {
     const p = PEOPLE.find((x) => x.email === row.email)!;
     if (row.whatsapp !== p.phone.replace(/\s/g, '')) finding(p.name, 'WhatsApp gravado diferente', row.whatsapp);
     if ((row.instagram ?? '') !== p.instagram) finding(p.name, 'Instagram gravado diferente', row.instagram);
-    if (row.age !== 20 + p.i * 3) finding(p.name, 'idade gravada diferente', row.age);
+    if (row.age !== p.age) finding(p.name, 'idade gravada diferente', row.age);
+    if (p === V1_PERSON) {
+      if (row.cohort !== 'v1' || row.password) finding(p.name, 'conta da v1 já não está na v1 antes do upgrade', row);
+      continue;
+    }
+    if (row.cohort !== 'v2') finding(p.name, 'perfil novo não ficou na v2', row.cohort);
+    if (row.password !== p.password) finding(p.name, 'password gravada diferente', row.password);
+    if (!row.password_kind) finding(p.name, 'tipo de palavra da password em falta (pista)', '');
+    if (!row.nickname) finding(p.name, 'alcunha em falta', '');
+    if (row.leaderboard_show_name !== p.showName) finding(p.name, 'escolha do ranking gravada diferente', row.leaderboard_show_name);
   }
+});
+
+// Person 10 comes back from v1: what's new → review the profile → password → v2 (and matches).
+test(`${V1_PERSON.i}. ${V1_PERSON.name} (v1) entra na v2`, async ({ page }) => {
+  const p = V1_PERSON;
+  const who = `${p.i}. ${p.name} (v1)`;
+  watch(page, who);
+  await login(page, p);
+  await go(page, '/me');
+  test.skip(!/whats-new/.test(page.url()) && !/\/me$/.test(page.url()), 'estado inesperado');
+  if (!/\/me\/whats-new/.test(page.url())) {
+    const { data } = await db.from('participants').select('cohort').eq('email', p.email).maybeSingle();
+    test.skip(data?.cohort === 'v2', 'já passou para a v2 (corrida retomada)');
+    finding(who, 'v1 não foi levado às novidades', page.url());
+  }
+  await checkPage(page, who);
+  // Curious: "not now" first, then the banner brings them back.
+  await page.getByRole('link', { name: p.lang === 'pt' ? 'Agora não, ver os meus matches antigos' : "Not now, see my old matches" }).click();
+  await page.waitForURL(/\/me\?old=1/);
+  await page.getByRole('link', { name: p.lang === 'pt' ? 'Ver as novidades' : "See what's new" }).click();
+  await page.waitForURL(/\/me\/whats-new/);
+  await page.getByRole('link', { name: p.lang === 'pt' ? 'Rever o meu perfil e entrar' : 'Review my profile and join' }).click();
+  await page.waitForURL(/\/me\/update/);
+  await checkPage(page, who);
+  if ((await page.locator('#name').inputValue()) !== p.name) finding(who, 'perfil não veio preenchido', await page.locator('#name').inputValue());
+  await page.locator('#age').fill(String(p.age));
+  await page.getByRole('button', { name: p.lang === 'pt' ? 'Guardar e continuar' : 'Save and continue' }).click();
+  await expect(page).toHaveURL(/\/join\/password/, { timeout: 30_000 });
+  await choosePassword(page, p, who);
+  const { data } = await db.from('participants').select('cohort, upgraded_at, password').eq('email', p.email).maybeSingle();
+  if (data?.cohort !== 'v2' || !data.upgraded_at) finding(who, 'não passou para a v2', data);
 });
 
 // New profiles are held until the AI check of the name and texts comes back clean; then the
@@ -183,6 +279,21 @@ test('esperar pela verificação e pelo matching', async () => {
   }
   if (held.length) finding('verificação', 'perfis ainda pendentes (a IA marcou ou falhou)', held.join(', '));
   await new Promise((r) => setTimeout(r, 5000)); // last matches and e-mails
+
+  // v2 rules: same language, at most 5 years apart, compatible only from a match score of 14.
+  const { data: rows } = await db.from('participants').select('id, name, lang, age').in('email', E2E_EMAILS);
+  const byId = new Map((rows ?? []).map((r) => [r.id, r]));
+  const ids = [...byId.keys()];
+  const { data: matches } = await db.from('matches').select('a_id, b_id, type, score').or(`a_id.in.(${ids}),b_id.in.(${ids})`);
+  for (const m of matches ?? []) {
+    const a = byId.get(m.a_id);
+    const b = byId.get(m.b_id);
+    if (!a || !b) continue; // with someone outside the test
+    if (a.lang !== b.lang) finding('matching', 'match entre línguas diferentes', `${a.name}/${b.name}`);
+    if (a.age && b.age && Math.abs(a.age - b.age) > 5) finding('matching', 'match com mais de 5 anos de diferença', `${a.name}/${b.name}`);
+    if ((m.type === 'compatible') !== (m.score >= 14)) finding('matching', 'tipo do match não bate com o score', `${a.name}/${b.name} ${m.type} ${m.score}`);
+  }
+  finding('matching', 'matches das contas de teste', `${matches?.length ?? 0}`);
 });
 
 for (const p of PEOPLE) {
@@ -190,6 +301,8 @@ for (const p of PEOPLE) {
     const who = `${p.i}. ${p.name}`;
     watch(page, who);
     const others = E2E_EMAILS.filter((e) => e !== p.email);
+    // Other people's passwords must not reach the page before they are found (or the tries used).
+    const secrets = PEOPLE.filter((x) => x !== p && x !== V1_PERSON).map((x) => `"${x.password}"`);
     // The contact buttons open other sites in a new tab: blocked here, only the tap is recorded.
     await context.route(/wa\.me|instagram\.com/, (route) => route.abort());
     await login(page, p);
@@ -198,9 +311,33 @@ for (const p of PEOPLE) {
 
     const links = await page.locator('a[href^="/me/match/"]').evaluateAll((as) => as.map((a) => a.getAttribute('href')!));
     if (links.length === 0) finding(who, 'sem matches', '');
-    for (const href of links) {
+    for (const [n, href] of links.entries()) {
       await go(page, href);
-      await checkPage(page, who, others);
+      await checkPage(page, who, [...others, ...secrets]);
+      const game = page.locator('section', { hasText: p.lang === 'pt' ? 'Jogo da password' : 'Password game' });
+      if ((await game.count()) === 0) finding(who, 'jogo da password em falta no match', href);
+      else if ((await game.getByText(p.lang === 'pt' ? 'Pistas' : 'Clues').count()) === 0) finding(who, 'pistas da password em falta', href);
+      // Guesses on the first match: a wrong word, the same word again (no try used), then the right one.
+      const name = (await page.locator('h1').innerText()).split(',')[0].trim();
+      const target = PEOPLE.find((x) => x.name === name);
+      if (n === 0 && target && target !== V1_PERSON && (await page.locator('#guess').count())) {
+        const guess = async (word: string) => {
+          await page.locator('#guess').fill(word);
+          await page.getByRole('button', { name: p.lang === 'pt' ? 'Adivinhar' : 'Guess', exact: true }).click();
+          await expect(page.getByRole('button', { name: p.lang === 'pt' ? 'Adivinhar' : 'Guess', exact: true })).toBeEnabled({ timeout: 30_000 });
+          return (await page.locator('form p[role="status"]').innerText().catch(() => '')).trim();
+        };
+        const wrong = await guess('giraffe');
+        if (!/(Não é essa|Not that one)/.test(wrong)) finding(who, 'palpite errado sem a mensagem certa', wrong);
+        const again = await guess('GIRAFFE');
+        if (!/(Já tentaste|already tried)/.test(again)) finding(who, 'palpite repetido não foi recusado', again);
+        if (p.i % 2) {
+          await page.locator('#guess').fill(target.password);
+          await page.getByRole('button', { name: p.lang === 'pt' ? 'Adivinhar' : 'Guess', exact: true }).click();
+          await expect(game.getByText(p.lang === 'pt' ? 'Descobriste com' : 'You found it with')).toBeVisible({ timeout: 40_000 })
+            .catch(() => finding(who, 'palpite certo não foi reconhecido', target.password));
+        }
+      }
       const wa = page.locator('a[href^="https://wa.me/"]');
       if ((await wa.count()) !== 1) finding(who, 'botão WhatsApp em falta', href);
       else {
@@ -259,6 +396,30 @@ test('abrir as reviews (recuar 4 dias os matches entre contas de teste)', async 
   finding('base de dados', 'matches entre contas de teste recuados 4 dias', matches.length);
 });
 
+// The one-time BLOP experience review, right after the first match review. Curious: person 2
+// says "later" the first time and must find the card on /me.
+async function experience(page: Page, p: Person, who: string, k: number) {
+  await checkPage(page, who);
+  if (p.i === 2 && k === 1) {
+    await page.getByRole('link', { name: p.lang === 'pt' ? 'Mais tarde' : 'Later' }).click();
+    await page.waitForURL(/\/me$/);
+    if ((await page.getByText(p.lang === 'pt' ? 'O que achas do BLOP?' : 'What do you think of BLOP?').count()) === 0)
+      finding(who, 'cartão da avaliação da experiência em falta no /me');
+    return;
+  }
+  const q = (text: string) => page.locator('fieldset', { has: page.locator('legend', { hasText: text }) });
+  const pt = p.lang === 'pt';
+  await q(pt ? 'Gostas da ideia' : 'Do you like the idea').locator('label').nth(p.i % 2).click();
+  await q(pt ? 'faz mais sentido' : 'works better for').locator('label').nth(p.i % 3).click();
+  await q(pt ? 'introvertida' : 'introverted').locator('label').nth(p.i % 3).click();
+  await q(pt ? 'festa' : 'party').locator('label').nth(p.i % 3).click();
+  const fun = q(pt ? 'divertido' : 'fun');
+  if ((await fun.count()) === 0) finding(who, 'pergunta do jogo em falta na experiência');
+  else await fun.locator('label').nth(4 + (p.i % 3)).click();
+  await page.getByRole('button', { name: pt ? 'Enviar' : 'Send', exact: true }).click();
+  await page.waitForURL(/\/me$/, { timeout: 20_000 }).catch(() => finding(who, 'avaliação da experiência não voltou ao /me', page.url()));
+}
+
 for (const p of PEOPLE) {
   test(`${p.i}. ${p.name} responde às reviews`, async ({ page }) => {
     const who = `${p.i}. ${p.name}`;
@@ -281,7 +442,15 @@ for (const p of PEOPLE) {
       }
       const path = (p.i + k) % 3; // 0: talked, 1: contacted only, 2: no contact
       await pick('contacted', path === 2 ? 1 : 0);
-      await pick('interest_1_7', 3 + (p.i % 4));
+      // The idea questions moved to the one-time experience review: never in a match review.
+      if ((await page.locator('input[name="likes_concept"]').count()) > 0) finding(who, 'review do match ainda pergunta sobre a ideia', reviewUrl);
+      const interest = 2 + ((p.i + k) % 5); // 2–6
+      await pick('interest_1_7', interest - 1);
+      const why = page.locator('fieldset', { has: page.locator('legend', { hasText: p.lang === 'pt' ? 'menos interessante' : 'less interesting' }) });
+      if (interest <= 3) {
+        if ((await why.count()) === 0) finding(who, 'interesse baixo sem a pergunta do porquê', reviewUrl);
+        else await why.locator('label').nth(p.i % 6).click();
+      } else if ((await why.count()) > 0) finding(who, 'pergunta do porquê com interesse alto', reviewUrl);
       if (path === 2) await pick('why_not', p.i % 5);
       else {
         await pick('who_first', p.i % 2);
@@ -293,19 +462,27 @@ for (const p of PEOPLE) {
         }
       }
       if ((await page.locator('input[name="ig_follow"]').count()) > 0) await pick('ig_follow', (p.i + k) % 4);
-      await pick('likes_concept', (p.i + k) % 2);
-      await pick('best_for', (p.i + k) % 3);
-      await pick('party_interest', (p.i + k) % 3);
-      await pick('personality', (p.i + k) % 3);
+      if (path !== 2) {
+        // v2: how many times they said their password (0, 1, 2, 3+).
+        const said = page.getByRole('button', { name: ['0', '1', '2', '3+'][(p.i + k) % 4], exact: true });
+        if ((await said.count()) === 0) finding(who, 'pergunta "quantas vezes disseste" em falta', reviewUrl);
+        else await said.click();
+      }
       await page.locator('textarea').fill(k % 2 ? `E2E review ${p.name} 👍` : '');
       await send.click();
       // A lost response (sandbox proxy) leaves the page as is; the review may still be saved.
-      await page.waitForURL(/\/me$/, { timeout: 20_000 }).catch(() => finding(who, 'review enviada sem voltar a /me', reviewUrl));
+      await page.waitForURL(/\/me(\/experience)?$/, { timeout: 20_000 }).catch(() => finding(who, 'review enviada sem sair da página', reviewUrl));
+      if (/\/me\/experience$/.test(page.url())) await experience(page, p, who, k);
       // Curious: try to answer again.
       await go(page, reviewUrl);
       if ((await page.locator('input[name="contacted"]').count()) > 0) finding(who, 'review pode ser repetida', reviewUrl);
     }
     await checkPage(page, who);
+    // Leaderboard: people who didn't choose to show their name appear with a nickname.
+    await go(page, '/me/leaderboard');
+    await checkPage(page, who);
+    const board = await page.locator('ol').first().innerText().catch(() => '');
+    for (const x of PEOPLE) if (!x.showName && x !== p && new RegExp(`\\b${x.name}\\b`).test(board)) finding(who, 'nome no ranking sem autorização', x.name);
   });
 }
 

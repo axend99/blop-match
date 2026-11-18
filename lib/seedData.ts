@@ -1,6 +1,6 @@
 import { CATEGORIES, MAX_PER_CATEGORY, MIN_TOTAL, interestByCode, interestsByCategory, type Category } from '@/lib/interests';
 import { ORIGINS, TIMES_IN_CITY, validateProfile, type Profile, type ProfileInput } from '@/lib/profile';
-import { validateReview, type Review } from '@/lib/review';
+import { LOW_REASONS, validateExperience, validateReview, type Experience, type Review } from '@/lib/review';
 
 // Pure generators for the fake study data (scripts/seed.ts). Same seed → same profiles,
 // pairs and answers; dates are set by the script relative to "now".
@@ -125,13 +125,54 @@ export function seedReview(rng: () => number, type: 'compatible' | 'control', sh
         ? pick(rng, ['both', 'both', 'me', 'them', 'none'] as const)
         : pick(rng, ['none', 'none', 'none', 'me', 'them'] as const)
       : undefined,
-    likes_concept: chance(rng, 0.8 + (type === 'compatible' ? 0.05 : 0)),
-    best_for: pick(rng, ['friendship', 'friendship', 'both', 'both', 'dating'] as const),
-    party_interest: pick(rng, ['yes', 'yes', 'maybe', 'no'] as const),
-    personality: pick(rng, ['introvert', 'extrovert', 'both', 'both'] as const),
+    // v2: why a 1–3 rating (optional, ~70% answer); how many times they said their password.
+    low_interest_reasons: chance(rng, 0.7) ? LOW_REASONS.filter(() => chance(rng, 0.3)) : [],
     comment: chance(rng, 0.15) ? pick(rng, ['Foi giro!', 'Nice chat', 'Combinámos um café', 'Not much in common']) : '',
   };
   const result = validateReview(input, { askInstagram });
   if (!result.ok) throw new Error(`invalid seed review: ${JSON.stringify(result.errors)}`);
+  const said = result.data.contacted ? Math.min(3, Math.floor(rng() * (result.data.talked ? 4.5 : 2))) : null;
+  return { ...result.data, password_said: said } as Review & { password_said: number | null };
+}
+
+// The one-time BLOP experience review.
+export function seedExperience(rng: () => number): Experience {
+  const result = validateExperience(
+    {
+      likes_concept: chance(rng, 0.82),
+      best_for: pick(rng, ['friendship', 'friendship', 'both', 'both', 'dating'] as const),
+      personality: pick(rng, ['introvert', 'extrovert', 'both', 'both'] as const),
+      party_interest: pick(rng, ['yes', 'yes', 'maybe', 'no'] as const),
+      game_fun_1_7: score(rng, 5.2),
+      comment: chance(rng, 0.2) ? pick(rng, ['Adorei o jogo da password!', 'Fun idea', 'Mais matches, por favor', 'The clues help a lot']) : '',
+    },
+    { askGame: true },
+  );
+  if (!result.ok) throw new Error('invalid seed experience');
   return result.data;
+}
+
+// v2 password game: one secret word per person (with its word type for the clue).
+const PASSWORDS: Record<'en' | 'pt', [string, string][]> = {
+  en: [['flamingo', 'noun'], ['volcano', 'noun'], ['penguin', 'noun'], ['trampoline', 'noun'], ['wobble', 'verb'], ['sparkly', 'adjective'], ['octopus', 'noun'], ['giggle', 'verb']],
+  pt: [['flamingo', 'noun'], ['vulcão', 'noun'], ['pinguim', 'noun'], ['trampolim', 'noun'], ['saltitar', 'verb'], ['brilhante', 'adjective'], ['polvo', 'noun'], ['canguru', 'noun']],
+};
+
+export function seedPassword(rng: () => number, lang: 'en' | 'pt'): { password: string; password_kind: string } {
+  const [password, kind] = pick(rng, PASSWORDS[lang]);
+  return { password, password_kind: kind };
+}
+
+// Guesses of the other person's password: none, or 1–3 tries; talking makes a right one likelier.
+export function seedGuesses(rng: () => number, password: string, talked: boolean, lang: 'en' | 'pt'): { guess: string; right: boolean }[] {
+  if (!chance(rng, talked ? 0.8 : 0.35)) return [];
+  const pRight = talked ? 0.45 : 0.15;
+  const wrong = PASSWORDS[lang].map(([w]) => w).filter((w) => w !== password);
+  const tries: { guess: string; right: boolean }[] = [];
+  for (let k = 0; k < 3; k++) {
+    if (chance(rng, pRight)) return [...tries, { guess: password, right: true }];
+    tries.push({ guess: pick(rng, wrong.filter((w) => !tries.some((t) => t.guess === w))), right: false });
+    if (chance(rng, 0.35)) break; // gave up
+  }
+  return tries;
 }
