@@ -7,7 +7,8 @@ export type MatchType = 'compatible' | 'control';
 export type MatchingConfig = {
   maxCompatible: number;
   maxControl: number;
-  minSharedCompatible: number;
+  minSharedCompatible: number; // v1 rule (analysis of matches created before v2)
+  minScoreCompatible?: number; // v2 rule: compatible from this matchScore on, control below
   maxAgeGap?: number; // v2: no match (compatible or control) between people further apart in age
 };
 
@@ -117,7 +118,21 @@ export function compatPoints(sharedCount: number, ageA: number | null | undefine
   return sharedCount + (ageClose(ageA, ageB) ? 1 : 0);
 }
 
-// The group a match counts in for the analysis: compatible from `minSharedCompatible` points on,
+// The group a match counts in for the analysis. v2 matches (created after v1 ended): by the match
+// score, the same one that picks them. v1 matches: by compatibility points (below).
+export function analysisGroup(
+  m: { created_at: string; score: number | null; shared_count: number },
+  ages: [number | null | undefined, number | null | undefined],
+  config: Pick<MatchingConfig, 'minSharedCompatible' | 'minScoreCompatible'>,
+  v1EndsAt: string,
+): MatchType {
+  if (m.created_at >= v1EndsAt && config.minScoreCompatible != null) {
+    return (m.score ?? 0) >= config.minScoreCompatible ? 'compatible' : 'control';
+  }
+  return analysisType(compatPoints(m.shared_count, ages[0], ages[1]), config.minSharedCompatible);
+}
+
+// v1 rule: compatible from `minSharedCompatible` points on,
 // control below. Applied to every match, so a match created under an older rule can count in the
 // other group (the stored `type` is kept for the per-person limits and is shown in the CSV).
 export function analysisType(points: number, minSharedCompatible: number): MatchType {
@@ -147,6 +162,11 @@ function ageGap(person: Candidate, c: Candidate): number {
 function tieBreak(person: Candidate, a: Candidate, b: Candidate): number {
   const gap = ageGap(person, a) - ageGap(person, b);
   return Number.isNaN(gap) || gap === 0 ? byFewestThenOldest(a, b) : gap;
+}
+
+// v2: the match score decides (MIN_SCORE_COMPATIBLE); without it, the v1 points rule.
+function isCompatible(x: { points: number; score: number }, config: MatchingConfig): boolean {
+  return config.minScoreCompatible != null ? x.score >= config.minScoreCompatible : x.points >= config.minSharedCompatible;
 }
 
 // Fewer matches first, then the oldest profile.
@@ -196,13 +216,13 @@ export function planMatches(
     let chosen: (typeof candidates)[number] | undefined;
     if (type === 'compatible') {
       chosen = candidates
-        .filter((x) => x.points >= config.minSharedCompatible)
+        .filter((x) => isCompatible(x, config))
         .sort((x, y) => y.score - x.score || tieBreak(person, x.c, y.c))[0];
     } else {
       // Only pairs below the compatible threshold, so a control always counts as control. If
       // nobody qualifies, the slot stays open and the daily run tries again.
       // Age plays no part in picking a control: it measures the absence of compatibility.
-      const below = candidates.filter((x) => x.points < config.minSharedCompatible);
+      const below = candidates.filter((x) => !isCompatible(x, config));
       const none = below.filter((x) => x.shared.length === 0);
       chosen = none.length
         ? none[Math.floor(rng() * none.length)]

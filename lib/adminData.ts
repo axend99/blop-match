@@ -1,7 +1,7 @@
 import 'server-only';
 import { isE2eEmail } from '@/lib/e2eUsers';
-import { analysisType, compatPoints } from '@/lib/matching';
-import { matchingConfig } from '@/lib/site';
+import { analysisGroup, compatPoints } from '@/lib/matching';
+import { matchingConfig, V1_ENDS_AT } from '@/lib/site';
 import { guessCounts } from '@/lib/password';
 import { getAdminVersion } from '@/lib/adminVersion';
 import { filterAdminData, filterByVersion, type DataMode, type ReviewRow, type StudyVersion } from '@/lib/stats';
@@ -54,7 +54,7 @@ export type AdminMatch = {
   id: string;
   a_id: string;
   b_id: string;
-  type: 'compatible' | 'control'; // group for the analysis (analysisType), not the stored one
+  type: 'compatible' | 'control'; // group for the analysis (analysisGroup), not the stored one
   assigned_type: 'compatible' | 'control'; // type stored when the match was created
   points: number; // compatibility points: shared interests + 1 if ages are close
   score: number;
@@ -126,10 +126,10 @@ export async function loadAdminData(mode: DataMode, versionArg?: StudyVersion) {
   ]);
   // Analysis group from the current rule (points include the age bonus), stored type kept apart.
   const ageOf = new Map(allParticipants.map((p) => [p.id, p.age]));
-  const min = matchingConfig().minSharedCompatible;
+  const config = matchingConfig();
   const allMatches = storedMatches.map((m): AdminMatch => {
     const points = compatPoints(m.shared_count, ageOf.get(m.a_id), ageOf.get(m.b_id));
-    return { ...m, assigned_type: m.type, points, type: analysisType(points, min) };
+    return { ...m, assigned_type: m.type, points, type: analysisGroup(m, [ageOf.get(m.a_id), ageOf.get(m.b_id)], config, V1_ENDS_AT) };
   });
   const seedCount = allParticipants.filter((p) => p.is_seed).length;
   const e2eCount = allParticipants.filter((p) => isE2eEmail(p.email)).length;

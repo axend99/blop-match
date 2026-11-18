@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { ageClose, analysisType, CATEGORY_WEIGHT, compatPoints, itemShares, matchScore, planMatches, rarityBonus, score, shared, sharedByCategory, TALK_TOPIC_BONUS, type Candidate, type MatchingConfig } from '@/lib/matching';
+import { ageClose, analysisGroup, analysisType, CATEGORY_WEIGHT, compatPoints, itemShares, matchScore, planMatches, rarityBonus, score, shared, sharedByCategory, TALK_TOPIC_BONUS, type Candidate, type MatchingConfig } from '@/lib/matching';
 
 const CONFIG: MatchingConfig = { maxCompatible: 3, maxControl: 1, minSharedCompatible: 2 };
 
@@ -258,5 +258,28 @@ describe('planMatches with the v2 rules', () => {
     expect([p.aId, p.bId]).toContain(topic.id);
     const onlyOlder = planMatches(person(ROCK, { age: 22 }), [older], cfg, seeded());
     expect(onlyOlder).toHaveLength(0);
+  });
+});
+
+describe('v2: the match score decides compatibility', () => {
+  it('only offers a compatible match from MIN_SCORE_COMPATIBLE on, and controls below it', () => {
+    const cfg = { maxCompatible: 1, maxControl: 1, minSharedCompatible: 2, minScoreCompatible: 14 };
+    const shares = new Map<string, number>(); // unknown = common: 1 point × category weight per item
+    const me = person(ROCK, { talkAboutCode: 'music_rock' });
+    const sameButNoTopic = person(ROCK); // 6 shared, score 1.5+1.5+1.5+1.25+1+0.5 = 7.25 + 6 (my topic) = 13.25
+    const proposals = planMatches(me, [me, sameButNoTopic], cfg, seeded(), shares);
+    expect(proposals.map((p) => p.type)).toEqual(['control']);
+    const withTopic = person(ROCK, { talkAboutCode: 'fit_gym' }); // + 6 more = 19.25
+    const next = planMatches(person(ROCK, { talkAboutCode: 'music_rock' }), [withTopic], cfg, seeded(), shares);
+    expect(next.map((p) => p.type)).toContain('compatible');
+  });
+
+  it('groups v2 matches by score and v1 matches by points', () => {
+    const cfg = { minSharedCompatible: 9, minScoreCompatible: 14 };
+    const end = '2026-11-03T09:00:00Z';
+    expect(analysisGroup({ created_at: '2026-11-18T10:00:00+00:00', score: 15, shared_count: 3 }, [20, 21], cfg, end)).toBe('compatible');
+    expect(analysisGroup({ created_at: '2026-11-18T10:00:00+00:00', score: 13.9, shared_count: 12 }, [20, 21], cfg, end)).toBe('control');
+    expect(analysisGroup({ created_at: '2026-10-20T10:00:00+00:00', score: 0.3, shared_count: 8 }, [20, 21], cfg, end)).toBe('compatible');
+    expect(analysisGroup({ created_at: '2026-10-20T10:00:00+00:00', score: 0.3, shared_count: 7 }, [20, 40], cfg, end)).toBe('control');
   });
 });
