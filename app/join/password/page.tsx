@@ -32,7 +32,7 @@ export default async function PasswordPage() {
       </ol>
       <p className="rounded-2xl bg-lime/60 p-4 text-sm">{t.password.tip}</p>
       <PasswordForm
-        t={{ label: t.password.label, placeholder: `${t.password.placeholder} ${example}`, error: t.password.error, submit: t.password.submit }}
+        t={{ label: t.password.label, placeholder: `${t.password.placeholder} ${example}`, error: t.password.error, submit: t.password.submit, showNameLabel: t.password.showNameLabel, showNameHint: t.password.showNameHint }}
         genericError={t.common.genericError}
       />
     </div>
