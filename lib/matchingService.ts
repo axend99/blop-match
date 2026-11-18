@@ -50,6 +50,7 @@ async function loadState() {
         active: p.active && !p.deleted_at && !p.pending_review && p.cohort === 'v2' && Boolean(p.password),
         createdAt: p.created_at,
         age: p.age,
+        lang: p.lang,
         compatibleCount: 0,
         controlCount: 0,
         matchedIds: new Set<string>(),

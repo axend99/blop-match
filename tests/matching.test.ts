@@ -80,6 +80,15 @@ describe('planMatches', () => {
     expect(control[0].sharedCount).toBe(0);
   });
 
+  it('only matches people with the same language', () => {
+    const me = person(ROCK, { lang: 'pt' });
+    const english = person(ROCK, { lang: 'en' });
+    const portuguese = person(ROCK_LIKE, { lang: 'pt' });
+    const ids = planMatches(me, [me, english, portuguese], CONFIG, seeded()).flatMap((p) => [p.aId, p.bId]);
+    expect(ids).toContain(portuguese.id);
+    expect(ids).not.toContain(english.id);
+  });
+
   it('requires the minimum shared items for a compatible match', () => {
     const me = person(ROCK);
     const one = person(['music_rock', 'music_fado', 'music_kpop', 'sports_padel', 'food_indian', 'hob_videogames']);
