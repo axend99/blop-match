@@ -19,9 +19,13 @@ import {
   validateProfile,
   type FieldErrors,
 } from '@/lib/profile';
+import { CATEGORY_WEIGHT } from '@/lib/matching';
 import { formatNational, splitInternational, toWhatsapp, type Country } from '@/lib/phone';
 
 type T = Dict['join'];
+
+// Categories that weigh most in the match score come first, so people fill those in first.
+const FORM_ORDER = [...CATEGORIES].sort((a, b) => CATEGORY_WEIGHT[b] - CATEGORY_WEIGHT[a]);
 
 const inputClass =
   'w-full rounded-2xl border bg-white px-4 py-3 text-lg outline-none focus:border-violet focus:ring-2 focus:ring-violet/30';
@@ -230,7 +234,7 @@ export default function JoinForm({
           <p className="text-sm text-midnight/60">{t.interestsHint}</p>
         </div>
         <div className="space-y-2.5">
-          {CATEGORIES.map((category) => {
+          {FORM_ORDER.map((category) => {
             const n = counts[category];
             const showOther = otherOpen[category] || Boolean(otherText[category]);
             const isOpen = opened.includes(category);
