@@ -268,9 +268,11 @@ const en = {
       'Each match has a password too and is trying to slip it past you. Try to find out what it is!',
       'When you rate a match, you say which word you think was their password. Once you have both rated, you find out who guessed right.',
     ],
-    tip: 'Pick a word you can drop into a normal conversation, but not too obvious. Keep it to yourself: only you can see it.',
+    tip: "Pick an unusual word you can still slip into a conversation. Avoid words everyone says all the time (like 'think' or 'cool') and don't copy the example 😉 Keep it to yourself: only you can see it.",
     label: 'Your password (one word)',
-    placeholder: 'e.g. sunflower',
+    // One is picked at random for each visit, so people don't all copy the same word.
+    examples: ['flamingo', 'penguin', 'volcano', 'octopus', 'kangaroo', 'trampoline'],
+    placeholder: 'e.g.',
     error: 'Write one word only, with 2 to 20 letters.',
     submit: 'Save and see my matches',
     reminderTitle: 'Your secret password',
