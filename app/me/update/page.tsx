@@ -17,7 +17,7 @@ export default async function UpdateProfilePage() {
   // RLS: own row only.
   const { data: profile } = await (await createClient())
     .from('participants')
-    .select('name, whatsapp, instagram, city, age, time_in_city, origin, gender, interests, other_text, talk_about, talk_about_code')
+    .select('name, whatsapp, instagram, city, age, time_in_city, origin, gender, match_lang, interests, other_text, talk_about, talk_about_code')
     .maybeSingle();
   if (!profile) redirect('/me');
 

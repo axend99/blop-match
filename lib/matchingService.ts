@@ -13,6 +13,7 @@ type Participant = {
   name: string;
   email: string | null;
   lang: string;
+  match_lang: string | null;
   interests: string[];
   talk_about_code: string | null;
   age: number | null;
@@ -31,7 +32,7 @@ async function loadState() {
   const supabase = createServiceClient();
   const [people, matches] = await Promise.all([
     pageAll((a, b) =>
-      supabase.from('participants').select('id, name, email, lang, interests, talk_about_code, age, active, pending_review, created_at, deleted_at, cohort, password').order('id').range(a, b),
+      supabase.from('participants').select('id, name, email, lang, match_lang, interests, talk_about_code, age, active, pending_review, created_at, deleted_at, cohort, password').order('id').range(a, b),
     ),
     pageAll((a, b) => supabase.from('matches').select('id, a_id, b_id, type, created_at').order('id').range(a, b)),
   ]);
@@ -51,7 +52,7 @@ async function loadState() {
         active: p.active && !p.deleted_at && !p.pending_review && p.cohort === 'v2' && Boolean(p.password),
         createdAt: p.created_at,
         age: p.age,
-        lang: p.lang,
+        lang: p.match_lang ?? p.lang, // the language they want to chat in, not the site's
         talkAboutCode: p.talk_about_code,
         compatibleCount: 0,
         controlCount: 0,

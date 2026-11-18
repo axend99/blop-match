@@ -20,7 +20,7 @@ export default async function ProfilePage() {
   // RLS: a participant can only read their own row.
   const { data: me } = await (await createClient())
     .from('participants')
-    .select('name, email, whatsapp, instagram, city, lang, age, age_range, time_in_city, origin, interests, other_text, talk_about, talk_about_code')
+    .select('name, email, whatsapp, instagram, city, lang, match_lang, age, age_range, time_in_city, origin, interests, other_text, talk_about, talk_about_code')
     .maybeSingle();
   if (!me) redirect('/join');
 
@@ -35,6 +35,7 @@ export default async function ProfilePage() {
     [j.timeInCity, j.timeInCityOptions[me.time_in_city as keyof Dict['join']['timeInCityOptions']] ?? me.time_in_city],
     [j.origin, j.originOptions[me.origin as keyof Dict['join']['originOptions']] ?? me.origin],
     [t.profile.language, t.profile.languages[me.lang as Lang] ?? me.lang],
+    [j.matchLang, j.matchLangOptions[(me.match_lang ?? me.lang) as Lang] ?? me.match_lang],
   ];
   const talksAbout = me.talk_about_code ? interestLabel(me.talk_about_code, lang) : me.talk_about;
 

@@ -40,6 +40,7 @@ export type InitialProfile = {
   time_in_city: string;
   origin: string;
   gender: string | null;
+  match_lang: string | null;
   interests: string[];
   other_text: Partial<Record<Category, string>> | null;
   talk_about: string | null;
@@ -69,6 +70,7 @@ export default function JoinForm({
   const [timeInCity, setTimeInCity] = useState(initial?.time_in_city ?? '');
   const [origin, setOrigin] = useState(initial?.origin ?? '');
   const [gender, setGender] = useState(initial?.gender ?? '');
+  const [matchLang, setMatchLang] = useState<string>(initial?.match_lang ?? lang);
   const [interests, setInterests] = useState<string[]>(initial?.interests ?? []);
   const [otherText, setOtherText] = useState<Partial<Record<Category, string>>>(initial?.other_text ?? {});
   const [otherOpen, setOtherOpen] = useState<Partial<Record<Category, boolean>>>({});
@@ -150,6 +152,7 @@ export default function JoinForm({
       time_in_city: timeInCity,
       origin,
       gender,
+      match_lang: matchLang,
       interests,
       other_text: otherText,
       talk_about: talkAbout,
@@ -227,6 +230,8 @@ export default function JoinForm({
 
       <Choice legend={t.gender} name="gender" value={gender} onChange={setGender}
         options={GENDERS.map((v) => [v, t.genderOptions[v]])} error={err('gender')} />
+      <Choice legend={t.matchLang} name="match_lang" value={matchLang} onChange={setMatchLang}
+        options={[['pt', t.matchLangOptions.pt], ['en', t.matchLangOptions.en]]} error={err('match_lang')} />
 
       <div className="space-y-6">
         <div>

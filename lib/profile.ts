@@ -39,6 +39,7 @@ export type ProfileInput = {
   instagram: string;
   city: string;
   lang: string;
+  match_lang?: string; // language to chat in with matches; defaults to `lang`
   age: string | number;
   time_in_city: string;
   origin: string;
@@ -56,6 +57,7 @@ export type Profile = {
   instagram: string | null;
   city: string;
   lang: Lang;
+  match_lang: Lang; // matching pairs people by this, not by the site language
   age: number;
   age_range: AgeRange;
   time_in_city: TimeInCity;
@@ -139,6 +141,8 @@ export function validateProfile(input: ProfileInput): ValidationResult {
   if (instagram && !isValidInstagram(instagram)) errors.instagram = 'instagram';
 
   if (!isLang(input.lang)) errors.lang = 'required';
+  const matchLang = input.match_lang ? input.match_lang : input.lang;
+  if (!isLang(matchLang)) errors.match_lang = 'required';
   const ageText = String(input.age ?? '').trim();
   const age = /^\d{1,2}$/.test(ageText) ? Number(ageText) : NaN;
   if (!ageText) errors.age = 'required';
@@ -194,6 +198,7 @@ export function validateProfile(input: ProfileInput): ValidationResult {
       instagram,
       city,
       lang: input.lang as Lang,
+      match_lang: matchLang as Lang,
       age,
       age_range: ageRange(age),
       time_in_city: input.time_in_city as TimeInCity,
