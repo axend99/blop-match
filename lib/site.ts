@@ -18,6 +18,7 @@ export function matchingConfig() {
     maxCompatible: intEnv('MAX_COMPATIBLE', 3),
     maxControl: intEnv('MAX_CONTROL', 1),
     minSharedCompatible: intEnv('MIN_SHARED_COMPATIBLE', 9), // compatibility points, see compatPoints
+    maxAgeGap: intEnv('MAX_AGE_GAP', 5), // v2: no match between people more than this many years apart
   };
 }
 

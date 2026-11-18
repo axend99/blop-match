@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { ageClose, analysisType, compatPoints, planMatches, score, shared, sharedByCategory, type Candidate, type MatchingConfig } from '@/lib/matching';
+import { ageClose, analysisType, CATEGORY_WEIGHT, compatPoints, itemShares, matchScore, planMatches, rarityBonus, score, shared, sharedByCategory, TALK_TOPIC_BONUS, type Candidate, type MatchingConfig } from '@/lib/matching';
 
 const CONFIG: MatchingConfig = { maxCompatible: 3, maxControl: 1, minSharedCompatible: 2 };
 
@@ -216,5 +216,47 @@ describe('planMatches', () => {
       firstTypes.add(planMatches(me, pool, CONFIG, seeded(seed))[0].type);
     }
     expect(firstTypes).toEqual(new Set(['compatible', 'control']));
+  });
+});
+
+describe('matchScore', () => {
+  const common = new Map([['act_travel', 0.8], ['music_rock', 0.5], ['animals_dogs', 0.1], ['food_italian', 0.6]]);
+
+  it('weights each shared item by category and rarity', () => {
+    expect(rarityBonus(0.1)).toBe(2);
+    expect(rarityBonus(0.2)).toBe(1);
+    expect(rarityBonus(0.5)).toBe(0);
+    expect(matchScore({ interests: ['act_travel'] }, { interests: ['act_travel'] }, common)).toBe(CATEGORY_WEIGHT.activities);
+    expect(matchScore({ interests: ['animals_dogs'] }, { interests: ['animals_dogs'] }, common)).toBe(CATEGORY_WEIGHT.animals * 3);
+    // a rare personal taste beats two broad ones
+    expect(matchScore({ interests: ['animals_dogs'] }, { interests: ['animals_dogs'] }, common)).toBeGreaterThan(
+      matchScore({ interests: ['act_travel', 'food_italian'] }, { interests: ['act_travel', 'food_italian'] }, common),
+    );
+  });
+
+  it('gives the conversation-topic bonus in each direction, bigger than any single item', () => {
+    const a = { interests: ['music_rock', 'act_travel'], talkAboutCode: 'music_rock' };
+    const b = { interests: ['music_rock'], talkAboutCode: 'animals_dogs' };
+    expect(matchScore(a, b, common)).toBe(CATEGORY_WEIGHT.music + TALK_TOPIC_BONUS);
+    expect(matchScore(a, { ...b, talkAboutCode: 'act_travel' }, common)).toBe(CATEGORY_WEIGHT.music + 2 * TALK_TOPIC_BONUS);
+    expect(TALK_TOPIC_BONUS).toBeGreaterThan(Math.max(...Object.values(CATEGORY_WEIGHT)) * 3);
+  });
+
+  it('computes the share of people with each interest', () => {
+    expect(itemShares([{ interests: ['a', 'b'] }, { interests: ['a'] }])).toEqual(new Map([['a', 1], ['b', 0.5]]));
+  });
+});
+
+describe('planMatches with the v2 rules', () => {
+  it('picks the candidate whose talk topic I share and never one outside the age gap', () => {
+    const cfg = { ...CONFIG, maxControl: 0, maxCompatible: 1, minSharedCompatible: 2, maxAgeGap: 5 };
+    const me = person(ROCK, { age: 22 });
+    const plain = person(ROCK, { age: 23 });
+    const topic = person([...ROCK_LIKE], { age: 24, talkAboutCode: 'music_rock' });
+    const older = person(ROCK, { age: 35, talkAboutCode: 'music_rock' });
+    const [p] = planMatches(me, [me, plain, topic, older], cfg, seeded());
+    expect([p.aId, p.bId]).toContain(topic.id);
+    const onlyOlder = planMatches(person(ROCK, { age: 22 }), [older], cfg, seeded());
+    expect(onlyOlder).toHaveLength(0);
   });
 });

@@ -3,7 +3,7 @@ import { createElement } from 'react';
 import NewMatchEmail from '@/emails/NewMatchEmail';
 import { sendEmail } from '@/lib/email';
 import { getDict, isLang } from '@/lib/i18n';
-import { planMatches, type Candidate } from '@/lib/matching';
+import { itemShares, planMatches, type Candidate } from '@/lib/matching';
 import { matchingConfig, siteUrl } from '@/lib/site';
 import { createServiceClient } from '@/lib/supabase/service';
 import { pageAll } from '@/lib/supabase/pageAll';
@@ -14,6 +14,7 @@ type Participant = {
   email: string | null;
   lang: string;
   interests: string[];
+  talk_about_code: string | null;
   age: number | null;
   active: boolean;
   pending_review: boolean;
@@ -30,7 +31,7 @@ async function loadState() {
   const supabase = createServiceClient();
   const [people, matches] = await Promise.all([
     pageAll((a, b) =>
-      supabase.from('participants').select('id, name, email, lang, interests, age, active, pending_review, created_at, deleted_at, cohort, password').order('id').range(a, b),
+      supabase.from('participants').select('id, name, email, lang, interests, talk_about_code, age, active, pending_review, created_at, deleted_at, cohort, password').order('id').range(a, b),
     ),
     pageAll((a, b) => supabase.from('matches').select('id, a_id, b_id, type').order('id').range(a, b)),
   ]);
@@ -51,6 +52,7 @@ async function loadState() {
         createdAt: p.created_at,
         age: p.age,
         lang: p.lang,
+        talkAboutCode: p.talk_about_code,
         compatibleCount: 0,
         controlCount: 0,
         matchedIds: new Set<string>(),
@@ -66,7 +68,9 @@ async function loadState() {
       c.matchedIds.add(other);
     }
   }
-  return { supabase, byId, pool, matches: matches.data as MatchRow[] };
+  // Rarity of each interest over everyone who took part (v1 and v2): steadier than the v2 pool alone.
+  const shares = itemShares(participants.filter((p) => !p.deleted_at));
+  return { supabase, byId, pool, shares, matches: matches.data as MatchRow[] };
 }
 
 async function notify(participant: Participant | undefined, matchId: string): Promise<boolean> {
@@ -92,7 +96,7 @@ async function createMatches(
   person: Candidate,
 ): Promise<number> {
   const config = matchingConfig();
-  const proposals = planMatches(person, [...state.pool.values()], config);
+  const proposals = planMatches(person, [...state.pool.values()], config, Math.random, state.shares);
   let created = 0;
 
   for (const p of proposals) {
