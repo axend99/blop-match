@@ -228,7 +228,7 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
   });
   // Pending people (being verified or reported) do not count as active.
   const smp = sample({ participants: participants.map((p) => ({ ...p, active: p.active && !p.pending_review })), matches, categories: CATEGORIES });
-  const minShared = matchingConfig().minSharedCompatible;
+  const { minSharedCompatible: minShared, minScoreCompatible: minScore, maxAgeGap } = matchingConfig();
   const byNewest = (a?: string | null, b?: string | null) => (b ?? '').localeCompare(a ?? '');
   const openFlags = flags.filter((f) => !f.resolved_at).sort((a, b) => byNewest(a.created_at, b.created_at));
   const doneFlags = flags
@@ -263,13 +263,15 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
         <summary className="cursor-pointer font-semibold">Como ler este painel</summary>
         <ul className="mt-3 list-disc space-y-1.5 pl-5 text-midnight/80">
           <li>
-            <b>Match compatível</b>: o par soma pelo menos {minShared} pontos de compatibilidade (1 por interesse em comum, mais 1
-            se a diferença de idade for de até {AGE_CLOSE_YEARS} anos). <b>Match de controlo</b>: menos do que isso. O grupo é sempre
-            calculado com a régua atual, por isso um match criado com uma régua antiga pode mudar de grupo (o tipo original fica no
-            CSV, coluna assigned_type, e os pontos na coluna points). O matching cria um compatível com a pessoa mais parecida entre
-            as que chegam à régua (em empate, idade mais próxima), e um controlo sorteado entre quem não tem nada em comum (senão, a
-            menos parecida abaixo da régua; a idade não conta no controlo); se não houver ninguém adequado, a vaga fica aberta para os
-            dias seguintes. O controlo serve de comparação: mostra o que acontece sem compatibilidade.
+            <b>Match compatível</b>: <b>v2</b> (matches desde 3/11/2026): score do match de pelo menos {minScore}. Cada interesse em
+            comum vale o peso da categoria (música e animais 1,5; fitness 1,25; atividades 0,5; o resto 1) × (1 + bónus de raridade:
+            +2 se menos de 15% das pessoas o têm, +1 se menos de 30%), e +6 quando o tema de conversa de uma pessoa é um dos interesses
+            da outra (em cada sentido). Na v2 só há matches com a mesma língua e até {maxAgeGap} anos de diferença, nos dois grupos.{' '}
+            <b>v1</b>: pelo menos {minShared} pontos de compatibilidade (1 por interesse em comum, mais 1 se a diferença de idade for de
+            até {AGE_CLOSE_YEARS} anos). <b>Match de controlo</b>: abaixo da régua da sua versão. O grupo é sempre calculado com a
+            régua atual (o tipo original fica no CSV, coluna assigned_type; os pontos na coluna points e o score na coluna score). O
+            matching cria um compatível com o maior score entre quem passa a régua, e um controlo sorteado entre quem não tem nada em
+            comum (senão, o de menor score abaixo da régua); se não houver ninguém adequado, a vaga fica aberta para os dias seguintes. O controlo serve de comparação: mostra o que acontece sem compatibilidade.
           </li>
           <li>
             <b>Review</b>: uma pessoa a avaliar um match, {reviewDelayDays()} {reviewDelayDays() === 1 ? 'dia' : 'dias'} depois. Cada match dá até 2 reviews (uma de cada

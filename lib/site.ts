@@ -18,6 +18,8 @@ export function matchingConfig() {
     maxCompatible: intEnv('MAX_COMPATIBLE', 3),
     maxControl: intEnv('MAX_CONTROL', 1),
     minSharedCompatible: intEnv('MIN_SHARED_COMPATIBLE', 9), // compatibility points, see compatPoints
+    // v2: compatible from this match score on (about the top 1 in 5 eligible pairs in v1 data).
+    minScoreCompatible: intEnv('MIN_SCORE_COMPATIBLE', 14),
     maxAgeGap: intEnv('MAX_AGE_GAP', 5), // v2: no match between people more than this many years apart
   };
 }
