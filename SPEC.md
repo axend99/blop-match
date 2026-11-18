@@ -309,3 +309,6 @@ Estudo académico do projeto BLOP, do mestrado MIETE. Dados recolhidos: os do pe
 
 
 **Review aberta logo (18/11/2026).** A review de um match pode ser feita assim que o match existe (`reviewOpensAt` = data do match). O ecrã da review pede primeiro para falar com a pessoa e, na v2, lembra que quem falhou a password pode voltar a conversar para a descobrir (sem nunca a perguntar diretamente) e tentar outra vez na página do match. Os e-mails e lembretes não mudam: continuam a sair `REVIEW_DELAY_DAYS` depois do match, e é a partir dessa data (`reviewDueAt`) que a app empurra para avaliar (cartão no `/me`, contador na tab de avaliações, conquista "Detetive completo", botão "Abrir avaliação agora" no admin).
+
+**Língua de conversa (18/11/2026).** O perfil pergunta "Em que língua queres conversar com os teus matches?" (Português / English; vem marcada com a língua do site; `participants.match_lang`, migração 0032, preenchida com `lang` para quem já existia). O matching junta pessoas pela `match_lang`; a `lang` continua a ser a língua do site e dos e-mails e muda com o botão EN/PT, sem mexer nos matches.
+

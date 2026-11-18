@@ -226,3 +226,14 @@ describe('gender', () => {
     expect(!r.ok && r.errors.gender).toBe('required');
   });
 });
+
+describe('language to chat in with matches', () => {
+  it('defaults to the site language and can differ from it', () => {
+    const same = validateProfile({ ...VALID, lang: 'pt' });
+    expect(same.ok && same.data.match_lang).toBe('pt');
+    const other = validateProfile({ ...VALID, lang: 'pt', match_lang: 'en' });
+    expect(other.ok && [other.data.lang, other.data.match_lang]).toEqual(['pt', 'en']);
+    const bad = validateProfile({ ...VALID, match_lang: 'fr' });
+    expect(bad.ok || bad.errors.match_lang).toBe('required');
+  });
+});

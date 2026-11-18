@@ -64,6 +64,8 @@ const en = {
     age: 'Age',
     timeInCity: 'How long have you lived in this city?',
     origin: 'Where are you from?',
+    matchLang: 'Which language do you want to chat with your matches in?',
+    matchLangOptions: { pt: 'Português', en: 'English' },
     gender: 'Gender (optional)',
     interestsTitle: 'Your interests',
     interestsHint: 'Tap a category to open it and pick what really describes you. You need at least 10 interests, from at least 3 categories (up to 5 per category).',

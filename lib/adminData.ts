@@ -44,6 +44,7 @@ export type AdminParticipant = {
   is_seed: boolean;
   created_at: string;
   cohort: string;
+  match_lang: string | null;
   password: string | null;
   password_kind: string | null;
   nickname: string | null;
@@ -118,7 +119,7 @@ export async function loadAdminData(mode: DataMode, versionArg?: StudyVersion) {
   const [allParticipants, storedMatches, rawReviews, allFlags, allClicks, reports, waitlistClicks, waitlistSent, allGuesses, allExperiences] = await Promise.all([
     all<AdminParticipant>(
       'participants',
-      'id, name, email, whatsapp, instagram, city, lang, age, age_range, time_in_city, origin, gender, gender_estimate, interests, other_text, talk_about, talk_about_code, active, pending_review, deleted_at, is_seed, created_at, cohort, password, password_kind, nickname, leaderboard_show_name',
+      'id, name, email, whatsapp, instagram, city, lang, age, age_range, time_in_city, origin, gender, gender_estimate, interests, other_text, talk_about, talk_about_code, active, pending_review, deleted_at, is_seed, created_at, cohort, match_lang, password, password_kind, nickname, leaderboard_show_name',
     ),
     all<Omit<AdminMatch, 'assigned_type' | 'points'>>('matches', 'id, a_id, b_id, type, score, shared_items, shared_count, shared_by_category, created_at'),
     all<AdminReview>(

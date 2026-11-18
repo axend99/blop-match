@@ -66,6 +66,8 @@ const pt: Dict = {
     age: 'Idade',
     timeInCity: 'Há quanto tempo vives nesta cidade?',
     origin: 'De onde és?',
+    matchLang: 'Em que língua queres conversar com os teus matches?',
+    matchLangOptions: { pt: 'Português', en: 'English' },
     gender: 'Género (opcional)',
     interestsTitle: 'Os teus interesses',
     interestsHint: 'Toca numa categoria para a abrir e escolhe o que te descreve mesmo. Precisas de pelo menos 10 interesses, em pelo menos 3 categorias (até 5 por categoria).',

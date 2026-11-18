@@ -122,7 +122,7 @@ async function seed() {
     active: true,
     createdAt: at(p.created),
     age: p.age,
-    lang: p.lang,
+    lang: p.match_lang,
     talkAboutCode: p.talk_about_code,
     compatibleCount: 0,
     controlCount: 0,
