@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { ANIMALS, COLOURS, leaderboard, pickNickname, scores } from '@/lib/game';
+import { ANIMALS, COLOURS, leaderboard, letterCount, pickNickname, scores } from '@/lib/game';
 
 const people = [{ id: 'a' }, { id: 'b' }, { id: 'c' }];
 const matches = [
@@ -8,44 +8,40 @@ const matches = [
 ];
 
 describe('scores', () => {
-  it('counts a right guess only after the guesser reviewed', () => {
-    const guesses = [{ match_id: 'm1', guesser_id: 'a', right: true }];
-    const before = scores({ people, matches, reviews: [], guesses });
-    expect(before.get('a')).toMatchObject({ points: 0, rightGuesses: 0, badges: ['first_guess'] });
-    const after = scores({ people, matches, reviews: [{ match_id: 'm1', reviewer_id: 'a', who_first: 'me' }], guesses });
-    expect(after.get('a')).toMatchObject({ points: 3 + 1, rightGuesses: 1, reviews: 1 });
-    expect(after.get('a')!.badges).toEqual(['first_guess', 'icebreaker']);
+  const review = (match_id: string, reviewer_id: string, who_first: string | null = null, password_said: number | null = null) => ({
+    match_id,
+    reviewer_id,
+    who_first,
+    password_said,
   });
 
-  it('gives the spy points when the other is done guessing and never got it', () => {
-    const wrong = [{ match_id: 'm1', guesser_id: 'b', right: false }];
-    const reviews = [{ match_id: 'm1', reviewer_id: 'a', who_first: null }];
-    // b may still guess: no spy points yet
-    expect(scores({ people, matches, reviews, guesses: wrong }).get('a')!.survived).toBe(0);
-    // b reviewed: done
-    const s = scores({ people, matches, reviews: [...reviews, { match_id: 'm1', reviewer_id: 'b', who_first: null }], guesses: wrong });
-    expect(s.get('a')).toMatchObject({ survived: 1, points: 2 + 1 });
-    // b used the 3 tries: done too
-    const three = [1, 2, 3].map(() => ({ match_id: 'm1', guesser_id: 'b', right: false }));
-    expect(scores({ people, matches, reviews, guesses: three }).get('a')!.survived).toBe(1);
-    // nobody guessed: nothing to survive
-    expect(scores({ people, matches, reviews, guesses: [] }).get('a')!.survived).toBe(0);
+  it('counts a right guess straight away, without waiting for the review', () => {
+    const s = scores({ people, matches, reviews: [], guesses: [{ match_id: 'm1', guesser_id: 'a', right: true }] });
+    expect(s.get('a')).toMatchObject({ points: 3, rightGuesses: 1, badges: ['first_guess'] });
+    expect(s.get('b')).toMatchObject({ points: 0 }); // being found out costs nothing
   });
 
-  it('awards full_detective when every open match is reviewed', () => {
-    const reviews = [
-      { match_id: 'm1', reviewer_id: 'a', who_first: null },
-      { match_id: 'm2', reviewer_id: 'a', who_first: null },
-    ];
-    expect(scores({ people, matches, reviews, guesses: [] }).get('a')!.badges).toContain('full_detective');
-    expect(scores({ people, matches, reviews: reviews.slice(0, 1), guesses: [] }).get('a')!.badges).not.toContain('full_detective');
+  it('adds the times said (max 3 per match), the first message (both may claim it) and each review', () => {
+    const s = scores({
+      people,
+      matches,
+      reviews: [review('m1', 'a', 'me', 3), review('m2', 'a', 'them', 9), review('m1', 'b', 'me', 1)],
+      guesses: [],
+    });
+    expect(s.get('a')).toMatchObject({ said: 6, firstMessages: 1, reviews: 2, points: 6 + 1 + 2 });
+    expect(s.get('a')!.badges).toEqual(['smooth_talker', 'icebreaker', 'full_detective']);
+    expect(s.get('b')).toMatchObject({ said: 1, firstMessages: 1, reviews: 1, points: 3 });
+  });
+
+  it('awards full_detective only when every open match is reviewed', () => {
+    expect(scores({ people, matches, reviews: [review('m1', 'a')], guesses: [] }).get('a')!.badges).not.toContain('full_detective');
     expect(scores({ people, matches: [], reviews: [], guesses: [] }).get('a')!.badges).toEqual([]);
   });
 });
 
 describe('leaderboard', () => {
   it('sorts by points then right guesses, shares ranks on ties and drops zeros', () => {
-    const s = (points: number, rightGuesses = 0, survived = 0) => ({ points, rightGuesses, survived, reviews: 0, badges: [] });
+    const s = (points: number, rightGuesses = 0, said = 0) => ({ points, rightGuesses, said, firstMessages: 0, reviews: 0, badges: [] });
     const rows = leaderboard(new Map([['x', s(4, 1)], ['y', s(4, 1)], ['z', s(4, 0)], ['w', s(7)], ['q', s(0)]]));
     expect(rows.map((r) => [r.id, r.rank])).toEqual([['w', 1], ['x', 2], ['y', 2], ['z', 4]]);
   });
@@ -57,5 +53,12 @@ describe('pickNickname', () => {
     expect(pickNickname(new Set([`${ANIMALS[0]}-${COLOURS[0]}`]), () => 0)).toBe(`${ANIMALS[0]}-${COLOURS[1]}`);
     const all = new Set(ANIMALS.flatMap((a) => COLOURS.map((c) => `${a}-${c}`)));
     expect(pickNickname(all, () => 0)).toBe(`${ANIMALS[0]}-${COLOURS[0]}-2`);
+  });
+});
+
+describe('letterCount', () => {
+  it('counts letters, accents included', () => {
+    expect(letterCount('Coração')).toBe(7);
+    expect(letterCount('мост')).toBe(4);
   });
 });

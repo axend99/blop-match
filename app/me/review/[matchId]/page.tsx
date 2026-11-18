@@ -7,7 +7,6 @@ import ReviewForm from '@/components/ReviewForm';
 import { getMyParticipant, getUser } from '@/lib/auth';
 import { getDict } from '@/lib/i18n';
 import { getLang } from '@/lib/i18n/server';
-import { loadGame } from '@/lib/gameService';
 import { getMyMatches } from '@/lib/myMatches';
 import { formatDate, reviewOpensAt } from '@/lib/site';
 import { createServiceClient } from '@/lib/supabase/service';
@@ -55,9 +54,6 @@ export default async function ReviewPage({ params }: { params: Promise<{ matchId
       .upsert({ match_id: match.match_id, participant_id: me.id }, { onConflict: 'match_id,participant_id', ignoreDuplicates: true });
     if (error) console.error('[review] view not recorded', error);
   });
-  // v2 password game: one last guess here if tries are left (rating closes the guesses).
-  const guessesLeft =
-    me.cohort === 'v2' && !match.other_deleted ? ((await loadGame(me.id)).matches.get(match.match_id)?.guessesLeft ?? 0) : 0;
 
   return (
     <div className="space-y-6">
@@ -74,14 +70,7 @@ export default async function ReviewPage({ params }: { params: Promise<{ matchId
         t={formTexts}
         genericError={t.common.genericError}
         askInstagram={Boolean(me.instagram && match.other_instagram)}
-        game={
-          guessesLeft > 0
-            ? {
-                label: match.other_deleted ? t.password.guessLabelFormer : t.password.guessLabel(match.other_name),
-                hint: t.password.guessHint(guessesLeft),
-              }
-            : undefined
-        }
+        game={me.cohort === 'v2' ? { label: t.password.saidLabel, hint: t.password.saidHint, options: t.password.saidOptions } : undefined}
       />
       {!match.other_deleted && (
         <Link href={`/me/report/${match.match_id}`} className="block text-center text-sm text-midnight/50 underline">

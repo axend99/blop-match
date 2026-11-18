@@ -1,21 +1,23 @@
 import 'server-only';
-import { leaderboard, LEADERBOARD_SIZE, MAX_GUESSES, scores, type Score } from '@/lib/game';
+import { leaderboard, LEADERBOARD_SIZE, letterCount, MAX_GUESSES, scores, type Score } from '@/lib/game';
 import { guessCounts } from '@/lib/password';
 import { reviewOpensAt } from '@/lib/site';
 import { createServiceClient } from '@/lib/supabase/service';
 
-// Loads the v2 password game with the service role and returns only what `meId` may see:
-// right/wrong of my guesses, the other person's password and their guesses' words only after I
-// reviewed that match (the review closes my guessing).
+// Loads the v2 password game with the service role and returns only what `meId` may see. My own
+// guesses show right or wrong at once; the other person's password only once I found it or used my
+// tries; their guesses about mine only after I reviewed the match (a reason to review).
 
 export type MatchGame = {
   iReviewed: boolean;
   guessesLeft: number;
-  myGuesses: { guess: string; right: boolean | null }[]; // right is null until I review
+  myGuesses: { guess: string; right: boolean }[];
+  found: boolean;
+  hints: { letters: number; kind: string | null } | null; // about their password
+  theirPassword: string | null; // once I found it or used my tries
   theirGuessCount: number;
   theirGuesses: { guess: string; right: boolean }[] | null; // null until I review
-  theyCanStillGuess: boolean;
-  theirPassword: string | null; // null until I review
+  theyCanStillGuess: boolean; // only meaningful once I reviewed
 };
 
 export type BoardRow = { rank: number; points: number; isMe: boolean; firstName: string | null; nickname: string | null };
@@ -34,7 +36,7 @@ export async function loadGame(meId: string): Promise<GameState> {
   const supabase = createServiceClient();
   const { data: people } = await supabase
     .from('participants')
-    .select('id, name, password, nickname, leaderboard_show_name, active, deleted_at')
+    .select('id, name, password, password_kind, nickname, leaderboard_show_name, active, deleted_at')
     .eq('cohort', 'v2')
     .is('deleted_at', null);
   const v2 = people ?? [];
@@ -48,7 +50,7 @@ export async function loadGame(meId: string): Promise<GameState> {
   const matchIds = matches.map((m) => m.id);
   const [{ data: reviews }, { data: rawGuesses }] = matchIds.length
     ? await Promise.all([
-        supabase.from('reviews').select('match_id, reviewer_id, who_first').in('match_id', matchIds),
+        supabase.from('reviews').select('match_id, reviewer_id, who_first, password_said').in('match_id', matchIds),
         supabase.from('password_guesses').select('match_id, guesser_id, guess, is_right, attempt').in('match_id', matchIds).order('attempt'),
       ])
     : [{ data: [] }, { data: [] }];
@@ -85,20 +87,24 @@ export async function loadGame(meId: string): Promise<GameState> {
     const iReviewed = reviewed.has(`${m.id}|${meId}`);
     const my = guesses.filter((g) => g.match_id === m.id && g.guesser_id === meId);
     const theirs = guesses.filter((g) => g.match_id === m.id && g.guesser_id === otherId);
+    const found = my.some((g) => g.right);
+    const other = byId.get(otherId);
     myMatches.set(m.id, {
       iReviewed,
-      guessesLeft: iReviewed ? 0 : Math.max(0, MAX_GUESSES - my.length),
-      myGuesses: my.map((g) => ({ guess: g.guess, right: iReviewed ? g.right : null })),
+      guessesLeft: found ? 0 : Math.max(0, MAX_GUESSES - my.length),
+      myGuesses: my.map((g) => ({ guess: g.guess, right: g.right })),
+      found,
+      hints: other?.password ? { letters: letterCount(other.password), kind: other.password_kind } : null,
+      theirPassword: found || my.length >= MAX_GUESSES ? (other?.password ?? null) : null,
       theirGuessCount: theirs.length,
       theirGuesses: iReviewed ? theirs.map((g) => ({ guess: g.guess, right: g.right })) : null,
-      theyCanStillGuess: !reviewed.has(`${m.id}|${otherId}`) && theirs.length < MAX_GUESSES,
-      theirPassword: iReviewed ? (byId.get(otherId)?.password ?? null) : null,
+      theyCanStillGuess: iReviewed && theirs.length < MAX_GUESSES && !theirs.some((g) => g.right),
     });
   }
 
   const me = byId.get(meId);
   return {
-    score: all.get(meId) ?? { points: 0, rightGuesses: 0, survived: 0, reviews: 0, badges: [] },
+    score: all.get(meId) ?? { points: 0, rightGuesses: 0, said: 0, firstMessages: 0, reviews: 0, badges: [] },
     rank: mine?.rank ?? null,
     nickname: me?.nickname ?? null,
     showName: Boolean(me?.leaderboard_show_name),

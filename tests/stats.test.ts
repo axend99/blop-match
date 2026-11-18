@@ -736,7 +736,8 @@ describe('gameStats', () => {
         { id: 'm3', a_id: 'a', b_id: 'z', type: 'control', reviewOpen: true },
       ],
       reviews: [
-        { match_id: 'm1', reviewer_id: 'a', created_at: '2026-11-05' },
+        { match_id: 'm1', reviewer_id: 'a', created_at: '2026-11-05', password_said: 2 },
+        { match_id: 'm1', reviewer_id: 'b', created_at: '2026-11-06', password_said: 0 },
       ],
       guesses: [
         { match_id: 'm1', guesser_id: 'a', right: false, created_at: '2026-11-02' },
@@ -753,7 +754,9 @@ describe('gameStats', () => {
     expect(g.right).toEqual({ value: 0.5, n: 2 });
     expect(g.rightByGroup.compatible).toEqual({ value: 0.5, n: 2 });
     expect(g.rightByGroup.control).toEqual({ value: null, n: 0 });
-    expect(g.reviewedIfGuessed).toEqual({ value: 0.5, n: 2 });
+    expect(g.reviewedIfGuessed).toEqual({ value: 1, n: 2 });
+    expect(g.saidAny).toEqual({ value: 0.5, n: 2 });
+    expect(g.saidMean).toBe(1);
     expect(g.reviewedIfNot).toEqual({ value: null, n: 0 });
   });
 });

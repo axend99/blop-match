@@ -21,7 +21,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
   let csv: string;
   if (tabela === 'participantes') {
     csv = toCsv(
-      ['id', 'name', 'email', 'whatsapp', 'instagram', 'city', 'lang', 'age', 'age_range', 'time_in_city', 'origin', 'interests', 'other_text', 'talk_about', 'talk_about_code', 'gender', 'gender_estimate', 'cohort', 'password', 'nickname', 'leaderboard_show_name', 'active', 'deleted_at', 'is_seed', 'created_at'],
+      ['id', 'name', 'email', 'whatsapp', 'instagram', 'city', 'lang', 'age', 'age_range', 'time_in_city', 'origin', 'interests', 'other_text', 'talk_about', 'talk_about_code', 'gender', 'gender_estimate', 'cohort', 'password', 'password_kind', 'nickname', 'leaderboard_show_name', 'active', 'deleted_at', 'is_seed', 'created_at'],
       participants,
     );
   } else if (tabela === 'matches') {
@@ -59,7 +59,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
         'type', 'assigned_type', 'shared_count', 'shared_items', 'shared_by_category',
         'age', 'age_range', 'time_in_city', 'origin', 'city', 'lang',
         'contacted', 'interest_1_7', 'who_first', 'comfort_1_7', 'why_not', 'talked', 'flow_1_7',
-        'common_ground_1_7', 'satisfaction_1_7', 'meet_again_1_7', 'met', 'next_step', 'ig_follow', 'likes_concept', 'best_for', 'party_interest', 'personality', 'comment', 'password_guesses', 'password_guess_right',
+        'common_ground_1_7', 'satisfaction_1_7', 'meet_again_1_7', 'met', 'next_step', 'ig_follow', 'likes_concept', 'best_for', 'party_interest', 'personality', 'comment', 'password_said', 'password_guesses', 'password_guess_right',
         'clicked_whatsapp', 'clicked_instagram', 'first_click_at', 'clicked_before_review',
       ],
       rows.map((r) => ({

@@ -30,6 +30,7 @@ export async function deleteParticipantData(participantId: string, userId: strin
       talk_about: null,
       talk_about_code: null,
       password: null,
+      password_kind: null,
       nickname: null,
       leaderboard_show_name: false,
       other_text: {},

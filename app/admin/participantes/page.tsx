@@ -31,8 +31,9 @@ function state(p: AdminParticipant) {
 function reviewText(r: AdminReview | null) {
   if (!r) return 'sem review';
   if (!r.contacted) return `não contactou (${pt.review.whyNotOptions[r.why_not as keyof typeof pt.review.whyNotOptions] ?? r.why_not})`;
-  if (!r.talked) return 'contactou, sem conversa';
-  return `conversou · satisfação ${r.satisfaction_1_7}/7${r.met ? ` · encontro: ${pt.review.metOptions[r.met as keyof typeof pt.review.metOptions]}` : ''}`;
+  const said = r.password_said === null ? '' : ` · disse a password ${r.password_said === 3 ? '3+' : r.password_said}×`;
+  if (!r.talked) return `contactou, sem conversa${said}`;
+  return `conversou · satisfação ${r.satisfaction_1_7}/7${r.met ? ` · encontro: ${pt.review.metOptions[r.met as keyof typeof pt.review.metOptions]}` : ''}${said}`;
 }
 
 // v2 password game: one person's guesses in one match.
@@ -100,7 +101,7 @@ export default async function ParticipantsPage({ searchParams }: { searchParams:
                       ['Tempo na cidade', pt.join.timeInCityOptions[p.time_in_city as keyof typeof pt.join.timeInCityOptions] ?? p.time_in_city],
                       ['Origem', pt.join.originOptions[p.origin as keyof typeof pt.join.originOptions] ?? p.origin],
                       ['Idioma', LANG[p.lang] ?? p.lang],
-                      ['Versão', p.cohort === 'v2' ? `V2 · password: ${p.password ?? 'ainda não escolheu'} · ranking: ${p.leaderboard_show_name ? 'nome' : nicknameLabel(p.nickname, pt.game)}` : 'V1'],
+                      ['Versão', p.cohort === 'v2' ? `V2 · password: ${p.password ?? 'ainda não escolheu'}${p.password_kind ? ` (${pt.password.kinds[p.password_kind] ?? p.password_kind})` : ''} · ranking: ${p.leaderboard_show_name ? 'nome' : nicknameLabel(p.nickname, pt.game)}` : 'V1'],
                       ['Quer falar sobre', p.talk_about_code ? interestLabel(p.talk_about_code, 'pt') : (p.talk_about ?? '—')],
                     ].map(([k, v]) => (
                       <div key={k} className="break-words">

@@ -45,6 +45,7 @@ export type AdminParticipant = {
   created_at: string;
   cohort: string;
   password: string | null;
+  password_kind: string | null;
   nickname: string | null;
   leaderboard_show_name: boolean;
 };
@@ -68,6 +69,7 @@ export type AdminReview = Omit<ReviewRow, 'type' | 'shared_count' | 'shared_by_c
   reviewer_id: string;
   who_first: string | null;
   comment: string | null;
+  password_said: number | null;
   created_at: string;
 };
 
@@ -104,12 +106,12 @@ export async function loadAdminData(mode: DataMode, versionArg?: StudyVersion) {
   const [allParticipants, storedMatches, allReviews, allFlags, allClicks, reports, waitlistClicks, waitlistSent, allGuesses] = await Promise.all([
     all<AdminParticipant>(
       'participants',
-      'id, name, email, whatsapp, instagram, city, lang, age, age_range, time_in_city, origin, gender, gender_estimate, interests, other_text, talk_about, talk_about_code, active, pending_review, deleted_at, is_seed, created_at, cohort, password, nickname, leaderboard_show_name',
+      'id, name, email, whatsapp, instagram, city, lang, age, age_range, time_in_city, origin, gender, gender_estimate, interests, other_text, talk_about, talk_about_code, active, pending_review, deleted_at, is_seed, created_at, cohort, password, password_kind, nickname, leaderboard_show_name',
     ),
     all<Omit<AdminMatch, 'assigned_type' | 'points'>>('matches', 'id, a_id, b_id, type, score, shared_items, shared_count, shared_by_category, created_at'),
     all<AdminReview>(
       'reviews',
-      'id, match_id, reviewer_id, contacted, interest_1_7, who_first, comfort_1_7, why_not, talked, flow_1_7, common_ground_1_7, satisfaction_1_7, meet_again_1_7, met, ig_follow, likes_concept, best_for, party_interest, personality, comment, next_step, created_at',
+      'id, match_id, reviewer_id, contacted, interest_1_7, who_first, comfort_1_7, why_not, talked, flow_1_7, common_ground_1_7, satisfaction_1_7, meet_again_1_7, met, ig_follow, likes_concept, best_for, party_interest, personality, comment, password_said, next_step, created_at',
     ),
     all<AdminFlag>('content_flags', 'id, participant_id, match_id, field, text, status, category, reason, created_at, resolved_at'),
     all<AdminClick>('contact_clicks', 'match_id, participant_id, channel, created_at'),
