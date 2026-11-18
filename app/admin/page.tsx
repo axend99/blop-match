@@ -20,7 +20,8 @@ import { countOldLinkRequests, emailBacklog } from '@/lib/reviewService';
 import { FUNNEL_ORDER, VISITS_SINCE, splitAtSnapshot, stepRates } from '@/lib/visits';
 import { REVIEW_GRACE_MS } from '@/lib/review';
 import { AGE_CLOSE_YEARS } from '@/lib/matching';
-import { matchingConfig, reviewDelayDays } from '@/lib/site';
+import { matchingConfig, reviewDelayDays, reviewOpensAt } from '@/lib/site';
+import { leaderboard, nicknameLabel, PRIZE_PLACES, scores as gameScores } from '@/lib/game';
 import { CATEGORIES } from '@/lib/interests';
 import {
   contactDetail,
@@ -211,7 +212,7 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
   const notice = (await cookies()).get('admin_notice')?.value;
   const segmentGroup: Group | 'all' = grupo === 'compativel' ? 'compatible' : grupo === 'controlo' ? 'control' : 'all';
 
-  const { version, participants, matches, reviews, flags, clicks, rows, personById, seedCount, e2eCount, pendingCount, openReports, waitlist, tapped } = await loadAdminData(mode);
+  const { version, participants, matches, reviews, flags, clicks, guesses, rows, personById, seedCount, e2eCount, pendingCount, openReports, waitlist, tapped } = await loadAdminData(mode);
   const seedShown = participants.filter((p) => p.is_seed).length;
   // Keeps both filters in links.
   const link = (params: { grupo?: string; dados?: DataMode }, hash = '') =>
@@ -715,12 +716,28 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
 
       {version !== 'v1' &&
         (() => {
-          const g = gameStats({ participants, matches, reviews });
+          const gameMatches = matches.map((m) => ({ ...m, reviewOpen: reviewOpensAt(m.created_at) <= new Date() }));
+          const g = gameStats({ participants, matches: gameMatches, reviews, guesses });
+          // Same leaderboard as the participants see, with real names (prize: top 3).
+          const v2 = participants.filter((p) => p.cohort === 'v2' && !p.deleted_at);
+          const inV2 = new Set(v2.map((p) => p.id));
+          const board = leaderboard(
+            new Map(
+              [
+                ...gameScores({
+                  people: v2.map((p) => ({ id: p.id })),
+                  matches: gameMatches.filter((m) => inV2.has(m.a_id) && inV2.has(m.b_id)),
+                  reviews,
+                  guesses,
+                }),
+              ].filter(([id]) => personById.get(id)?.active && personById.get(id)?.password),
+            ),
+          );
           return (
             <Section
               n="2b"
               title="Jogo da password (v2)"
-              description="Cada pessoa da v2 escolhe uma palavra secreta e tenta dizê-la nas conversas sem que o match perceba; na review, quem contactou diz qual acha que era a do outro. Conta como certo a mesma palavra noutro idioma (heart = coração) ou noutra forma (plural, género, gralha), verificado pelo Claude ao gravar a review."
+              description="Cada pessoa da v2 escolhe uma palavra secreta e tenta dizê-la nas conversas sem que o match perceba. Pode adivinhar a do match quando quiser (3 tentativas por match) e só sabe se acertou depois de avaliar. Conta como certo a mesma palavra noutro idioma (heart = coração) ou noutra forma (plural, género, gralha), verificado pelo Claude ao gravar o palpite. Pontos: +3 por password descoberta, +2 quando o match tenta e falha, +1 por review."
             >
               <Table head={['', '%']}>
                 <tr>
@@ -728,26 +745,64 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
                   <PctCell s={g.withPassword} />
                 </tr>
                 <tr>
-                  <td className="px-2 py-1.5">Reviews com contacto que tentaram adivinhar</td>
-                  <PctCell s={g.guessed} />
+                  <td className="px-2 py-1.5">Matches com pelo menos um palpite</td>
+                  <PctCell s={g.matchesWithGuess} />
                 </tr>
                 <tr>
-                  <td className="px-2 py-1.5">Palpites certos (de todos os palpites)</td>
+                  <td className="px-2 py-1.5">Pessoas que tentaram adivinhar (por match)</td>
+                  <PctCell s={g.playersGuessed} />
+                </tr>
+                <tr>
+                  <td className="px-2 py-1.5">… das quais adivinharam antes da review</td>
+                  <PctCell s={g.guessedBeforeReview} />
+                </tr>
+                <tr>
+                  <td className="px-2 py-1.5">Descobriram a password (de quem tentou)</td>
                   <PctCell s={g.right} />
                 </tr>
                 <tr>
-                  <td className="px-2 py-1.5">Palpites certos: matches compatíveis</td>
+                  <td className="px-2 py-1.5">Descobriram: matches compatíveis</td>
                   <PctCell s={g.rightByGroup.compatible} />
                 </tr>
                 <tr>
-                  <td className="px-2 py-1.5">Palpites certos: matches de controlo</td>
+                  <td className="px-2 py-1.5">Descobriram: matches de controlo</td>
                   <PctCell s={g.rightByGroup.control} />
+                </tr>
+                <tr>
+                  <td className="px-2 py-1.5">Fizeram a review, entre quem tentou adivinhar</td>
+                  <PctCell s={g.reviewedIfGuessed} />
+                </tr>
+                <tr>
+                  <td className="px-2 py-1.5">Fizeram a review, entre quem não tentou</td>
+                  <PctCell s={g.reviewedIfNot} />
                 </tr>
               </Table>
               <p className="text-xs text-midnight/60">
-                As passwords e os palpites de cada pessoa estão na aba Participantes. Os participantes só veem a password do outro
-                depois de os dois avaliarem.
+                Por match = cada pessoa em cada match. Média de tentativas de quem tentou:{' '}
+                {g.triesMean === null ? '—' : g.triesMean.toFixed(1).replace('.', ',')}. As reviews só contam matches com a avaliação
+                já aberta. As passwords e os palpites de cada pessoa estão na aba Participantes.
               </p>
+              <h3 className="pt-2 font-semibold">Ranking (prémio: entrada grátis na festa para os {PRIZE_PLACES} primeiros lugares)</h3>
+              {board.length === 0 ? (
+                <p className="text-sm text-midnight/60">Ainda ninguém tem pontos.</p>
+              ) : (
+                <Table head={['#', 'Pessoa', 'Aparece como', 'Pontos', 'Descobriu', 'Sobreviveu', 'Reviews']}>
+                  {board.slice(0, 20).map((r) => {
+                    const p = personById.get(r.id)!;
+                    return (
+                      <tr key={r.id} className={r.rank <= PRIZE_PLACES ? 'bg-lime/40' : ''}>
+                        <td className="px-2 py-1.5">{r.rank}</td>
+                        <td className="px-2 py-1.5">{p.name}</td>
+                        <td className="px-2 py-1.5">{p.leaderboard_show_name ? 'nome' : nicknameLabel(p.nickname, pt.game)}</td>
+                        <td className="px-2 py-1.5">{r.score.points}</td>
+                        <td className="px-2 py-1.5">{r.score.rightGuesses}</td>
+                        <td className="px-2 py-1.5">{r.score.survived}</td>
+                        <td className="px-2 py-1.5">{r.score.reviews}</td>
+                      </tr>
+                    );
+                  })}
+                </Table>
+              )}
             </Section>
           );
         })()}
@@ -1125,13 +1180,14 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
             ['participantes', `Participantes (${participants.length})`],
             ['matches', `Matches (${matches.length})`],
             ['reviews', `Reviews (${reviews.length})`],
+            ['palpites', `Palpites da password (${guesses.length})`],
           ].map(([table, label]) => (
             <a key={table} href={`/admin/export/${table}?dados=${mode}`} className="rounded-full bg-violet px-4 py-2 text-sm font-semibold text-white">
               ⬇ {label}
             </a>
           ))}
         </div>
-        <p className="text-xs text-midnight/60">Cada review inclui os dados do match e do perfil de quem respondeu.</p>
+        <p className="text-xs text-midnight/60">Cada review inclui os dados do match e do perfil de quem respondeu. Palpites: cada tentativa do jogo da password (v2).</p>
       </Section>
 
       <section id="alertas">

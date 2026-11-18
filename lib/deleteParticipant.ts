@@ -2,13 +2,18 @@ import 'server-only';
 import { createServiceClient } from '@/lib/supabase/service';
 
 // Data deletion on request = anonymisation (SPEC §privacy, supabase/migrations/0001_init.sql): the
-// row is kept with personal fields cleared, the person's content_flags, contact_clicks and
-// waitlist_clicks rows are deleted, then the auth user is deleted. Matches and the other person's reviews survive, without personal data.
+// row is kept with personal fields cleared, the person's content_flags, contact_clicks,
+// waitlist_clicks and password_guesses rows are deleted, then the auth user is deleted. Matches and the other person's reviews survive, without personal data.
 export async function deleteParticipantData(participantId: string, userId: string | null): Promise<boolean> {
   const supabase = createServiceClient();
 
-  for (const table of ['content_flags', 'contact_clicks', 'waitlist_clicks']) {
-    const { error } = await supabase.from(table).delete().eq('participant_id', participantId);
+  for (const [table, column] of [
+    ['content_flags', 'participant_id'],
+    ['contact_clicks', 'participant_id'],
+    ['waitlist_clicks', 'participant_id'],
+    ['password_guesses', 'guesser_id'],
+  ]) {
+    const { error } = await supabase.from(table).delete().eq(column, participantId);
     if (error) {
       console.error(`[delete] ${table} failed`, error);
       return false;
@@ -25,6 +30,8 @@ export async function deleteParticipantData(participantId: string, userId: strin
       talk_about: null,
       talk_about_code: null,
       password: null,
+      nickname: null,
+      leaderboard_show_name: false,
       other_text: {},
       active: false,
       deleted_at: new Date().toISOString(),

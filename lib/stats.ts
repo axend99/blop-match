@@ -1,4 +1,3 @@
-import { guessCounts } from '@/lib/password';
 import { CATEGORIES, INTERESTS, interestsByCategory, type Category } from '@/lib/interests';
 
 // Pure statistics for /admin (SPEC §8). The unit of analysis is the review: one person
@@ -577,34 +576,54 @@ export function filterAdminData<
   };
 }
 
-// --- v2 password game: who chose a password, who guessed, who got it right ---
+// --- v2 password game: passwords, guesses (up to 3 per person and match), right guesses ---
 
-export function gameStats({ participants, matches, reviews }: {
+export function gameStats({ participants, matches, reviews, guesses }: {
   participants: { id: string; deleted_at: string | null; cohort: string; password: string | null }[];
-  matches: { id: string; a_id: string; b_id: string; type: Group }[];
-  reviews: { match_id: string; reviewer_id: string; contacted: boolean; password_guess: string | null; password_guess_right?: boolean | null }[];
+  matches: { id: string; a_id: string; b_id: string; type: Group; reviewOpen: boolean }[];
+  reviews: { match_id: string; reviewer_id: string; created_at: string }[];
+  // `right` already resolved (stored verdict, or the plain comparison).
+  guesses: { match_id: string; guesser_id: string; right: boolean; created_at: string }[];
 }) {
   const v2 = participants.filter((p) => p.cohort === 'v2' && !p.deleted_at);
-  const passwordOf = new Map(v2.map((p) => [p.id, p.password]));
-  const matchById = new Map(matches.map((m) => [m.id, m]));
-  const rows = reviews.flatMap((r) => {
-    const m = matchById.get(r.match_id);
-    if (!m || !passwordOf.has(r.reviewer_id)) return [];
-    const other = m.a_id === r.reviewer_id ? m.b_id : m.a_id;
-    return [{ ...r, type: m.type, right: guessCounts(r.password_guess_right, r.password_guess, passwordOf.get(other) ?? null) }];
-  });
-  const contacted = rows.filter((r) => r.contacted);
-  const guessed = contacted.filter((r) => r.password_guess);
-  const rightIn = (rs: typeof rows) => share(rs.filter((r) => r.right).length, rs.length);
+  const inV2 = new Set(v2.map((p) => p.id));
+  const games = matches.filter((m) => inV2.has(m.a_id) && inV2.has(m.b_id));
+  const reviewAt = new Map(reviews.map((r) => [`${r.match_id}|${r.reviewer_id}`, r.created_at]));
+  // One "player" per person and match.
+  const players = games.flatMap((m) =>
+    [m.a_id, m.b_id].map((id) => {
+      const mine = guesses.filter((g) => g.match_id === m.id && g.guesser_id === id);
+      const reviewedAt = reviewAt.get(`${m.id}|${id}`);
+      return {
+        type: m.type,
+        reviewOpen: m.reviewOpen,
+        guessed: mine.length > 0,
+        tries: mine.length,
+        right: mine.some((g) => g.right),
+        reviewed: reviewedAt !== undefined,
+        // guesses made on the match page, before the review (the last-chance one is saved just before it)
+        before: mine.filter((g) => !reviewedAt || g.created_at < reviewedAt).length > 0,
+      };
+    }),
+  );
+  const guessers = players.filter((p) => p.guessed);
+  const open = players.filter((p) => p.reviewOpen);
+  const rate = (ps: typeof players, ok: (p: (typeof players)[number]) => boolean) => share(ps.filter(ok).length, ps.length);
   return {
     people: v2.length,
     withPassword: share(v2.filter((p) => p.password).length, v2.length),
-    guessed: share(guessed.length, contacted.length), // of the reviews where they made contact
-    right: rightIn(guessed), // of the guesses
+    matchesWithGuess: share(games.filter((m) => guesses.some((g) => g.match_id === m.id)).length, games.length),
+    playersGuessed: rate(players, (p) => p.guessed), // person × match pairs with at least one guess
+    guessedBeforeReview: rate(guessers, (p) => p.before),
+    triesMean: guessers.length ? guessers.reduce((sum, p) => sum + p.tries, 0) / guessers.length : null,
+    right: rate(guessers, (p) => p.right),
     rightByGroup: {
-      compatible: rightIn(guessed.filter((r) => r.type === 'compatible')),
-      control: rightIn(guessed.filter((r) => r.type === 'control')),
+      compatible: rate(guessers.filter((p) => p.type === 'compatible'), (p) => p.right),
+      control: rate(guessers.filter((p) => p.type === 'control'), (p) => p.right),
     },
+    // Among pairs whose review is open: does guessing go with answering the review?
+    reviewedIfGuessed: rate(open.filter((p) => p.guessed), (p) => p.reviewed),
+    reviewedIfNot: rate(open.filter((p) => !p.guessed), (p) => p.reviewed),
   };
 }
 

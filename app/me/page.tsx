@@ -3,12 +3,14 @@ import Link from 'next/link';
 import { NAV_BUTTON } from '@/lib/ui';
 import { redirect } from 'next/navigation';
 import Blop from '@/components/Blop';
+import GameCard from '@/components/GameCard';
 import RefreshMatches from '@/components/RefreshMatches';
 import ReviewStatus from '@/components/ReviewStatus';
 import { getMyParticipant, getUser } from '@/lib/auth';
 import { avatarCategory } from '@/lib/avatar';
 import { getDict, interestLabel } from '@/lib/i18n';
 import { getLang } from '@/lib/i18n/server';
+import { loadGame } from '@/lib/gameService';
 import { getMyMatches } from '@/lib/myMatches';
 import { BLOP_INSTAGRAM, reviewOpensAt } from '@/lib/site';
 import { waitlistUrl } from '@/lib/waitlist';
@@ -22,6 +24,7 @@ export default async function MePage() {
   const lang = await getLang();
   const t = getDict(lang);
   const matches = await getMyMatches();
+  const game = me.cohort === 'v2' ? await loadGame(me.id) : null;
   // Reviews open and not answered yet, oldest match first.
   const toReview = matches
     .filter((m) => !m.reviewed_by_me && reviewOpensAt(m.created_at) <= new Date())
@@ -42,13 +45,7 @@ export default async function MePage() {
 
       {!me.active && <p className="rounded-2xl bg-pink/40 p-4 text-sm">{t.me.leftNotice}</p>}
 
-      {me.password && (
-        <section className="space-y-1 rounded-3xl bg-lime/60 p-5">
-          <h2 className="text-sm font-semibold uppercase tracking-wide text-midnight/70">🤫 {t.password.reminderTitle}</h2>
-          <p className="text-2xl font-bold">{me.password}</p>
-          <p className="text-sm text-midnight/80">{t.password.reminderBody}</p>
-        </section>
-      )}
+      {game && me.password && <GameCard game={game} password={me.password} name={me.name} t={t} />}
 
       {toReview.length > 0 && (
         <section className="space-y-3 rounded-3xl bg-violet p-6 text-white">
@@ -101,6 +98,9 @@ export default async function MePage() {
                         </div>
                       ) : (
                         <p className="text-sm text-midnight/70">{t.me.getToKnow}</p>
+                      )}
+                      {!m.reviewed_by_me && (game?.matches.get(m.match_id)?.theirGuessCount ?? 0) > 0 && (
+                        <p className="text-sm font-medium">{t.game.matchTried(name)}</p>
                       )}
                       <ReviewStatus t={t.me} lang={lang} createdAt={m.created_at} reviewed={m.reviewed_by_me} />
                     </div>

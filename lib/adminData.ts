@@ -2,6 +2,7 @@ import 'server-only';
 import { isE2eEmail } from '@/lib/e2eUsers';
 import { analysisType, compatPoints } from '@/lib/matching';
 import { matchingConfig } from '@/lib/site';
+import { guessCounts } from '@/lib/password';
 import { getAdminVersion } from '@/lib/adminVersion';
 import { filterAdminData, filterByVersion, type DataMode, type ReviewRow, type StudyVersion } from '@/lib/stats';
 import { createServiceClient } from '@/lib/supabase/service';
@@ -44,6 +45,8 @@ export type AdminParticipant = {
   created_at: string;
   cohort: string;
   password: string | null;
+  nickname: string | null;
+  leaderboard_show_name: boolean;
 };
 
 export type AdminMatch = {
@@ -65,8 +68,6 @@ export type AdminReview = Omit<ReviewRow, 'type' | 'shared_count' | 'shared_by_c
   reviewer_id: string;
   who_first: string | null;
   comment: string | null;
-  password_guess: string | null;
-  password_guess_right: boolean | null;
   created_at: string;
 };
 
@@ -100,21 +101,25 @@ export type AdminReport = {
 // `version`: v1 / v2 / both; defaults to the one chosen in /admin (cookie).
 export async function loadAdminData(mode: DataMode, versionArg?: StudyVersion) {
   const version = versionArg ?? (await getAdminVersion());
-  const [allParticipants, storedMatches, allReviews, allFlags, allClicks, reports, waitlistClicks, waitlistSent] = await Promise.all([
+  const [allParticipants, storedMatches, allReviews, allFlags, allClicks, reports, waitlistClicks, waitlistSent, allGuesses] = await Promise.all([
     all<AdminParticipant>(
       'participants',
-      'id, name, email, whatsapp, instagram, city, lang, age, age_range, time_in_city, origin, gender, gender_estimate, interests, other_text, talk_about, talk_about_code, active, pending_review, deleted_at, is_seed, created_at, cohort, password',
+      'id, name, email, whatsapp, instagram, city, lang, age, age_range, time_in_city, origin, gender, gender_estimate, interests, other_text, talk_about, talk_about_code, active, pending_review, deleted_at, is_seed, created_at, cohort, password, nickname, leaderboard_show_name',
     ),
     all<Omit<AdminMatch, 'assigned_type' | 'points'>>('matches', 'id, a_id, b_id, type, score, shared_items, shared_count, shared_by_category, created_at'),
     all<AdminReview>(
       'reviews',
-      'id, match_id, reviewer_id, contacted, interest_1_7, who_first, comfort_1_7, why_not, talked, flow_1_7, common_ground_1_7, satisfaction_1_7, meet_again_1_7, met, ig_follow, likes_concept, best_for, party_interest, personality, comment, password_guess, password_guess_right, next_step, created_at',
+      'id, match_id, reviewer_id, contacted, interest_1_7, who_first, comfort_1_7, why_not, talked, flow_1_7, common_ground_1_7, satisfaction_1_7, meet_again_1_7, met, ig_follow, likes_concept, best_for, party_interest, personality, comment, next_step, created_at',
     ),
     all<AdminFlag>('content_flags', 'id, participant_id, match_id, field, text, status, category, reason, created_at, resolved_at'),
     all<AdminClick>('contact_clicks', 'match_id, participant_id, channel, created_at'),
     all<AdminReport>('reports', 'id, match_id, reporter_id, reported_id, reason, details, created_at, resolved_at, resolution'),
     all<{ participant_id: string | null; source: string }>('waitlist_clicks', 'id, participant_id, source'),
     all<{ participant_id: string; kind: string }>('email_log', 'id, participant_id, kind').then((rows) => rows.filter((r) => r.kind === 'waitlist')),
+    all<{ match_id: string; guesser_id: string; attempt: number; guess: string; is_right: boolean | null; created_at: string }>(
+      'password_guesses',
+      'id, match_id, guesser_id, attempt, guess, is_right, created_at',
+    ),
   ]);
   // Analysis group from the current rule (points include the age bonus), stored type kept apart.
   const ageOf = new Map(allParticipants.map((p) => [p.id, p.age]));
@@ -161,6 +166,16 @@ export async function loadAdminData(mode: DataMode, versionArg?: StudyVersion) {
     ];
   });
 
+  // v2 password game guesses in the current filter, right or wrong resolved (stored verdict first).
+  const guesses = allGuesses
+    .filter((g) => matchById.has(g.match_id))
+    .sort((a, b) => a.attempt - b.attempt)
+    .map((g) => {
+      const m = matchById.get(g.match_id)!;
+      const other = m.a_id === g.guesser_id ? m.b_id : m.a_id;
+      return { ...g, right: guessCounts(g.is_right, g.guess, allPeople.get(other)?.password ?? null) };
+    });
+
   // Channels each person tapped in each match, and their first tap: `${match}|${person}`.
   const tapped = new Map<string, string[]>();
   const firstTap = new Map<string, string>();
@@ -177,6 +192,7 @@ export async function loadAdminData(mode: DataMode, versionArg?: StudyVersion) {
     reviews,
     flags,
     clicks,
+    guesses,
     tapped,
     firstTap,
     rows,

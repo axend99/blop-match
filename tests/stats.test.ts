@@ -722,46 +722,39 @@ describe('contactDetail', () => {
 });
 
 describe('gameStats', () => {
-  it('counts passwords, guesses among contacts and right guesses by group', () => {
+  it('counts passwords, guesses per person and match, right guesses and reviews', () => {
     const g = gameStats({
       participants: [
         { id: 'a', deleted_at: null, cohort: 'v2', password: 'girassol' },
-        { id: 'b', deleted_at: null, cohort: 'v2', password: 'Coração' },
+        { id: 'b', deleted_at: null, cohort: 'v2', password: 'heart' },
         { id: 'c', deleted_at: null, cohort: 'v2', password: null },
         { id: 'z', deleted_at: null, cohort: 'v1', password: null },
       ],
       matches: [
-        { id: 'm1', a_id: 'a', b_id: 'b', type: 'compatible' },
-        { id: 'm2', a_id: 'a', b_id: 'c', type: 'control' },
+        { id: 'm1', a_id: 'a', b_id: 'b', type: 'compatible', reviewOpen: true },
+        { id: 'm2', a_id: 'a', b_id: 'c', type: 'control', reviewOpen: false },
+        { id: 'm3', a_id: 'a', b_id: 'z', type: 'control', reviewOpen: true },
       ],
       reviews: [
-        { match_id: 'm1', reviewer_id: 'a', contacted: true, password_guess: 'coracao' },
-        { match_id: 'm1', reviewer_id: 'b', contacted: true, password_guess: 'girafa' },
-        { match_id: 'm2', reviewer_id: 'a', contacted: true, password_guess: null },
-        { match_id: 'm2', reviewer_id: 'c', contacted: false, password_guess: null },
+        { match_id: 'm1', reviewer_id: 'a', created_at: '2026-11-05' },
+      ],
+      guesses: [
+        { match_id: 'm1', guesser_id: 'a', right: false, created_at: '2026-11-02' },
+        { match_id: 'm1', guesser_id: 'a', right: true, created_at: '2026-11-03' },
+        { match_id: 'm1', guesser_id: 'b', right: false, created_at: '2026-11-04' },
       ],
     });
     expect(g.people).toBe(3);
     expect(g.withPassword).toEqual({ value: 2 / 3, n: 3 });
-    expect(g.guessed).toEqual({ value: 2 / 3, n: 3 });
+    expect(g.matchesWithGuess).toEqual({ value: 0.5, n: 2 }); // m3 has a v1 person
+    expect(g.playersGuessed).toEqual({ value: 0.5, n: 4 });
+    expect(g.guessedBeforeReview).toEqual({ value: 1, n: 2 });
+    expect(g.triesMean).toBe(1.5);
     expect(g.right).toEqual({ value: 0.5, n: 2 });
     expect(g.rightByGroup.compatible).toEqual({ value: 0.5, n: 2 });
     expect(g.rightByGroup.control).toEqual({ value: null, n: 0 });
-  });
-
-  it('uses the verdict stored with the review (a translation can be right)', () => {
-    const g = gameStats({
-      participants: [
-        { id: 'a', deleted_at: null, cohort: 'v2', password: 'heart' },
-        { id: 'b', deleted_at: null, cohort: 'v2', password: 'girassol' },
-      ],
-      matches: [{ id: 'm1', a_id: 'a', b_id: 'b', type: 'compatible' }],
-      reviews: [
-        { match_id: 'm1', reviewer_id: 'b', contacted: true, password_guess: 'coração', password_guess_right: true },
-        { match_id: 'm1', reviewer_id: 'a', contacted: true, password_guess: 'sunflower', password_guess_right: null },
-      ],
-    });
-    expect(g.right).toEqual({ value: 0.5, n: 2 });
+    expect(g.reviewedIfGuessed).toEqual({ value: 0.5, n: 2 });
+    expect(g.reviewedIfNot).toEqual({ value: null, n: 0 });
   });
 });
 

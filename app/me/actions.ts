@@ -35,3 +35,17 @@ export async function deleteMyData(): Promise<{ ok: boolean }> {
   await (await createClient()).auth.signOut();
   redirect('/?deleted=1');
 }
+
+// Password game leaderboard: show the first name or the nickname (a plain form, no client JS).
+export async function setLeaderboardName(formData: FormData): Promise<void> {
+  if (!(await getUser())) redirect('/login');
+  const me = await getMyParticipant();
+  if (!me) redirect('/join');
+  const { error } = await createServiceClient()
+    .from('participants')
+    .update({ leaderboard_show_name: formData.get('show') === '1' })
+    .eq('id', me.id);
+  if (error) console.error('[me] leaderboard name failed', error);
+  revalidatePath('/me');
+  revalidatePath('/me/leaderboard');
+}

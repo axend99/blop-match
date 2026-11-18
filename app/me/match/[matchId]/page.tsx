@@ -12,7 +12,9 @@ import { getDict, interestLabel } from '@/lib/i18n';
 import type { Dict } from '@/lib/i18n/en';
 import { getLang } from '@/lib/i18n/server';
 import { getMyMatches } from '@/lib/myMatches';
-import { getGameResult } from '@/lib/passwordGame';
+import GuessForm from '@/components/GuessForm';
+import { MAX_GUESSES } from '@/lib/game';
+import { loadGame } from '@/lib/gameService';
 import thinking from '@/public/blop/thinking.webp';
 
 // The match "cheat sheet": who they are and what you have in common.
@@ -27,7 +29,8 @@ export default async function MatchPage({ params }: { params: Promise<{ matchId:
 
   const lang = await getLang();
   const t = getDict(lang);
-  const game = me.cohort === 'v2' ? await getGameResult(match.match_id, me) : null;
+  const game = me.cohort === 'v2' ? ((await loadGame(me.id)).matches.get(match.match_id) ?? null) : null;
+  const quoted = (words: string[]) => words.map((w) => `“${w}”`).join(', ');
   const deleted = match.other_deleted;
   const name = deleted ? t.me.formerParticipant : match.other_name;
   const shared = new Set(match.shared_items);
@@ -124,26 +127,62 @@ export default async function MatchPage({ params }: { params: Promise<{ matchId:
       <ReviewStatus t={t.me} lang={lang} createdAt={match.created_at} reviewed={match.reviewed_by_me} matchId={match.match_id} />
 
       {game && (
-        <section className="space-y-2 rounded-3xl bg-lime/50 p-5">
-          <h2 className="text-lg font-semibold">🤫 {t.password.revealTitle}</h2>
-          {game.state === 'waiting' ? (
-            <p className="text-midnight/80">{t.password.revealWaiting(name)}</p>
+        <section className="space-y-3 rounded-3xl bg-lime/50 p-5 text-left">
+          <h2 className="text-center text-lg font-semibold">🤫 {t.password.revealTitle}</h2>
+          {!game.iReviewed ? (
+            <>
+              {!deleted && game.guessesLeft > 0 && (
+                <GuessForm
+                  matchId={match.match_id}
+                  t={{
+                    prompt: t.password.guessPrompt(name),
+                    left: t.password.guessesLeft(game.guessesLeft),
+                    placeholder: t.password.guessPlaceholder,
+                    submit: t.password.guessSubmit,
+                    saved: t.password.guessSaved,
+                    repeat: t.password.guessRepeat,
+                    invalid: t.password.guessInvalid,
+                    error: t.common.genericError,
+                  }}
+                />
+              )}
+              {game.guessesLeft === 0 && game.myGuesses.length >= MAX_GUESSES && <p className="font-medium">{t.password.noGuessesLeft}</p>}
+              {game.myGuesses.length > 0 && (
+                <div className="space-y-1">
+                  <p className="text-sm font-semibold">{t.password.myGuessesTitle}</p>
+                  <ul className="flex flex-wrap gap-2">
+                    {game.myGuesses.map((g, i) => (
+                      <li key={i} className="rounded-full bg-white px-3 py-1">
+                        🔒 {g.guess}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+              <p className="text-sm text-midnight/70">{t.password.lockedNote}</p>
+              {game.theirGuessCount > 0 && <p className="rounded-2xl bg-white p-3 font-medium">{t.password.theyTried(name)}</p>}
+            </>
           ) : (
-            <ul className="space-y-1 text-midnight/90">
+            <ul className="space-y-2 text-midnight/90">
               {game.theirPassword && <li className="font-semibold">{t.password.theirPassword(name, game.theirPassword)}</li>}
               <li>
-                {!game.myGuess
-                  ? t.password.yourGuessNone
-                  : game.myGuessRight
-                    ? t.password.yourGuessRight(game.myGuess)
-                    : t.password.yourGuessWrong(game.myGuess)}
+                {(() => {
+                  const right = game.myGuesses.find((g) => g.right);
+                  if (right) return t.password.yourGuessRight(right.guess);
+                  if (game.myGuesses.length > 0) return t.password.yourGuessWrong(quoted(game.myGuesses.map((g) => g.guess)));
+                  return t.password.yourGuessNone;
+                })()}
               </li>
               <li>
-                {!game.theirGuess
-                  ? t.password.theirGuessNone(name)
-                  : game.theirGuessRight
-                    ? t.password.theirGuessRight(name)
-                    : t.password.theirGuessWrong(name, game.theirGuess)}
+                {(() => {
+                  const theirs = game.theirGuesses ?? [];
+                  const right = theirs.find((g) => g.right);
+                  if (right) return t.password.theirGuessRight(name, right.guess);
+                  if (theirs.length === 0)
+                    return `${t.password.theirGuessNone(name)}${game.theyCanStillGuess ? ` ${t.password.theyCanStillGuess(name)}` : ''}`;
+                  const words = quoted(theirs.map((g) => g.guess));
+                  return game.theyCanStillGuess ? t.password.theirGuessSoFar(name, words) : t.password.theirGuessWrong(name, words);
+                })()}
               </li>
             </ul>
           )}

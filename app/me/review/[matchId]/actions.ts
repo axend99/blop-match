@@ -9,7 +9,7 @@ import { moderate } from '@/lib/moderationService';
 import { getMyMatches } from '@/lib/myMatches';
 import { validateReview, type ReviewErrors, type ReviewInput } from '@/lib/review';
 import { cleanGuess } from '@/lib/password';
-import { checkGuess } from '@/lib/guessCheck';
+import { addGuess, sendGuessAlert } from '@/lib/guessService';
 import { reviewOpensAt } from '@/lib/site';
 import { createServiceClient } from '@/lib/supabase/service';
 
@@ -30,28 +30,15 @@ export async function submitReview(matchId: string, input: ReviewInput, password
   const result = validateReview(input, { askInstagram: Boolean(me.instagram && match.other_instagram) });
   if (!result.ok) return { errors: result.errors };
 
-  const supabase = createServiceClient();
-  // v2 only (v2 people are only matched with v2), and only when they made contact.
-  const guess = me.cohort === 'v2' && result.data.contacted ? cleanGuess(passwordGuess) : null;
-  // Right or wrong is decided now (translations count: heart = coração) and never shown
-  // before both people have reviewed (lib/passwordGame.ts).
-  let guessRight: boolean | null = null;
-  if (guess) {
-    const { data: m } = await supabase.from('matches').select('a_id, b_id').eq('id', match.match_id).maybeSingle();
-    const otherId = m && (m.a_id === me.id ? m.b_id : m.a_id);
-    const { data: other } = otherId ? await supabase.from('participants').select('password').eq('id', otherId).maybeSingle() : { data: null };
-    guessRight = await checkGuess(guess, other?.password ?? null);
-  }
+  // v2 password game: the last-chance guess (when they made contact) is saved as one of the
+  // match's tries before the review, which closes guessing. A repeated word or no tries left
+  // just means no new guess.
+  const guess = me.cohort === 'v2' && result.data.contacted && !match.other_deleted ? cleanGuess(passwordGuess) : null;
+  const guessed = guess ? (await addGuess({ matchId: match.match_id, meId: me.id, guess })).ok : false;
 
-  const { error } = await supabase
+  const { error } = await createServiceClient()
     .from('reviews')
-    .insert({
-      ...result.data,
-      match_id: match.match_id,
-      reviewer_id: me.id,
-      password_guess: guess,
-      password_guess_right: guessRight,
-    });
+    .insert({ ...result.data, match_id: match.match_id, reviewer_id: me.id });
   if (error && error.code !== '23505') {
     console.error('[review] insert failed', error);
     return { failed: true };
@@ -59,6 +46,13 @@ export async function submitReview(matchId: string, input: ReviewInput, password
   if (!error) {
     // AI check of the comment: only alerts /admin. Registered before redirect(), which throws.
     after(async () => {
+      if (guessed) {
+        try {
+          await sendGuessAlert({ matchId: match.match_id, guesserId: me.id });
+        } catch (err) {
+          console.error('[review] guess alert failed', err);
+        }
+      }
       try {
         await moderate(me.id, reviewTexts(result.data), match.match_id);
       } catch (err) {

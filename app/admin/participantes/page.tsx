@@ -8,6 +8,7 @@ import { isAdmin, isAdminEmail } from '@/lib/admin';
 import { loadAdminData, type AdminParticipant, type AdminReview } from '@/lib/adminData';
 import { interestLabel } from '@/lib/i18n';
 import pt from '@/lib/i18n/pt';
+import { nicknameLabel } from '@/lib/game';
 import { reviewOpensAt } from '@/lib/site';
 import { dataMode, participantMatches, type DataMode } from '@/lib/stats';
 
@@ -30,8 +31,13 @@ function state(p: AdminParticipant) {
 function reviewText(r: AdminReview | null) {
   if (!r) return 'sem review';
   if (!r.contacted) return `não contactou (${pt.review.whyNotOptions[r.why_not as keyof typeof pt.review.whyNotOptions] ?? r.why_not})`;
-  if (!r.talked) return `contactou, sem conversa${r.password_guess ? ` · palpite da password: “${r.password_guess}”` : ''}`;
-  return `conversou · satisfação ${r.satisfaction_1_7}/7${r.met ? ` · encontro: ${pt.review.metOptions[r.met as keyof typeof pt.review.metOptions]}` : ''}${r.password_guess ? ` · palpite da password: “${r.password_guess}”` : ''}`;
+  if (!r.talked) return 'contactou, sem conversa';
+  return `conversou · satisfação ${r.satisfaction_1_7}/7${r.met ? ` · encontro: ${pt.review.metOptions[r.met as keyof typeof pt.review.metOptions]}` : ''}`;
+}
+
+// v2 password game: one person's guesses in one match.
+function guessText(gs: { guess: string; right: boolean }[]) {
+  return gs.length ? ` · palpites: ${gs.map((g) => `“${g.guess}” ${g.right ? '✅' : '❌'}`).join(', ')}` : '';
 }
 
 export default async function ParticipantsPage({ searchParams }: { searchParams: Promise<{ dados?: string; q?: string }> }) {
@@ -39,7 +45,7 @@ export default async function ParticipantsPage({ searchParams }: { searchParams:
   const { dados, q = '' } = await searchParams;
   const mode = dataMode(dados);
   const notice = (await cookies()).get('admin_notice')?.value;
-  const { version, participants, matches, reviews, clicks, personById, seedCount, e2eCount, pendingCount, openReports } = await loadAdminData(mode);
+  const { version, participants, matches, reviews, clicks, guesses, personById, seedCount, e2eCount, pendingCount, openReports } = await loadAdminData(mode);
 
   const query = q.trim().toLowerCase();
   const shown = participants
@@ -94,7 +100,7 @@ export default async function ParticipantsPage({ searchParams }: { searchParams:
                       ['Tempo na cidade', pt.join.timeInCityOptions[p.time_in_city as keyof typeof pt.join.timeInCityOptions] ?? p.time_in_city],
                       ['Origem', pt.join.originOptions[p.origin as keyof typeof pt.join.originOptions] ?? p.origin],
                       ['Idioma', LANG[p.lang] ?? p.lang],
-                      ['Versão', p.cohort === 'v2' ? `V2 · password: ${p.password ?? 'ainda não escolheu'}` : 'V1'],
+                      ['Versão', p.cohort === 'v2' ? `V2 · password: ${p.password ?? 'ainda não escolheu'} · ranking: ${p.leaderboard_show_name ? 'nome' : nicknameLabel(p.nickname, pt.game)}` : 'V1'],
                       ['Quer falar sobre', p.talk_about_code ? interestLabel(p.talk_about_code, 'pt') : (p.talk_about ?? '—')],
                     ].map(([k, v]) => (
                       <div key={k} className="break-words">
@@ -150,11 +156,13 @@ export default async function ParticipantsPage({ searchParams }: { searchParams:
                           <p>
                             <span className="text-midnight/60">Review de {p.name}: </span>
                             {reviewText(mine)}
+                            {guessText(guesses.filter((g) => g.match_id === match.id && g.guesser_id === p.id))}
                             <span className="text-midnight/60"> · tocou: {myTaps.map((c) => CHANNEL[c] ?? c).join(', ') || 'não'}</span>
                           </p>
                           <p>
                             <span className="text-midnight/60">Review de {o?.name ?? 'outra pessoa'}: </span>
                             {reviewText(theirs)}
+                            {guessText(guesses.filter((g) => g.match_id === match.id && g.guesser_id === other))}
                             <span className="text-midnight/60"> · tocou: {theirTaps.map((c) => CHANNEL[c] ?? c).join(', ') || 'não'}</span>
                           </p>
                         </div>
