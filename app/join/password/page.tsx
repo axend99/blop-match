@@ -12,7 +12,8 @@ export default async function PasswordPage() {
   if (!(await getUser())) redirect('/login');
   const me = await getMyParticipant();
   if (!me) redirect('/join');
-  if (me.cohort !== 'v2' || me.password) redirect('/me');
+  // v2 people without a password, and v1 people joining v2 (after reviewing their profile).
+  if (me.password || !me.active) redirect('/me');
   const t = getDict(await getLang());
   const example = t.password.examples[Math.floor(Math.random() * t.password.examples.length)];
 

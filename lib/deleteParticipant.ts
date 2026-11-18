@@ -12,6 +12,7 @@ export async function deleteParticipantData(participantId: string, userId: strin
     ['contact_clicks', 'participant_id'],
     ['waitlist_clicks', 'participant_id'],
     ['password_guesses', 'guesser_id'],
+    ['experience_reviews', 'participant_id'],
   ]) {
     const { error } = await supabase.from(table).delete().eq(column, participantId);
     if (error) {

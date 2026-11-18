@@ -4,7 +4,7 @@ import NewMatchEmail from '@/emails/NewMatchEmail';
 import { sendEmail } from '@/lib/email';
 import { getDict, isLang } from '@/lib/i18n';
 import { itemShares, planMatches, type Candidate } from '@/lib/matching';
-import { matchingConfig, siteUrl } from '@/lib/site';
+import { matchingConfig, siteUrl, V1_ENDS_AT } from '@/lib/site';
 import { createServiceClient } from '@/lib/supabase/service';
 import { pageAll } from '@/lib/supabase/pageAll';
 
@@ -24,7 +24,7 @@ type Participant = {
   password: string | null;
 };
 
-type MatchRow = { id: string; a_id: string; b_id: string; type: 'compatible' | 'control' };
+type MatchRow = { id: string; a_id: string; b_id: string; type: 'compatible' | 'control'; created_at: string };
 
 // Loads everything at once (fine at this study's size: PostgREST returns up to 1000 rows per query).
 async function loadState() {
@@ -33,7 +33,7 @@ async function loadState() {
     pageAll((a, b) =>
       supabase.from('participants').select('id, name, email, lang, interests, talk_about_code, age, active, pending_review, created_at, deleted_at, cohort, password').order('id').range(a, b),
     ),
-    pageAll((a, b) => supabase.from('matches').select('id, a_id, b_id, type').order('id').range(a, b)),
+    pageAll((a, b) => supabase.from('matches').select('id, a_id, b_id, type, created_at').order('id').range(a, b)),
   ]);
   if (people.error) throw people.error;
   if (matches.error) throw matches.error;
@@ -63,8 +63,12 @@ async function loadState() {
     for (const [self, other] of [[m.a_id, m.b_id], [m.b_id, m.a_id]]) {
       const c = pool.get(self);
       if (!c) continue;
-      if (m.type === 'compatible') c.compatibleCount++;
-      else c.controlCount++;
+      // v1 matches don't use up v2 slots (people who joined v2 start fresh), but the pair is
+      // never matched again.
+      if (m.created_at >= V1_ENDS_AT) {
+        if (m.type === 'compatible') c.compatibleCount++;
+        else c.controlCount++;
+      }
       c.matchedIds.add(other);
     }
   }

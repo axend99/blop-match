@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { dueNudges, dueReminders, dueReviewRequests, spacedFromNudge, validateReview, type DueParticipant } from '@/lib/review';
+import { dueNudges, dueReminders, dueReviewRequests, spacedFromNudge, validateExperience, validateReview, type DueParticipant } from '@/lib/review';
 import { reviewOpensAt } from '@/lib/site';
 
 const TALKED = {
@@ -13,10 +13,6 @@ const TALKED = {
   satisfaction_1_7: 6,
   meet_again_1_7: 5,
   met: 'planned',
-  likes_concept: true,
-  best_for: 'both',
-  party_interest: 'maybe',
-  personality: 'introvert',
   comment: '  Great chat  ',
 };
 
@@ -60,10 +56,6 @@ describe('validateReview', () => {
       meet_again_1_7: null,
       met: null,
       ig_follow: null,
-      likes_concept: true,
-      best_for: 'both',
-      party_interest: 'maybe',
-      personality: 'introvert',
       comment: null,
       low_interest_reasons: null,
     });
@@ -81,7 +73,7 @@ describe('validateReview', () => {
     expect(talked.ok || talked.errors).toEqual({ flow_1_7: 'required', met: 'required' });
 
     const empty = validateReview({});
-    expect(empty.ok || empty.errors).toEqual({ contacted: 'required', interest_1_7: 'required', likes_concept: 'required', best_for: 'required', party_interest: 'required', personality: 'required' });
+    expect(empty.ok || empty.errors).toEqual({ contacted: 'required', interest_1_7: 'required' });
   });
 
   it('rejects scales outside 1–7 and invalid options', () => {
@@ -263,17 +255,20 @@ describe('Instagram question', () => {
   });
 });
 
-describe('questions about the idea', () => {
-  it('are always required', () => {
-    const { likes_concept, best_for, ...rest } = TALKED;
-    void likes_concept;
-    void best_for;
-    const r = validateReview(rest);
-    expect(r.ok || r.errors).toMatchObject({ likes_concept: 'required', best_for: 'required' });
-    const bad = validateReview({ ...TALKED, best_for: 'work' });
-    expect(bad.ok || bad.errors.best_for).toBe('required');
-    const no = validateReview({ ...TALKED, likes_concept: false, best_for: 'dating' });
-    expect(no.ok && [no.data.likes_concept, no.data.best_for]).toEqual([false, 'dating']);
+describe('validateExperience', () => {
+  const IDEA = { likes_concept: true, best_for: 'friendship', personality: 'both', party_interest: 'yes' };
+
+  it('requires the four questions about the idea; game and comment are optional', () => {
+    const empty = validateExperience({});
+    expect(empty.ok || empty.errors).toEqual({ likes_concept: 'required', best_for: 'required', personality: 'required', party_interest: 'required' });
+    const ok = validateExperience({ ...IDEA, game_fun_1_7: 6, comment: '  nice ' }, { askGame: true });
+    expect(ok.ok && ok.data).toEqual({ ...IDEA, game_fun_1_7: 6, comment: 'nice' });
+    expect(validateExperience({ ...IDEA, best_for: 'work' }).ok).toBe(false);
+  });
+
+  it('drops the game rating outside v2', () => {
+    const r = validateExperience({ ...IDEA, game_fun_1_7: 6 });
+    expect(r.ok && r.data.game_fun_1_7).toBe(null);
   });
 });
 

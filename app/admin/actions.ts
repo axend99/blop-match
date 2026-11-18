@@ -10,6 +10,7 @@ import { parseEmailList } from '@/lib/invite';
 import { sendInvitePreview, sendInvites } from '@/lib/inviteService';
 import { saveSnapshot } from '@/lib/visitService';
 import { sendWaitlistPreview } from '@/lib/waitlistService';
+import { sendV2InvitePreview, sendV2Invites } from '@/lib/v2InviteService';
 import { approveProfile, banParticipant, dismissReport, recheckProfile, type ResumeResult } from '@/lib/verification';
 import { createServiceClient } from '@/lib/supabase/service';
 
@@ -153,4 +154,20 @@ export async function adminSignOut(): Promise<void> {
   (await cookies()).set(ADMIN_COOKIE, '', { path: '/admin', maxAge: 0 });
   await (await createClient()).auth.signOut();
   redirect('/');
+}
+
+// v1 → v2 invitation (sent only from here): a preview to the admins, or the real send.
+export async function v2Invite(formData: FormData): Promise<void> {
+  if (!(await isAdmin())) return;
+  if (formData.get('mode') === 'preview') {
+    const n = await sendV2InvitePreview();
+    await notice(`Convite da 2.ª ronda de teste enviado (PT e EN) para ${n} ${n === 1 ? 'endereço' : 'endereços'} de admin.`);
+  } else if (formData.get('confirm')) {
+    const r = await sendV2Invites(Date.now() + 45_000);
+    const parts = [`Convites da 2.ª ronda enviados: ${r.sent}.`];
+    if (r.failed) parts.push(`Falharam: ${r.failed} (podes tentar de novo).`);
+    if (r.remaining) parts.push(`Faltam ${r.remaining} por falta de tempo: carrega de novo.`);
+    await notice(parts.join(' '));
+  }
+  revalidatePath('/admin');
 }

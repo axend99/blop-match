@@ -762,21 +762,35 @@ describe('gameStats', () => {
 });
 
 describe('filterByVersion', () => {
-  it('keeps one cohort, its matches, reviews, flags and taps; todos keeps everything', () => {
+  it('splits matches by date, reviews and taps follow them; people who joined v2 later are in both', () => {
+    const end = '2026-11-03T09:00:00Z';
+    const old = '2026-10-20T10:00:00Z';
+    const now = '2026-11-18T10:00:00Z';
     const data = {
-      participants: [{ id: 'a', cohort: 'v1' }, { id: 'b', cohort: 'v1' }, { id: 'c', cohort: 'v2' }, { id: 'd', cohort: 'v2' }],
-      matches: [{ a_id: 'a', b_id: 'b' }, { a_id: 'c', b_id: 'd' }],
-      reviews: [{ reviewer_id: 'a' }, { reviewer_id: 'd' }],
+      participants: [
+        { id: 'a', cohort: 'v1', created_at: old },
+        { id: 'b', cohort: 'v2', created_at: old }, // joined v2 later
+        { id: 'c', cohort: 'v2', created_at: now },
+      ],
+      matches: [
+        { id: 'm1', a_id: 'a', b_id: 'b', created_at: old },
+        { id: 'm2', a_id: 'b', b_id: 'c', created_at: now },
+      ],
+      reviews: [{ match_id: 'm1' }, { match_id: 'm2' }],
       flags: [{ participant_id: 'c' }],
-      clicks: [{ participant_id: 'b' }],
+      clicks: [{ match_id: 'm1' }],
     };
-    const v2 = filterByVersion(data, 'v2');
-    expect(v2.participants.map((p) => p.id)).toEqual(['c', 'd']);
-    expect(v2.matches).toEqual([{ a_id: 'c', b_id: 'd' }]);
-    expect(v2.reviews).toEqual([{ reviewer_id: 'd' }]);
+    const v2 = filterByVersion(data, 'v2', end);
+    expect(v2.participants.map((p) => p.id)).toEqual(['b', 'c']);
+    expect(v2.matches.map((m) => m.id)).toEqual(['m2']);
+    expect(v2.reviews).toEqual([{ match_id: 'm2' }]);
     expect(v2.flags).toHaveLength(1);
     expect(v2.clicks).toHaveLength(0);
-    expect(filterByVersion(data, 'todos')).toBe(data);
+    const v1 = filterByVersion(data, 'v1', end);
+    expect(v1.participants.map((p) => p.id)).toEqual(['a', 'b']);
+    expect(v1.matches.map((m) => m.id)).toEqual(['m1']);
+    expect(v1.clicks).toHaveLength(1);
+    expect(filterByVersion(data, 'todos', end)).toBe(data);
     expect(studyVersion(undefined)).toBe('v2');
     expect(studyVersion('todos')).toBe('todos');
   });

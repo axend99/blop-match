@@ -16,7 +16,7 @@ export async function savePassword(input: string, showName: boolean): Promise<{ 
   if (!(await getUser())) redirect('/login');
   const me = await getMyParticipant();
   if (!me) redirect('/join');
-  if (me.cohort !== 'v2' || me.password) redirect('/me');
+  if (me.password || !me.active) redirect('/me');
 
   const check = validatePassword(input);
   if (!check.ok) return { error: 'invalid' };
@@ -30,7 +30,14 @@ export async function savePassword(input: string, showName: boolean): Promise<{ 
     const nickname = pickNickname(new Set((taken ?? []).map((p) => p.nickname as string)));
     const { error } = await supabase
       .from('participants')
-      .update({ password: check.value, password_kind: kind, nickname, leaderboard_show_name: showName === true })
+      .update({
+        password: check.value,
+        password_kind: kind,
+        nickname,
+        leaderboard_show_name: showName === true,
+        // v1 → v2: from now on they are matched (with v2 people only) and get e-mails again.
+        ...(me.cohort === 'v1' ? { cohort: 'v2', upgraded_at: new Date().toISOString() } : {}),
+      })
       .eq('id', me.id)
       .is('password', null);
     if (!error) {

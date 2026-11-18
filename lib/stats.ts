@@ -640,23 +640,28 @@ export function studyVersion(value: string | undefined): StudyVersion {
   return value === 'v1' || value === 'todos' ? value : 'v2';
 }
 
-// Same shape as filterAdminData: v2 people are only matched with v2, so a match belongs to the
-// version of its two people.
+// Same shape as filterAdminData. A match belongs to the version of its date (before or after
+// `v1EndsAt`), and its reviews and taps follow it, so people who joined v2 later keep their v1
+// matches in v1. People: v1 = joined before v2 started; v2 = cohort v2 (both, for people who
+// joined v2 later).
 export function filterByVersion<
-  P extends { id: string; cohort: string },
-  M extends { a_id: string; b_id: string },
-  R extends { reviewer_id: string },
+  P extends { id: string; cohort: string; created_at: string },
+  M extends { id: string; a_id: string; b_id: string; created_at: string },
+  R extends { match_id: string },
   F extends { participant_id: string },
-  C extends { participant_id: string },
->(data: { participants: P[]; matches: M[]; reviews: R[]; flags: F[]; clicks: C[] }, version: StudyVersion) {
+  C extends { match_id: string },
+>(data: { participants: P[]; matches: M[]; reviews: R[]; flags: F[]; clicks: C[] }, version: StudyVersion, v1EndsAt: string) {
   if (version === 'todos') return data;
-  const keep = new Set(data.participants.filter((p) => p.cohort === version).map((p) => p.id));
+  const people = data.participants.filter((p) => (version === 'v2' ? p.cohort === 'v2' : p.created_at < v1EndsAt));
+  const keep = new Set(people.map((p) => p.id));
+  const matches = data.matches.filter((m) => (version === 'v2' ? m.created_at >= v1EndsAt : m.created_at < v1EndsAt));
+  const matchIds = new Set(matches.map((m) => m.id));
   return {
-    participants: data.participants.filter((p) => keep.has(p.id)),
-    matches: data.matches.filter((m) => keep.has(m.a_id) && keep.has(m.b_id)),
-    reviews: data.reviews.filter((r) => keep.has(r.reviewer_id)),
+    participants: people,
+    matches,
+    reviews: data.reviews.filter((r) => matchIds.has(r.match_id)),
     flags: data.flags.filter((f) => keep.has(f.participant_id)),
-    clicks: data.clicks.filter((c) => keep.has(c.participant_id)),
+    clicks: data.clicks.filter((c) => matchIds.has(c.match_id)),
   };
 }
 

@@ -9,11 +9,11 @@ import { createServiceClient } from '@/lib/supabase/service';
 
 // Loads whole tables for /admin, 1000 rows per page in a stable order (PostgREST limit).
 // Any query error throws: the panel must never show zeros for missing data.
-async function all<T>(table: string, columns: string): Promise<T[]> {
+async function all<T>(table: string, columns: string, orderBy = 'id'): Promise<T[]> {
   const supabase = createServiceClient();
   const rows: T[] = [];
   for (let from = 0; ; from += 1000) {
-    const { data, error } = await supabase.from(table).select(columns).order('id').range(from, from + 999);
+    const { data, error } = await supabase.from(table).select(columns).order(orderBy).range(from, from + 999);
     if (error) throw error;
     rows.push(...((data ?? []) as T[]));
     if (!data || data.length < 1000) return rows;
@@ -48,6 +48,17 @@ export type AdminParticipant = {
   password_kind: string | null;
   nickname: string | null;
   leaderboard_show_name: boolean;
+};
+
+export type AdminExperience = {
+  participant_id: string;
+  likes_concept: boolean;
+  best_for: string;
+  personality: string;
+  party_interest: string;
+  game_fun_1_7: number | null;
+  comment: string | null;
+  created_at: string;
 };
 
 export type AdminMatch = {
@@ -104,7 +115,7 @@ export type AdminReport = {
 // `version`: v1 / v2 / both; defaults to the one chosen in /admin (cookie).
 export async function loadAdminData(mode: DataMode, versionArg?: StudyVersion) {
   const version = versionArg ?? (await getAdminVersion());
-  const [allParticipants, storedMatches, allReviews, allFlags, allClicks, reports, waitlistClicks, waitlistSent, allGuesses] = await Promise.all([
+  const [allParticipants, storedMatches, rawReviews, allFlags, allClicks, reports, waitlistClicks, waitlistSent, allGuesses, allExperiences] = await Promise.all([
     all<AdminParticipant>(
       'participants',
       'id, name, email, whatsapp, instagram, city, lang, age, age_range, time_in_city, origin, gender, gender_estimate, interests, other_text, talk_about, talk_about_code, active, pending_review, deleted_at, is_seed, created_at, cohort, password, password_kind, nickname, leaderboard_show_name',
@@ -123,7 +134,21 @@ export async function loadAdminData(mode: DataMode, versionArg?: StudyVersion) {
       'password_guesses',
       'id, match_id, guesser_id, attempt, guess, is_right, created_at',
     ),
+    all<AdminExperience>(
+      'experience_reviews',
+      'participant_id, likes_concept, best_for, personality, party_interest, game_fun_1_7, comment, created_at',
+      'participant_id',
+    ),
   ]);
+  // Since 18/11/2026 the questions about the idea live in the experience review (once per person),
+  // not in each match review: copied onto that person's reviews so the existing stats keep working.
+  const experienceOf = new Map(allExperiences.map((e) => [e.participant_id, e]));
+  const allReviews = rawReviews.map((r) => {
+    const e = experienceOf.get(r.reviewer_id);
+    return r.likes_concept != null || !e
+      ? r
+      : { ...r, likes_concept: e.likes_concept, best_for: e.best_for, personality: e.personality, party_interest: e.party_interest };
+  });
   // Analysis group from the current rule (points include the age bonus), stored type kept apart.
   const ageOf = new Map(allParticipants.map((p) => [p.id, p.age]));
   const config = matchingConfig();
@@ -140,6 +165,7 @@ export async function loadAdminData(mode: DataMode, versionArg?: StudyVersion) {
   const { participants, matches, reviews, flags, clicks } = filterByVersion(
     filterAdminData({ participants: allParticipants, matches: allMatches, reviews: allReviews, flags: allFlags, clicks: allClicks }, mode),
     version,
+    V1_ENDS_AT,
   );
 
   const personById = new Map(participants.map((p) => [p.id, p]));
@@ -196,6 +222,7 @@ export async function loadAdminData(mode: DataMode, versionArg?: StudyVersion) {
     flags,
     clicks,
     guesses,
+    experiences: allExperiences.filter((e) => personById.has(e.participant_id)),
     tapped,
     firstTap,
     rows,
