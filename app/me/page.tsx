@@ -11,9 +11,9 @@ import { avatarCategory } from '@/lib/avatar';
 import { getDict, interestLabel } from '@/lib/i18n';
 import { getLang } from '@/lib/i18n/server';
 import { loadGame } from '@/lib/gameService';
-import { createServiceClient } from '@/lib/supabase/service';
-import { getMyMatches } from '@/lib/myMatches';
-import { BLOP_INSTAGRAM, reviewOpensAt } from '@/lib/site';
+import { getMyStudy } from '@/lib/myStudy';
+import StudyTabs from '@/components/StudyTabs';
+import { BLOP_INSTAGRAM } from '@/lib/site';
 import { waitlistUrl } from '@/lib/waitlist';
 import looking from '@/public/blop/looking.webp';
 
@@ -27,20 +27,15 @@ export default async function MePage({ searchParams }: { searchParams: Promise<{
   if (v1 && !(await searchParams).old) redirect('/me/whats-new');
   const lang = await getLang();
   const t = getDict(lang);
-  const matches = await getMyMatches();
+  // Matches, open reviews (oldest first) and the experience review asked after the first one.
+  const study = await getMyStudy(me);
+  const { matches, toReview, askExperience } = study;
   const game = me.cohort === 'v2' ? await loadGame(me.id) : null;
-  // After the first match review, until answered: the BLOP experience review.
-  const askExperience =
-    matches.some((m) => m.reviewed_by_me) &&
-    !(await createServiceClient().from('experience_reviews').select('participant_id').eq('participant_id', me.id).maybeSingle()).data;
-  // Reviews open and not answered yet, oldest match first.
-  const toReview = matches
-    .filter((m) => !m.reviewed_by_me && reviewOpensAt(m.created_at) <= new Date())
-    .sort((a, b) => a.created_at.localeCompare(b.created_at));
 
   return (
     <div className="space-y-8">
       <RefreshMatches waiting={matches.length === 0 && me.active} />
+      <StudyTabs t={t.tabs} active="matches" pending={study.pending} showLeaderboard={me.cohort === 'v2'} />
       <section className="flex items-center gap-4">
         <Blop variant={avatarCategory(me.interests)} label={t.avatarAlt(me.name)} className="size-24 shrink-0" />
         <div className="space-y-1">

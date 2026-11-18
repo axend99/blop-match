@@ -370,6 +370,22 @@ const en = {
     banner: 'BLOP Match round 2 is on, with the password game.',
     bannerButton: 'See what\'s new',
   },
+  tabs: {
+    label: 'Study sections',
+    matches: 'Matches',
+    reviews: 'Reviews',
+    leaderboard: 'Leaderboard',
+  },
+  reviewsPage: {
+    title: 'Reviews',
+    intro: 'Rate each match after the conversation, and tell us once what you think of BLOP.',
+    matchesTitle: 'Your matches',
+    none: 'No matches yet. As soon as you have one, it shows up here.',
+    appTitle: 'BLOP itself',
+    appBody: '1 minute, just once: what you think of the idea.',
+    appButton: 'Answer',
+    appDone: 'Answered ✓ Thank you!',
+  },
   leave: {
     button: 'Leave the study',
     confirm: "Leave the study? You won't get new matches. Your current matches stay visible.",
