@@ -720,7 +720,7 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
             <Section
               n="2b"
               title="Jogo da password (v2)"
-              description="Cada pessoa da v2 escolhe uma palavra secreta e tenta dizê-la nas conversas sem que o match perceba; na review, quem contactou diz qual acha que era a do outro. Conta como certo mesmo com maiúsculas, acentos ou pontuação diferentes."
+              description="Cada pessoa da v2 escolhe uma palavra secreta e tenta dizê-la nas conversas sem que o match perceba; na review, quem contactou diz qual acha que era a do outro. Conta como certo a mesma palavra noutro idioma (heart = coração) ou noutra forma (plural, género, gralha), verificado pelo Claude ao gravar a review."
             >
               <Table head={['', '%']}>
                 <tr>
