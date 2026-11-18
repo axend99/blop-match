@@ -2,33 +2,34 @@
 // tests/game.test.ts); lib/gameService.ts loads the data.
 //
 // Rules: each person guesses their match's password at any time, up to MAX_GUESSES tries per
-// match, and only finds out whether they got it right after rating the conversation (the review
-// closes their guessing). Points only count once the person who earns them has reviewed that
-// match, so the leaderboard never gives a result away early.
+// match, and sees right away whether they got it. Points: finding the password, each time you
+// managed to say yours (self-reported in the review, up to 3 per match), sending the first message
+// (self-reported; both may claim it) and each review. Nothing rewards hiding the word.
 
 export const MAX_GUESSES = 3;
-export const POINTS = { detective: 3, spy: 2, review: 1 } as const;
+export const MAX_SAID = 3;
+export const POINTS = { detective: 3, said: 1, firstMessage: 1, review: 1 } as const;
 export const PRIZE_PLACES = 3;
 export const LEADERBOARD_SIZE = 10;
+export const SMOOTH_TALKER_TIMES = 5;
 
-export const BADGES = ['first_guess', 'sharp_eye', 'secret_agent', 'icebreaker', 'full_detective'] as const;
+export const BADGES = ['first_guess', 'sharp_eye', 'smooth_talker', 'icebreaker', 'full_detective'] as const;
 export type Badge = (typeof BADGES)[number];
 
 export type GamePerson = { id: string };
 export type GameMatch = { id: string; a_id: string; b_id: string; reviewOpen: boolean };
-export type GameReview = { match_id: string; reviewer_id: string; who_first: string | null };
+export type GameReview = { match_id: string; reviewer_id: string; who_first: string | null; password_said: number | null };
 // `right` already resolved (stored verdict, or the plain comparison when there is none).
 export type GameGuess = { match_id: string; guesser_id: string; right: boolean };
 
 export type Score = {
   points: number;
-  rightGuesses: number; // detective: matches where I found their password (counted after my review)
-  survived: number; // spy: matches where they guessed and never found mine (both done)
+  rightGuesses: number; // matches where I found their password
+  said: number; // times I said my password (up to MAX_SAID per match)
+  firstMessages: number; // matches where I say I sent the first message
   reviews: number;
   badges: Badge[];
 };
-
-const other = (m: GameMatch, id: string) => (m.a_id === id ? m.b_id : m.a_id);
 
 export function scores({ people, matches, reviews, guesses }: {
   people: GamePerson[];
@@ -36,40 +37,29 @@ export function scores({ people, matches, reviews, guesses }: {
   reviews: GameReview[];
   guesses: GameGuess[];
 }): Map<string, Score> {
-  const reviewed = new Set(reviews.map((r) => `${r.match_id}|${r.reviewer_id}`));
-  const guessesOf = new Map<string, GameGuess[]>();
-  for (const g of guesses) {
-    const key = `${g.match_id}|${g.guesser_id}`;
-    guessesOf.set(key, [...(guessesOf.get(key) ?? []), g]);
-  }
-  const done = (matchId: string, id: string) =>
-    reviewed.has(`${matchId}|${id}`) || (guessesOf.get(`${matchId}|${id}`)?.length ?? 0) >= MAX_GUESSES;
-
+  const reviewOf = new Map(reviews.map((r) => [`${r.match_id}|${r.reviewer_id}`, r]));
   const result = new Map<string, Score>();
   for (const p of people) {
     const mine = matches.filter((m) => m.a_id === p.id || m.b_id === p.id);
-    let rightGuesses = 0;
-    let survived = 0;
-    let myReviews = 0;
-    for (const m of mine) {
-      if (!reviewed.has(`${m.id}|${p.id}`)) continue;
-      myReviews++;
-      if (guessesOf.get(`${m.id}|${p.id}`)?.some((g) => g.right)) rightGuesses++;
-      const theirs = guessesOf.get(`${m.id}|${other(m, p.id)}`) ?? [];
-      if (theirs.length > 0 && !theirs.some((g) => g.right) && done(m.id, other(m, p.id))) survived++;
-    }
+    const myGuesses = guesses.filter((g) => g.guesser_id === p.id);
+    const myReviews = mine.flatMap((m) => reviewOf.get(`${m.id}|${p.id}`) ?? []);
+    const rightGuesses = mine.filter((m) => myGuesses.some((g) => g.match_id === m.id && g.right)).length;
+    const said = myReviews.reduce((sum, r) => sum + Math.min(MAX_SAID, Math.max(0, r.password_said ?? 0)), 0);
+    const firstMessages = myReviews.filter((r) => r.who_first === 'me').length;
     const open = mine.filter((m) => m.reviewOpen);
     const badges: Badge[] = [];
-    if (guesses.some((g) => g.guesser_id === p.id)) badges.push('first_guess');
+    if (myGuesses.length > 0) badges.push('first_guess');
     if (rightGuesses >= 3) badges.push('sharp_eye');
-    if (survived >= 3) badges.push('secret_agent');
-    if (reviews.some((r) => r.reviewer_id === p.id && r.who_first === 'me')) badges.push('icebreaker');
-    if (open.length > 0 && open.every((m) => reviewed.has(`${m.id}|${p.id}`))) badges.push('full_detective');
+    if (said >= SMOOTH_TALKER_TIMES) badges.push('smooth_talker');
+    if (firstMessages > 0) badges.push('icebreaker');
+    if (open.length > 0 && open.every((m) => reviewOf.has(`${m.id}|${p.id}`))) badges.push('full_detective');
     result.set(p.id, {
-      points: rightGuesses * POINTS.detective + survived * POINTS.spy + myReviews * POINTS.review,
+      points:
+        rightGuesses * POINTS.detective + said * POINTS.said + firstMessages * POINTS.firstMessage + myReviews.length * POINTS.review,
       rightGuesses,
-      survived,
-      reviews: myReviews,
+      said,
+      firstMessages,
+      reviews: myReviews.length,
       badges,
     });
   }
@@ -78,18 +68,23 @@ export function scores({ people, matches, reviews, guesses }: {
 
 export type Ranked = { id: string; rank: number; score: Score };
 
-// Most points first; ties broken by right guesses, then passwords kept safe. Equal scores share a
+// Most points first; ties broken by right guesses, then times the password was said. Equal scores share a
 // rank (1, 1, 3), so a tie on the podium means both get the prize. People with 0 points are left out.
 export function leaderboard(all: Map<string, Score>): Ranked[] {
   const rows = [...all.entries()]
     .filter(([, s]) => s.points > 0)
-    .sort(([a, x], [b, y]) => y.points - x.points || y.rightGuesses - x.rightGuesses || y.survived - x.survived || a.localeCompare(b));
-  const key = (s: Score) => `${s.points}|${s.rightGuesses}|${s.survived}`;
+    .sort(([a, x], [b, y]) => y.points - x.points || y.rightGuesses - x.rightGuesses || y.said - x.said || a.localeCompare(b));
+  const key = (s: Score) => `${s.points}|${s.rightGuesses}|${s.said}`;
   let rank = 0;
   return rows.map(([id, score], i) => {
     if (i === 0 || key(rows[i - 1][1]) !== key(score)) rank = i + 1;
     return { id, score, rank };
   });
+}
+
+// Hints shown to the match: number of letters (accents count as letters).
+export function letterCount(word: string): number {
+  return [...word.normalize('NFC')].filter((c) => /\p{L}/u.test(c)).length;
 }
 
 // --- Nicknames: "Violet Flamingo" (EN) / "Flamingo Violeta" (PT), stored as "flamingo-violet" ---

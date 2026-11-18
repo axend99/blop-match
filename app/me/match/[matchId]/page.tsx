@@ -13,7 +13,6 @@ import type { Dict } from '@/lib/i18n/en';
 import { getLang } from '@/lib/i18n/server';
 import { getMyMatches } from '@/lib/myMatches';
 import GuessForm from '@/components/GuessForm';
-import { MAX_GUESSES } from '@/lib/game';
 import { loadGame } from '@/lib/gameService';
 import thinking from '@/public/blop/thinking.webp';
 
@@ -129,63 +128,60 @@ export default async function MatchPage({ params }: { params: Promise<{ matchId:
       {game && (
         <section className="space-y-3 rounded-3xl bg-lime/50 p-5 text-left">
           <h2 className="text-center text-lg font-semibold">🤫 {t.password.revealTitle}</h2>
-          {!game.iReviewed ? (
-            <>
-              {!deleted && game.guessesLeft > 0 && (
-                <GuessForm
-                  matchId={match.match_id}
-                  t={{
-                    prompt: t.password.guessPrompt(name),
-                    left: t.password.guessesLeft(game.guessesLeft),
-                    placeholder: t.password.guessPlaceholder,
-                    submit: t.password.guessSubmit,
-                    saved: t.password.guessSaved,
-                    repeat: t.password.guessRepeat,
-                    invalid: t.password.guessInvalid,
-                    error: t.common.genericError,
-                  }}
-                />
-              )}
-              {game.guessesLeft === 0 && game.myGuesses.length >= MAX_GUESSES && <p className="font-medium">{t.password.noGuessesLeft}</p>}
-              {game.myGuesses.length > 0 && (
-                <div className="space-y-1">
-                  <p className="text-sm font-semibold">{t.password.myGuessesTitle}</p>
-                  <ul className="flex flex-wrap gap-2">
-                    {game.myGuesses.map((g, i) => (
-                      <li key={i} className="rounded-full bg-white px-3 py-1">
-                        🔒 {g.guess}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-              <p className="text-sm text-midnight/70">{t.password.lockedNote}</p>
-              {game.theirGuessCount > 0 && <p className="rounded-2xl bg-white p-3 font-medium">{t.password.theyTried(name)}</p>}
-            </>
-          ) : (
-            <ul className="space-y-2 text-midnight/90">
-              {game.theirPassword && <li className="font-semibold">{t.password.theirPassword(name, game.theirPassword)}</li>}
-              <li>
-                {(() => {
-                  const right = game.myGuesses.find((g) => g.right);
-                  if (right) return t.password.yourGuessRight(right.guess);
-                  if (game.myGuesses.length > 0) return t.password.yourGuessWrong(quoted(game.myGuesses.map((g) => g.guess)));
-                  return t.password.yourGuessNone;
-                })()}
-              </li>
-              <li>
-                {(() => {
-                  const theirs = game.theirGuesses ?? [];
-                  const right = theirs.find((g) => g.right);
-                  if (right) return t.password.theirGuessRight(name, right.guess);
-                  if (theirs.length === 0)
-                    return `${t.password.theirGuessNone(name)}${game.theyCanStillGuess ? ` ${t.password.theyCanStillGuess(name)}` : ''}`;
-                  const words = quoted(theirs.map((g) => g.guess));
-                  return game.theyCanStillGuess ? t.password.theirGuessSoFar(name, words) : t.password.theirGuessWrong(name, words);
-                })()}
-              </li>
-            </ul>
+          {game.hints && !game.theirPassword && (
+            <p className="rounded-2xl bg-white p-3">
+              <span className="font-semibold">{t.password.cluesTitle}:</span> {t.password.letters(game.hints.letters)}
+              {game.hints.kind && ` · ${t.password.kinds[game.hints.kind] ?? game.hints.kind}`}
+            </p>
           )}
+          {!deleted && game.guessesLeft > 0 && (
+            <GuessForm
+              matchId={match.match_id}
+              t={{
+                prompt: t.password.guessPrompt(name),
+                left: t.password.guessesLeft(game.guessesLeft),
+                placeholder: t.password.guessPlaceholder,
+                submit: t.password.guessSubmit,
+                right: t.password.guessRight,
+                wrong: [0, 1, 2].map((left) => t.password.guessWrong(left)),
+                repeat: t.password.guessRepeat,
+                invalid: t.password.guessInvalid,
+                error: t.common.genericError,
+              }}
+            />
+          )}
+          {game.myGuesses.length > 0 && (
+            <div className="space-y-1">
+              <p className="text-sm font-semibold">{t.password.myGuessesTitle}</p>
+              <ul className="flex flex-wrap gap-2">
+                {game.myGuesses.map((g, i) => (
+                  <li key={i} className={`rounded-full px-3 py-1 ${g.right ? 'bg-violet text-white' : 'bg-white'}`}>
+                    {g.right ? '✅' : '❌'} {g.guess}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+          {game.found && <p className="font-semibold">{t.password.foundIt(game.myGuesses.find((g) => g.right)!.guess)}</p>}
+          {game.theirPassword && !game.found && <p className="font-semibold">{t.password.theirPassword(name, game.theirPassword)}</p>}
+          {!game.iReviewed
+            ? game.theirGuessCount > 0 && <p className="rounded-2xl bg-white p-3 font-medium">{t.password.theyTried(name)}</p>
+            : (() => {
+                const theirs = game.theirGuesses ?? [];
+                const right = theirs.find((g) => g.right);
+                const words = quoted(theirs.map((g) => g.guess));
+                return (
+                  <p className="rounded-2xl bg-white p-3">
+                    {right
+                      ? t.password.theirGuessRight(name, right.guess)
+                      : theirs.length === 0
+                        ? t.password.theirGuessNone(name)
+                        : game.theyCanStillGuess
+                          ? t.password.theirGuessSoFar(name, words)
+                          : t.password.theirGuessWrong(name, words)}
+                  </p>
+                );
+              })()}
         </section>
       )}
 

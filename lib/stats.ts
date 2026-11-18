@@ -581,7 +581,7 @@ export function filterAdminData<
 export function gameStats({ participants, matches, reviews, guesses }: {
   participants: { id: string; deleted_at: string | null; cohort: string; password: string | null }[];
   matches: { id: string; a_id: string; b_id: string; type: Group; reviewOpen: boolean }[];
-  reviews: { match_id: string; reviewer_id: string; created_at: string }[];
+  reviews: { match_id: string; reviewer_id: string; created_at: string; password_said: number | null }[];
   // `right` already resolved (stored verdict, or the plain comparison).
   guesses: { match_id: string; guesser_id: string; right: boolean; created_at: string }[];
 }) {
@@ -609,8 +609,13 @@ export function gameStats({ participants, matches, reviews, guesses }: {
   const guessers = players.filter((p) => p.guessed);
   const open = players.filter((p) => p.reviewOpen);
   const rate = (ps: typeof players, ok: (p: (typeof players)[number]) => boolean) => share(ps.filter(ok).length, ps.length);
+  const inGame = new Set(games.map((m) => m.id));
+  const said = reviews.filter((r) => inGame.has(r.match_id) && r.password_said !== null).map((r) => r.password_said!);
   return {
     people: v2.length,
+    // "How many times did you say your password?" (0–3, 3 = 3 or more), among the reviews that answered.
+    saidAny: share(said.filter((n) => n > 0).length, said.length),
+    saidMean: said.length ? said.reduce((sum, n) => sum + n, 0) / said.length : null,
     withPassword: share(v2.filter((p) => p.password).length, v2.length),
     matchesWithGuess: share(games.filter((m) => guesses.some((g) => g.match_id === m.id)).length, games.length),
     playersGuessed: rate(players, (p) => p.guessed), // person × match pairs with at least one guess

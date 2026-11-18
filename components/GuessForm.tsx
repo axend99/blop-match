@@ -10,7 +10,8 @@ export type GuessFormTexts = {
   left: string;
   placeholder: string;
   submit: string;
-  saved: string;
+  right: string;
+  wrong: string[]; // by tries left: wrong[0] = last try used
   repeat: string;
   invalid: string;
   error: string;
@@ -29,9 +30,9 @@ export default function GuessForm({ matchId, t }: { matchId: string; t: GuessFor
         if (!value.trim()) return setMessage({ ok: false, text: t.invalid });
         startTransition(async () => {
           const result = await guessPassword(matchId, value);
-          if (result.saved) {
+          if (result.result) {
             setValue('');
-            setMessage({ ok: true, text: t.saved });
+            setMessage({ ok: result.result.right, text: result.result.right ? t.right : (t.wrong[result.result.left] ?? t.wrong[0]) });
           } else {
             setMessage({ ok: false, text: result.error === 'repeat' ? t.repeat : result.error === 'invalid' ? t.invalid : t.error });
           }
@@ -63,7 +64,7 @@ export default function GuessForm({ matchId, t }: { matchId: string; t: GuessFor
       </div>
       <p className="text-sm text-midnight/70">{t.left}</p>
       {message && (
-        <p role={message.ok ? 'status' : 'alert'} className={message.ok ? 'text-sm font-medium text-midnight' : 'text-sm text-red-700'}>
+        <p role="status" className={message.ok ? 'font-semibold text-midnight' : 'text-sm font-medium text-red-700'}>
           {message.text}
         </p>
       )}

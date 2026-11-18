@@ -4,7 +4,6 @@ import { useRef, useState, useTransition } from 'react';
 import { submitReview } from '@/app/me/review/[matchId]/actions';
 import Scale from '@/components/Scale';
 import type { Dict } from '@/lib/i18n/en';
-import { GUESS_MAX } from '@/lib/password';
 import { BEST_FOR, IG_FOLLOW, MAX_COMMENT, MET, PARTY, PERSONALITY, WHO_FIRST, WHY_NOT, validateReview, type ReviewErrors, type ReviewField } from '@/lib/review';
 
 // Only plain strings can cross to a client component.
@@ -27,11 +26,11 @@ export default function ReviewForm({
   t: T;
   genericError: string;
   askInstagram: boolean;
-  // v2 password game: the question about the other person's password (asked once they made contact).
-  game?: { label: string; hint: string };
+  // v2 password game: how many times they said their own password (asked once they made contact).
+  game?: { label: string; hint: string; options: string[] };
 }) {
   const [answers, setAnswers] = useState<Answers>({});
-  const [guess, setGuess] = useState('');
+  const [said, setSaid] = useState<number | null>(null);
   const [errors, setErrors] = useState<ReviewErrors>({});
   const [failed, setFailed] = useState(false);
   const [pending, startTransition] = useTransition();
@@ -63,7 +62,7 @@ export default function ReviewForm({
     }
     setErrors({});
     startTransition(async () => {
-      const result = await submitReview(matchId, answers, game && answers.contacted === true ? guess : '');
+      const result = await submitReview(matchId, answers, game && answers.contacted === true ? said : null);
       if (result?.errors) showErrors(result.errors);
       if (result?.failed) setFailed(true);
     });
@@ -154,22 +153,23 @@ export default function ReviewForm({
       )}
 
       {game && answers.contacted === true && (
-        <div className="space-y-3 rounded-3xl bg-lime/50 p-5">
-          <label htmlFor="password-guess" className="block text-lg font-semibold">
-            🤫 {game.label}
-          </label>
-          <input
-            id="password-guess"
-            value={guess}
-            onChange={(e) => setGuess(e.target.value)}
-            maxLength={GUESS_MAX}
-            autoComplete="off"
-            autoCapitalize="none"
-            spellCheck={false}
-            className="w-full rounded-2xl border border-midnight/15 bg-white px-4 py-3 text-base outline-none focus:border-violet focus:ring-2 focus:ring-violet/30"
-          />
+        <fieldset className="space-y-3 rounded-3xl bg-lime/50 p-5">
+          <legend className="float-left mb-3 w-full text-lg font-semibold">🤫 {game.label}</legend>
+          <div className="clear-both flex gap-2">
+            {game.options.map((label, n) => (
+              <button
+                key={n}
+                type="button"
+                aria-pressed={said === n}
+                onClick={() => setSaid(said === n ? null : n)}
+                className={`flex-1 rounded-2xl border-2 py-3 text-lg font-semibold ${said === n ? 'border-violet bg-violet text-white' : 'border-midnight/15 bg-white'}`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
           <p className="text-sm text-midnight/70">{game.hint}</p>
-        </div>
+        </fieldset>
       )}
 
       {askInstagram &&

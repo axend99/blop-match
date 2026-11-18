@@ -4,6 +4,7 @@ import { after } from 'next/server';
 import { redirect } from 'next/navigation';
 import { getMyParticipant, getUser } from '@/lib/auth';
 import { pickNickname } from '@/lib/game';
+import { classifyWord } from '@/lib/guessCheck';
 import { runMatchingFor } from '@/lib/matchingService';
 import { validatePassword } from '@/lib/password';
 import { createServiceClient } from '@/lib/supabase/service';
@@ -21,13 +22,15 @@ export async function savePassword(input: string, showName: boolean): Promise<{ 
   if (!check.ok) return { error: 'invalid' };
 
   const supabase = createServiceClient();
+  // Hint for the matches (noun, verb…); a failed check just leaves it out.
+  const kind = await classifyWord(check.value);
   // The nickname is unique: on a clash with someone saving at the same moment, pick again.
   for (let attempt = 0; attempt < 3; attempt++) {
     const { data: taken } = await supabase.from('participants').select('nickname').not('nickname', 'is', null);
     const nickname = pickNickname(new Set((taken ?? []).map((p) => p.nickname as string)));
     const { error } = await supabase
       .from('participants')
-      .update({ password: check.value, nickname, leaderboard_show_name: showName === true })
+      .update({ password: check.value, password_kind: kind, nickname, leaderboard_show_name: showName === true })
       .eq('id', me.id)
       .is('password', null);
     if (!error) {

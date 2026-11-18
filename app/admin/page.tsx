@@ -737,12 +737,16 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
             <Section
               n="2b"
               title="Jogo da password (v2)"
-              description="Cada pessoa da v2 escolhe uma palavra secreta e tenta dizê-la nas conversas sem que o match perceba. Pode adivinhar a do match quando quiser (3 tentativas por match) e só sabe se acertou depois de avaliar. Conta como certo a mesma palavra noutro idioma (heart = coração) ou noutra forma (plural, género, gralha), verificado pelo Claude ao gravar o palpite. Pontos: +3 por password descoberta, +2 quando o match tenta e falha, +1 por review."
+              description="Cada pessoa da v2 escolhe uma palavra secreta e tenta dizê-la nas conversas o máximo de vezes. Pode adivinhar a do match quando quiser, com 2 pistas (número de letras e tipo de palavra) e 3 tentativas por match, e vê logo se acertou. Conta como certo a mesma palavra noutro idioma (heart = coração) ou noutra forma (plural, género, gralha), verificado pelo Claude. Pontos: +3 por password descoberta, +1 por cada vez que disse a sua (declarado na review, até 3 por match), +1 por mandar a primeira mensagem (declarado), +1 por review."
             >
               <Table head={['', '%']}>
                 <tr>
                   <td className="px-2 py-1.5">Pessoas da v2 com password escolhida</td>
                   <PctCell s={g.withPassword} />
+                </tr>
+                <tr>
+                  <td className="px-2 py-1.5">Reviews em que a pessoa disse a password pelo menos uma vez</td>
+                  <PctCell s={g.saidAny} />
                 </tr>
                 <tr>
                   <td className="px-2 py-1.5">Matches com pelo menos um palpite</td>
@@ -753,7 +757,7 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
                   <PctCell s={g.playersGuessed} />
                 </tr>
                 <tr>
-                  <td className="px-2 py-1.5">… das quais adivinharam antes da review</td>
+                  <td className="px-2 py-1.5">… das quais tentaram antes de fazer a review</td>
                   <PctCell s={g.guessedBeforeReview} />
                 </tr>
                 <tr>
@@ -779,14 +783,15 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
               </Table>
               <p className="text-xs text-midnight/60">
                 Por match = cada pessoa em cada match. Média de tentativas de quem tentou:{' '}
-                {g.triesMean === null ? '—' : g.triesMean.toFixed(1).replace('.', ',')}. As reviews só contam matches com a avaliação
+                {g.triesMean === null ? '—' : g.triesMean.toFixed(1).replace('.', ',')}. Média de vezes que disse a password (0 a 3+):{' '}
+                {g.saidMean === null ? '—' : g.saidMean.toFixed(1).replace('.', ',')}. As reviews só contam matches com a avaliação
                 já aberta. As passwords e os palpites de cada pessoa estão na aba Participantes.
               </p>
               <h3 className="pt-2 font-semibold">Ranking (prémio: entrada grátis na festa para os {PRIZE_PLACES} primeiros lugares)</h3>
               {board.length === 0 ? (
                 <p className="text-sm text-midnight/60">Ainda ninguém tem pontos.</p>
               ) : (
-                <Table head={['#', 'Pessoa', 'Aparece como', 'Pontos', 'Descobriu', 'Sobreviveu', 'Reviews']}>
+                <Table head={['#', 'Pessoa', 'Aparece como', 'Pontos', 'Descobriu', 'Disse', '1.ª msg', 'Reviews']}>
                   {board.slice(0, 20).map((r) => {
                     const p = personById.get(r.id)!;
                     return (
@@ -796,7 +801,8 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
                         <td className="px-2 py-1.5">{p.leaderboard_show_name ? 'nome' : nicknameLabel(p.nickname, pt.game)}</td>
                         <td className="px-2 py-1.5">{r.score.points}</td>
                         <td className="px-2 py-1.5">{r.score.rightGuesses}</td>
-                        <td className="px-2 py-1.5">{r.score.survived}</td>
+                        <td className="px-2 py-1.5">{r.score.said}</td>
+                        <td className="px-2 py-1.5">{r.score.firstMessages}</td>
                         <td className="px-2 py-1.5">{r.score.reviews}</td>
                       </tr>
                     );

@@ -5,29 +5,30 @@ import { sendEmail } from '@/lib/email';
 import { MAX_GUESSES } from '@/lib/game';
 import { checkGuess } from '@/lib/guessCheck';
 import { getDict, isLang } from '@/lib/i18n';
-import { guessIsRight } from '@/lib/password';
+import { guessCounts, guessIsRight } from '@/lib/password';
 import { siteUrl } from '@/lib/site';
 import { createServiceClient } from '@/lib/supabase/service';
 
-export type GuessOutcome = { ok: true; left: number } | { ok: false; error: 'full' | 'repeat' | 'failed' };
+export type GuessOutcome = { ok: true; right: boolean; left: number } | { ok: false; error: 'full' | 'repeat' | 'failed' };
 
-// Saves one guess of the other person's password (up to MAX_GUESSES per match). Right or wrong is
-// decided now (translations count) and never returned here: the person finds out after rating.
-// Callers check that the match is mine, that I haven't reviewed it and that I'm in v2.
+// Saves one guess of the other person's password (up to MAX_GUESSES per match, none after a right
+// one) and says at once whether it was right (translations count). Callers check that the match is
+// mine and that I'm in v2.
 export async function addGuess({ matchId, meId, guess }: { matchId: string; meId: string; guess: string }): Promise<GuessOutcome> {
   const supabase = createServiceClient();
   const [{ data: match }, { data: previous }] = await Promise.all([
     supabase.from('matches').select('a_id, b_id').eq('id', matchId).maybeSingle(),
-    supabase.from('password_guesses').select('guess').eq('match_id', matchId).eq('guesser_id', meId),
+    supabase.from('password_guesses').select('guess, is_right').eq('match_id', matchId).eq('guesser_id', meId),
   ]);
   if (!match || (match.a_id !== meId && match.b_id !== meId)) return { ok: false, error: 'failed' };
   const tries = previous ?? [];
-  if (tries.length >= MAX_GUESSES) return { ok: false, error: 'full' };
-  if (tries.some((p) => guessIsRight(p.guess, guess))) return { ok: false, error: 'repeat' };
-
   const otherId = match.a_id === meId ? match.b_id : match.a_id;
   const { data: other } = await supabase.from('participants').select('password').eq('id', otherId).maybeSingle();
-  const isRight = await checkGuess(guess, other?.password ?? null);
+  const password = other?.password ?? null;
+  if (tries.length >= MAX_GUESSES || tries.some((p) => guessCounts(p.is_right, p.guess, password))) return { ok: false, error: 'full' };
+  if (tries.some((p) => guessIsRight(p.guess, guess))) return { ok: false, error: 'repeat' };
+
+  const isRight = await checkGuess(guess, password);
   const { error } = await supabase
     .from('password_guesses')
     .insert({ match_id: matchId, guesser_id: meId, attempt: tries.length + 1, guess, is_right: isRight });
@@ -35,7 +36,8 @@ export async function addGuess({ matchId, meId, guess }: { matchId: string; meId
     if (error.code !== '23505') console.error('[guess] insert failed', error);
     return { ok: false, error: 'failed' };
   }
-  return { ok: true, left: MAX_GUESSES - tries.length - 1 };
+  const right = guessCounts(isRight, guess, password);
+  return { ok: true, right, left: right ? 0 : MAX_GUESSES - tries.length - 1 };
 }
 
 // "X tried to guess your password 👀": once per match and guesser (email_log blocks repeats).
