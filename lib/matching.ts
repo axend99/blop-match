@@ -70,7 +70,7 @@ export const CATEGORY_WEIGHT: Record<Category, number> = {
   sports: 1,
   movies: 1,
   hobbies: 1,
-  food: 0.75,
+  food: 1, // neutral: shared food went with lower first-glance interest but better conversations (v1)
   activities: 0.5,
 };
 
