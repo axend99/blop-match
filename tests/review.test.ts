@@ -25,7 +25,7 @@ describe('validateReview', () => {
     const result = validateReview(TALKED);
     expect(result).toEqual({
       ok: true,
-      data: { ...TALKED, why_not: null, ig_follow: null, comment: 'Great chat' },
+      data: { ...TALKED, why_not: null, ig_follow: null, comment: 'Great chat', low_interest_reasons: null },
     });
   });
 
@@ -65,6 +65,7 @@ describe('validateReview', () => {
       party_interest: 'maybe',
       personality: 'introvert',
       comment: null,
+      low_interest_reasons: null,
     });
   });
 
@@ -235,6 +236,17 @@ describe('one hour of slack for the hourly cron window', () => {
   it('caps v1 matches at the end of v1, but not v2 matches', () => {
     expect(reviewOpensAt('2026-11-02T12:00:00Z').toISOString()).toBe('2026-11-03T09:00:00.000Z');
     expect(reviewOpensAt('2026-11-20T10:00:00Z').toISOString()).toBe('2026-11-22T09:00:00.000Z');
+  });
+});
+
+describe('why a match seemed less interesting', () => {
+  it('keeps known reasons only for a rating of 1 to 3', () => {
+    const low = validateReview({ ...TALKED, interest_1_7: 2, low_interest_reasons: ['age', 'nonsense', 'profile'] });
+    expect(low.ok && low.data.low_interest_reasons).toEqual(['age', 'profile']);
+    const high = validateReview({ ...TALKED, interest_1_7: 5, low_interest_reasons: ['age'] });
+    expect(high.ok && high.data.low_interest_reasons).toBe(null);
+    const none = validateReview({ ...TALKED, interest_1_7: 1, low_interest_reasons: [] });
+    expect(none.ok && none.data.low_interest_reasons).toBe(null);
   });
 });
 

@@ -8,6 +8,7 @@ export type MatchingConfig = {
   maxCompatible: number;
   maxControl: number;
   minSharedCompatible: number;
+  maxAgeGap?: number; // v2: no match (compatible or control) between people further apart in age
 };
 
 export type Candidate = {
@@ -17,6 +18,7 @@ export type Candidate = {
   createdAt: string;
   age?: number | null; // tie-breaker: closer ages first
   lang?: string; // only people with the same language are matched (password game clues, conversation)
+  talkAboutCode?: string | null; // the interest they want to talk about (match score bonus)
   compatibleCount: number;
   controlCount: number;
   matchedIds: Set<string>;
@@ -53,6 +55,54 @@ export function sharedByCategory(a: string[], b: string[]): Record<Category, num
     if (interest) counts[interest.category]++;
   }
   return counts;
+}
+
+// --- Match score (v2): ranks compatible candidates. From the v1 reviews (exploratory, n = 34):
+// how many interests two people share barely told apart the matches they found interesting
+// (everyone picks ~22), but WHAT they shared did. Personal tastes (music, animals, fitness) went
+// with interest and broad, popular items (travel, dinners) did not; rare items add more; and the
+// strongest signal of all was the other person's conversation topic being one of my interests.
+
+export const CATEGORY_WEIGHT: Record<Category, number> = {
+  music: 1.5,
+  animals: 1.5,
+  fitness: 1.25,
+  sports: 1,
+  movies: 1,
+  hobbies: 1,
+  food: 0.75,
+  activities: 0.5,
+};
+
+// Extra points for a shared item few people have: +2 under 15% of people, +1 under 30%.
+export function rarityBonus(shareOfPeople: number): number {
+  return shareOfPeople < 0.15 ? 2 : shareOfPeople < 0.3 ? 1 : 0;
+}
+
+// Bigger than any single shared item can be (1.5 × (1 + 2) = 4.5), per direction.
+export const TALK_TOPIC_BONUS = 6;
+
+// Share of people who chose each interest.
+export function itemShares(people: { interests: string[] }[]): Map<string, number> {
+  const counts = new Map<string, number>();
+  for (const p of people) for (const code of new Set(p.interests)) counts.set(code, (counts.get(code) ?? 0) + 1);
+  return new Map([...counts].map(([code, n]) => [code, people.length ? n / people.length : 0]));
+}
+
+type Scored = { interests: string[]; talkAboutCode?: string | null };
+
+// Each shared item: category weight × (1 + rarity bonus); plus TALK_TOPIC_BONUS when one person's
+// conversation topic is among the other's interests (each direction counts). Unknown items count
+// as common.
+export function matchScore(a: Scored, b: Scored, shares: Map<string, number>): number {
+  let total = 0;
+  for (const code of shared(a.interests, b.interests)) {
+    const category = interestByCode(code)?.category;
+    total += (category ? CATEGORY_WEIGHT[category] : 1) * (1 + rarityBonus(shares.get(code) ?? 1));
+  }
+  if (a.talkAboutCode && b.interests.includes(a.talkAboutCode)) total += TALK_TOPIC_BONUS;
+  if (b.talkAboutCode && a.interests.includes(b.talkAboutCode)) total += TALK_TOPIC_BONUS;
+  return Math.round(total * 100) / 100;
 }
 
 // Compatibility points: one per shared interest, plus one when the two ages are at most
@@ -113,11 +163,19 @@ function sameLang(a: Candidate, b: Candidate): boolean {
   return !a.lang || !b.lang || a.lang === b.lang;
 }
 
+// v2: same rule for compatible and control, so the comparison between the groups stays fair.
+// Unknown ages are not held back.
+function ageOk(a: Candidate, b: Candidate, maxGap: number | undefined): boolean {
+  return maxGap == null || a.age == null || b.age == null || Math.abs(a.age - b.age) <= maxGap;
+}
+
+// `shares`: share of people with each interest (rarity bonus); by default from the pool.
 export function planMatches(
   person: Candidate,
   pool: Candidate[],
   config: MatchingConfig,
   rng: () => number = Math.random,
+  shares: Map<string, number> = itemShares(pool),
 ): Proposal[] {
   if (!person.active) return [];
 
@@ -129,10 +187,10 @@ export function planMatches(
 
   for (const type of shuffle(slots, rng)) {
     const candidates = pool
-      .filter((c) => c.active && c.id !== person.id && !person.matchedIds.has(c.id) && hasSlot(c, type, config) && sameLang(person, c))
+      .filter((c) => c.active && c.id !== person.id && !person.matchedIds.has(c.id) && hasSlot(c, type, config) && sameLang(person, c) && ageOk(person, c, config.maxAgeGap))
       .map((c) => {
         const common = shared(person.interests, c.interests);
-        return { c, shared: common, points: compatPoints(common.length, person.age, c.age), score: score(person.interests, c.interests) };
+        return { c, shared: common, points: compatPoints(common.length, person.age, c.age), score: matchScore(person, c, shares) };
       });
 
     let chosen: (typeof candidates)[number] | undefined;

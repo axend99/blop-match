@@ -9,6 +9,9 @@ export const BEST_FOR = ['friendship', 'dating', 'both'] as const;
 export const PARTY = ['yes', 'maybe', 'no'] as const;
 export const PERSONALITY = ['introvert', 'extrovert', 'both'] as const;
 export const MAX_COMMENT = 1000;
+// Asked when interest is 1–3 (optional, several allowed).
+export const LOW_REASONS = ['age', 'gender', 'interests', 'profile', 'not_looking', 'other'] as const;
+export const LOW_INTEREST_MAX = 3;
 
 export type ReviewInput = Record<string, unknown>;
 
@@ -30,6 +33,7 @@ export type Review = {
   party_interest: (typeof PARTY)[number];
   personality: (typeof PERSONALITY)[number];
   comment: string | null;
+  low_interest_reasons: (typeof LOW_REASONS)[number][] | null;
 };
 
 export type ReviewField = keyof Review;
@@ -67,6 +71,7 @@ export function validateReview(
     party_interest: 'no',
     personality: 'both',
     comment: null,
+    low_interest_reasons: null,
   };
 
   if (isBool(input.contacted)) data.contacted = input.contacted;
@@ -74,6 +79,12 @@ export function validateReview(
 
   if (isScale(input.interest_1_7)) data.interest_1_7 = input.interest_1_7;
   else errors.interest_1_7 = 'required';
+
+  // Why the match seemed less interesting: only kept for a low rating, unknown values dropped.
+  if (data.interest_1_7 >= 1 && data.interest_1_7 <= LOW_INTEREST_MAX && Array.isArray(input.low_interest_reasons)) {
+    const reasons = LOW_REASONS.filter((r) => (input.low_interest_reasons as unknown[]).includes(r));
+    data.low_interest_reasons = reasons.length ? reasons : null;
+  }
 
   if (input.contacted === true) {
     if (oneOf(WHO_FIRST, input.who_first)) data.who_first = input.who_first;

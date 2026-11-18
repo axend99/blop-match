@@ -813,6 +813,37 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
           );
         })()}
 
+      {(() => {
+        // Perceived compatibility: why matches rated 1–3 for interest seemed less interesting.
+        const low = reviews.filter((r) => r.interest_1_7 <= 3);
+        const answered = low.filter((r) => r.low_interest_reasons?.length);
+        return (
+          <Section
+            n="2c"
+            title="Porque um match pareceu pouco interessante"
+            description="Quando alguém dá 1 a 3 ao interesse do match, a review pergunta porquê (opcional, várias respostas). Só existe nas reviews feitas depois de 18/11/2026."
+          >
+            <p className="text-sm">
+              Reviews com interesse 1 a 3: <strong>{low.length}</strong> · responderam ao porquê: <strong>{answered.length}</strong>
+            </p>
+            {answered.length > 0 && (
+              <Table head={['Motivo', 'Reviews', '% de quem respondeu']}>
+                {Object.entries(pt.review.lowReasonOptions).map(([key, label]) => {
+                  const n = answered.filter((r) => r.low_interest_reasons!.includes(key)).length;
+                  return (
+                    <tr key={key}>
+                      <td className="px-2 py-1.5">{label}</td>
+                      <td className="px-2 py-1.5">{n}</td>
+                      <td className="px-2 py-1.5">{Math.round((100 * n) / answered.length)}%</td>
+                    </tr>
+                  );
+                })}
+              </Table>
+            )}
+          </Section>
+        );
+      })()}
+
       <Section n={3} title="Funil por grupo" description="De todas as reviews de cada grupo, que % chegou a cada etapa: contacto, conversa, próximo passo (quer voltar a ver ou já combinou) e encontro.">
         {(() => {
           const f = funnel(rows);

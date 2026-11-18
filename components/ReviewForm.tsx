@@ -4,7 +4,7 @@ import { useRef, useState, useTransition } from 'react';
 import { submitReview } from '@/app/me/review/[matchId]/actions';
 import Scale from '@/components/Scale';
 import type { Dict } from '@/lib/i18n/en';
-import { BEST_FOR, IG_FOLLOW, MAX_COMMENT, MET, PARTY, PERSONALITY, WHO_FIRST, WHY_NOT, validateReview, type ReviewErrors, type ReviewField } from '@/lib/review';
+import { BEST_FOR, IG_FOLLOW, LOW_INTEREST_MAX, LOW_REASONS, MAX_COMMENT, MET, PARTY, PERSONALITY, WHO_FIRST, WHY_NOT, validateReview, type ReviewErrors, type ReviewField } from '@/lib/review';
 
 // Only plain strings can cross to a client component.
 export type ReviewFormTexts = Omit<Dict['review'], 'title' | 'opensOn'>;
@@ -110,6 +110,31 @@ export default function ReviewForm({
     </div>
   );
 
+  // Several answers allowed (stored as a list).
+  const multi = (field: ReviewField, options: [string, string][]) => {
+    const picked = (answers[field] as string[] | undefined) ?? [];
+    return (
+      <div className="grid gap-2">
+        {options.map(([value, label]) => (
+          <label
+            key={value}
+            className={`cursor-pointer rounded-2xl border px-4 py-3 text-center font-medium has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-violet/50 ${
+              picked.includes(value) ? 'border-violet bg-violet text-white' : 'border-midnight/15 bg-white'
+            }`}
+          >
+            <input
+              type="checkbox"
+              checked={picked.includes(value)}
+              onChange={() => set(field)(picked.includes(value) ? picked.filter((v) => v !== value) : [...picked, value])}
+              className="sr-only"
+            />
+            {label}
+          </label>
+        ))}
+      </div>
+    );
+  };
+
   const yesNo = (field: ReviewField) =>
     choice<boolean>(field, [
       [true, t.yes],
@@ -130,6 +155,9 @@ export default function ReviewForm({
     <form ref={formRef} onSubmit={submit} noValidate className="space-y-4">
       {question('contacted', t.contacted, yesNo('contacted'))}
       {question('interest_1_7', t.interest, scale('interest_1_7'))}
+      {typeof answers.interest_1_7 === 'number' &&
+        answers.interest_1_7 <= LOW_INTEREST_MAX &&
+        question('low_interest_reasons', t.lowInterestWhy, multi('low_interest_reasons', LOW_REASONS.map((v) => [v, t.lowReasonOptions[v]])))}
 
       {answers.contacted === true && (
         <>
