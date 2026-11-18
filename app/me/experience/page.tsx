@@ -3,6 +3,8 @@ import ExperienceForm from '@/components/ExperienceForm';
 import { getMyParticipant, getUser } from '@/lib/auth';
 import { getDict } from '@/lib/i18n';
 import { getLang } from '@/lib/i18n/server';
+import Image from 'next/image';
+import happy from '@/public/blop/happy.webp';
 import { createServiceClient } from '@/lib/supabase/service';
 
 // The BLOP experience review: once per person, after their first match review.
@@ -18,6 +20,7 @@ export default async function ExperiencePage() {
   return (
     <div className="space-y-6">
       <div className="space-y-2">
+        <Image src={happy} alt="" priority className="mx-auto w-36" />
         <h1 className="text-3xl font-bold">{t.experience.title}</h1>
         <p className="text-midnight/70">{t.experience.intro}</p>
       </div>
