@@ -28,6 +28,7 @@ export default function GuessForm({ matchId, t }: { matchId: string; t: GuessFor
       onSubmit={(e) => {
         e.preventDefault();
         if (!value.trim()) return setMessage({ ok: false, text: t.invalid });
+        setMessage(null);
         startTransition(async () => {
           const result = await guessPassword(matchId, value);
           if (result.result) {
@@ -59,7 +60,7 @@ export default function GuessForm({ matchId, t }: { matchId: string; t: GuessFor
           disabled={pending}
           className="shrink-0 rounded-full bg-violet px-5 py-3 font-semibold text-white disabled:opacity-60"
         >
-          {t.submit}
+          {pending ? '…' : t.submit}
         </button>
       </div>
       <p className="text-sm text-midnight/70">{t.left}</p>
