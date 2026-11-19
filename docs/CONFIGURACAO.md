@@ -1,6 +1,6 @@
 # BLOP Match — configuração
 
-Guia para pôr (ou voltar a pôr) o BLOP Match no ar. Produção: https://blop-match.vercel.app
+Guia para pôr (ou voltar a pôr) o BLOP Match no ar. Produção: https://match.meetblop.com (o endereço antigo https://blop-match.vercel.app redireciona para lá)
 
 ## 1. Variáveis de ambiente
 
@@ -15,9 +15,9 @@ Ficam na Vercel (Project → Settings → Environment Variables) e, para correr 
 | `SMTP_HOST`, `SMTP_PORT` | `smtp.gmail.com`, `465` | — |
 | `SMTP_USER`, `SMTP_PASS` | Conta `blopmatch@gmail.com` e a **senha de app** (não a senha normal) | Google Account → Security → App passwords |
 | `EMAIL_FROM` | Remetente, ex. `BLOP Match <blopmatch@gmail.com>` | — |
-| `NEXT_PUBLIC_SITE_URL` | `https://blop-match.vercel.app` (links dos e-mails) | — |
+| `NEXT_PUBLIC_SITE_URL` | `https://match.meetblop.com` (links dos e-mails e botão oficial do Google; precisa de Redeploy ao mudar) | — |
 | `WAITLIST_URL` | Link da lista de espera da app BLOP (convite por e-mail 5 dias depois do cadastro e botão em `/me`); vazio = desligado | o dono |
-| `NEXT_PUBLIC_GOOGLE_CLIENT_ID` | Client ID do cliente Web do Google (não é segredo). **Só em Production**: ativa o botão oficial do Google no `/login`, que mostra `blop-match.vercel.app` em vez do endereço do Supabase | Google Cloud → Credentials |
+| `NEXT_PUBLIC_GOOGLE_CLIENT_ID` | Client ID do cliente Web do Google (não é segredo). **Só em Production**: ativa o botão oficial do Google no `/login`, que mostra `match.meetblop.com` em vez do endereço do Supabase | Google Cloud → Credentials |
 | `CRON_SECRET` | Segredo que a Vercel envia ao chamar `/api/cron` | gerar: `openssl rand -hex 32` |
 | `ADMIN_EMAILS` | E-mails com acesso ao `/admin` (separados por vírgula) | — |
 | `ADMIN_ACCESS_TOKEN` | Token do link de acesso ao `/admin` sem login (≥ 32 caracteres) | gerar: `openssl rand -hex 32` |
@@ -30,7 +30,7 @@ Depois de mudar uma variável na Vercel, é preciso fazer **Redeploy**.
 ## 2. Supabase
 
 1. **Migrações**: no SQL Editor, correr por ordem os ficheiros de `supabase/migrations/` (`0001_init` → `0011_waitlist`). Todas já estão aplicadas em produção.
-2. **Authentication → URL Configuration**: Site URL `https://blop-match.vercel.app`; Redirect URLs `https://blop-match.vercel.app/**` e `http://localhost:3000/**`.
+2. **Authentication → URL Configuration**: Site URL `https://match.meetblop.com`; Redirect URLs `https://match.meetblop.com/auth/callback`, `https://blop-match.vercel.app/auth/callback` (transição) e `http://localhost:3000/auth/callback`.
 3. **Authentication → Providers → Google**: ativo, com o Client ID e o Client Secret do cliente **Web** do Google Cloud (passo 3).
 4. **Authentication → Emails → SMTP Settings**: Custom SMTP ativo — host `smtp.gmail.com`, porta `465`, utilizador `blopmatch@gmail.com` (atenção a erros como `gmaill.com`), senha de app, remetente `blopmatch@gmail.com`, nome `BLOP Match`.
 5. **Authentication → Emails → Templates** (Magic Link e Confirm signup): o link tem de ser
@@ -40,8 +40,8 @@ Depois de mudar uma variável na Vercel, é preciso fazer **Redeploy**.
 
 1. APIs & Services → Credentials → Create credentials → OAuth client ID → tipo **Web application** (não "Desktop").
 2. Authorized redirect URI: `https://<projeto>.supabase.co/auth/v1/callback` (o URL do Supabase + `/auth/v1/callback`).
-3. No mesmo cliente, **Authorized JavaScript origins**: `https://blop-match.vercel.app` e `http://localhost:3000` (para o botão oficial do Google).
-4. OAuth consent screen / Branding: nome "BLOP Match", e-mail de suporte, domínio `blop-match.vercel.app`; **Publish app** (em "Testing" só os utilizadores de teste conseguem entrar).
+3. No mesmo cliente, **Authorized JavaScript origins**: `https://match.meetblop.com` e `http://localhost:3000` (para o botão oficial do Google).
+4. OAuth consent screen / Branding: nome "BLOP Match", e-mail de suporte, domínio `meetblop.com` (authorized domain; a página inicial é `https://match.meetblop.com`); **Publish app** (em "Testing" só os utilizadores de teste conseguem entrar).
 
 ## 4. Gmail
 
@@ -52,13 +52,13 @@ A conta `blopmatch@gmail.com` precisa de verificação em 2 passos ativa para cr
 - Variáveis da secção 1 em **Production** (e Preview, se quiser testar previews).
 - `/api/cron` (matching dos que ficaram sem pares, e-mail "Já falaste com o teu match?", pedidos e lembretes de review, convite da lista de espera) corre **de hora a hora, das 08:00 às 21:00 UTC**, pelo agendador do Supabase (`pg_cron` + `pg_net`, migração `0021_hourly_jobs`; o `CRON_SECRET` fica no vault do Supabase como `cron_secret`). O cron diário da Vercel (`vercel.json`, 09:00 UTC) fica como reserva. Cada e-mail é registado uma vez, por isso as execuções nunca repetem envios. Em previews o cron não faz nada, porque os previews usam a mesma base de dados.
 - Se mudar o `CRON_SECRET` na Vercel, atualizar também o vault: `select vault.update_secret((select id from vault.secrets where name = 'cron_secret'), '<novo>');`
-- Domínio: `blop-match.vercel.app` (Settings → Domains).
+- Domínio: `match.meetblop.com` (Settings → Domains; `blop-match.vercel.app` redireciona).
 - Região das funções: `dub1` (Dublin), em `vercel.json`, ao lado do Supabase (`eu-west-1`, Irlanda). Cada página com sessão faz várias consultas seguidas à base de dados; com o servidor longe da base, cada uma atravessa o Atlântico.
 
 ## 6. Acesso ao `/admin`
 
 - Quem está em `ADMIN_EMAILS` entra no `/admin` depois de fazer login (Google ou link mágico).
-- O resto da equipa usa o link `https://blop-match.vercel.app/admin/acesso/<ADMIN_ACCESS_TOKEN>`: grava um cookie válido 30 dias só para o `/admin`. Não partilhar fora da equipa.
+- O resto da equipa usa o link `https://match.meetblop.com/admin/acesso/<ADMIN_ACCESS_TOKEN>`: grava um cookie válido 30 dias só para o `/admin`. Não partilhar fora da equipa.
 - **Revogar o link**: gerar um novo `ADMIN_ACCESS_TOKEN` na Vercel e fazer Redeploy. O link antigo e todos os cookies emitidos com ele deixam de funcionar.
 
 ## 7. Dados de seed (demonstração)
@@ -113,3 +113,9 @@ Precisa de `NEXT_PUBLIC_SUPABASE_URL` e `SUPABASE_SERVICE_ROLE_KEY` no ambiente.
 3. Confirmar que os e-mails chegam (e não vão para spam) em Gmail e Outlook.
 4. Confirmar que o Google OAuth está publicado (não em "Testing").
 5. Rever o `/admin` com o filtro Reais: sem participantes de teste esquecidos.
+
+
+## Domínio (match.meetblop.com)
+
+- DNS na Cloudflare: `CNAME match → <valor do Vercel>.vercel-dns-017.com`, com o proxy **desligado** (nuvem cinzenta); com a nuvem laranja o Vercel não confirma o domínio.
+- Vercel → Domains: `match.meetblop.com` ligado a Production; `blop-match.vercel.app` com Redirect 308 para `match.meetblop.com`.
