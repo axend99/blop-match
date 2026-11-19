@@ -8,7 +8,7 @@ import { NAV_BUTTON } from '@/lib/ui';
 import { createClient } from '@/lib/supabase/client';
 
 // Google's own "Sign in with Google" button (Google Identity Services) on our domain, so the
-// Google window shows blop-match.vercel.app instead of the Supabase project address. Used only
+// Google window shows match.meetblop.com instead of the Supabase project address. Used only
 // on the production origin (the only JavaScript origin allowed in Google Cloud); elsewhere,
 // or if the script fails to load, the redirect button below is kept.
 const GOOGLE_CLIENT_ID = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;

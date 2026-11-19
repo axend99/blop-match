@@ -11,7 +11,7 @@ export default defineConfig({
   workers: 1,
   reporter: 'list',
   use: {
-    baseURL: process.env.E2E_BASE_URL ?? 'https://blop-match.vercel.app',
+    baseURL: process.env.E2E_BASE_URL ?? 'https://match.meetblop.com',
     ...devices['iPhone 13'],
     browserName: 'chromium',
     viewport: { width: 390, height: 844 },
