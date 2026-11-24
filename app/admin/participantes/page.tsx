@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import { cookies } from 'next/headers';
 import { notFound } from 'next/navigation';
-import { openReview } from '@/app/admin/actions';
+import { openReview, setGhost } from '@/app/admin/actions';
 import AdminNav from '@/components/admin/AdminNav';
 import BanForm from '@/components/admin/BanForm';
 import { isAdmin, isAdminEmail } from '@/lib/admin';
@@ -119,6 +119,16 @@ export default async function ParticipantsPage({ searchParams }: { searchParams:
                     )}
                   </p>
 
+                  {!p.is_seed && !p.deleted_at && (
+                    <form action={setGhost} className="flex flex-wrap items-center gap-2">
+                      <input type="hidden" name="participantId" value={p.id} />
+                      <input type="hidden" name="on" value={p.is_ghost ? '0' : '1'} />
+                      <span className="text-midnight/60">{p.is_ghost ? '👻 Conta fantasma (sem matches nem ranking).' : 'Conta normal.'}</span>
+                      <button className="rounded-full border border-midnight/20 px-3 py-1 text-xs font-semibold">
+                        {p.is_ghost ? 'Desligar fantasma' : 'Tornar fantasma'}
+                      </button>
+                    </form>
+                  )}
                   {!p.is_seed && !p.deleted_at && p.email && !isAdminEmail(p.email) && <BanForm participantId={p.id} name={p.name} />}
 
                   <div className="space-y-2">

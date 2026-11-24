@@ -4,6 +4,7 @@ import NewMatchEmail from '@/emails/NewMatchEmail';
 import { sendEmail } from '@/lib/email';
 import { getDict, isLang } from '@/lib/i18n';
 import { itemShares, planMatches, type Candidate } from '@/lib/matching';
+import { isE2eEmail } from '@/lib/e2eUsers';
 import { matchingConfig, siteUrl, V1_ENDS_AT } from '@/lib/site';
 import { createServiceClient } from '@/lib/supabase/service';
 import { pageAll } from '@/lib/supabase/pageAll';
@@ -15,6 +16,7 @@ type Participant = {
   lang: string;
   match_lang: string | null;
   invited_by: string | null;
+  is_ghost: boolean;
   interests: string[];
   talk_about_code: string | null;
   age: number | null;
@@ -33,7 +35,7 @@ async function loadState() {
   const supabase = createServiceClient();
   const [people, matches] = await Promise.all([
     pageAll((a, b) =>
-      supabase.from('participants').select('id, name, email, lang, match_lang, invited_by, interests, talk_about_code, age, active, pending_review, created_at, deleted_at, cohort, password').order('id').range(a, b),
+      supabase.from('participants').select('id, name, email, lang, match_lang, invited_by, is_ghost, interests, talk_about_code, age, active, pending_review, created_at, deleted_at, cohort, password').order('id').range(a, b),
     ),
     pageAll((a, b) => supabase.from('matches').select('id, a_id, b_id, type, created_at').order('id').range(a, b)),
   ]);
@@ -50,12 +52,14 @@ async function loadState() {
         interests: p.interests,
         // Pending people (being verified, or reported) get no new matches. Only v2 is matched, and
         // only once the person has chosen a password (the game is part of every v2 match).
-        active: p.active && !p.deleted_at && !p.pending_review && p.cohort === 'v2' && Boolean(p.password),
+        active: p.active && !p.deleted_at && !p.pending_review && p.cohort === 'v2' && Boolean(p.password) && !p.is_ghost, // ghosts are never matched
         createdAt: p.created_at,
         age: p.age,
         lang: p.match_lang ?? p.lang, // the language they want to chat in, not the site's
         talkAboutCode: p.talk_about_code,
         invitedBy: p.invited_by,
+        // The e2e test accounts are only matched with each other, never with real people.
+        group: isE2eEmail(p.email) ? 'test' : 'real',
         compatibleCount: 0,
         controlCount: 0,
         matchedIds: new Set<string>(),

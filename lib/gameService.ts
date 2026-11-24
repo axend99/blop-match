@@ -37,7 +37,7 @@ export async function loadGame(meId: string): Promise<GameState> {
   const supabase = createServiceClient();
   const { data: people } = await supabase
     .from('participants')
-    .select('id, name, password, password_kind, nickname, leaderboard_show_name, active, deleted_at, invited_by')
+    .select('id, name, password, password_kind, nickname, leaderboard_show_name, active, deleted_at, invited_by, is_ghost')
     .eq('cohort', 'v2')
     .is('deleted_at', null);
   const v2 = people ?? [];
@@ -77,7 +77,7 @@ export async function loadGame(meId: string): Promise<GameState> {
     guesses,
   });
   // On the board: people still in the study who have a password.
-  const board = leaderboard(new Map([...all].filter(([id]) => byId.get(id)?.active && byId.get(id)?.password)));
+  const board = leaderboard(new Map([...all].filter(([id]) => byId.get(id)?.active && byId.get(id)?.password && !byId.get(id)?.is_ghost)));
   const row = (r: (typeof board)[number]): BoardRow => {
     const p = byId.get(r.id)!;
     return { rank: r.rank, points: r.score.points, isMe: r.id === meId, firstName: p.leaderboard_show_name ? p.name : null, nickname: p.nickname };

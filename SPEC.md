@@ -316,3 +316,5 @@ Estudo académico do projeto BLOP, do mestrado MIETE. Dados recolhidos: os do pe
 
 
 **Correção (24/11/2026): vagas na base de dados.** A função `try_create_match` contava todos os matches para as vagas, incluindo os da v1; quem passou da v1 para a v2 tinha as vagas cheias e todos os matches novos eram recusados. Agora conta só os matches criados desde `V1_ENDS_AT` (migração 0034, parâmetro `p_counted_since`), como o resto do matching. O cron passou também a preencher o tipo de palavra das passwords gravadas quando a IA estava em baixo (`lib/passwordHints.ts`).
+
+**Contas fantasma e contas de teste (24/11/2026).** `participants.is_ghost` (migração 0035): a conta vê a app como qualquer participante, mas nunca entra no matching, não aparece no ranking e só conta no admin em "Tudo". Liga-se/desliga-se em /admin → Participantes. As contas de teste e2e (`blopmatch+e2e01…10`) só fazem match entre si, nunca com pessoas reais (`group` no matching).

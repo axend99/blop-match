@@ -47,6 +47,7 @@ export type AdminParticipant = {
   match_lang: string | null;
   invited_by: string | null;
   invite_code: string | null;
+  is_ghost: boolean;
   password: string | null;
   password_kind: string | null;
   nickname: string | null;
@@ -121,7 +122,7 @@ export async function loadAdminData(mode: DataMode, versionArg?: StudyVersion) {
   const [allParticipants, storedMatches, rawReviews, allFlags, allClicks, reports, waitlistClicks, waitlistSent, allGuesses, allExperiences] = await Promise.all([
     all<AdminParticipant>(
       'participants',
-      'id, name, email, whatsapp, instagram, city, lang, age, age_range, time_in_city, origin, gender, gender_estimate, interests, other_text, talk_about, talk_about_code, active, pending_review, deleted_at, is_seed, created_at, cohort, match_lang, invited_by, invite_code, password, password_kind, nickname, leaderboard_show_name',
+      'id, name, email, whatsapp, instagram, city, lang, age, age_range, time_in_city, origin, gender, gender_estimate, interests, other_text, talk_about, talk_about_code, active, pending_review, deleted_at, is_seed, created_at, cohort, match_lang, invited_by, invite_code, is_ghost, password, password_kind, nickname, leaderboard_show_name',
     ),
     all<Omit<AdminMatch, 'assigned_type' | 'points'>>('matches', 'id, a_id, b_id, type, score, shared_items, shared_count, shared_by_category, created_at'),
     all<AdminReview>(
@@ -166,7 +167,8 @@ export async function loadAdminData(mode: DataMode, versionArg?: StudyVersion) {
   const openReports = reports.filter((r) => !r.resolved_at).length;
   const allPeople = new Map(allParticipants.map((p) => [p.id, p]));
   const { participants, matches, reviews, flags, clicks } = filterByVersion(
-    filterAdminData({ participants: allParticipants, matches: allMatches, reviews: allReviews, flags: allFlags, clicks: allClicks }, mode),
+    // Ghost accounts (team members looking at the participant side) only count in "Tudo".
+    filterAdminData({ participants: mode === 'tudo' ? allParticipants : allParticipants.filter((p) => !p.is_ghost), matches: allMatches, reviews: allReviews, flags: allFlags, clicks: allClicks }, mode),
     version,
     V1_ENDS_AT,
   );

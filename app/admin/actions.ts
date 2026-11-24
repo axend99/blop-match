@@ -171,3 +171,14 @@ export async function v2Invite(formData: FormData): Promise<void> {
   }
   revalidatePath('/admin');
 }
+
+// Ghost account on/off (Participantes tab): a ghost is never matched and stays off the leaderboard.
+export async function setGhost(formData: FormData): Promise<void> {
+  if (!(await isAdmin())) return;
+  const id = String(formData.get('participantId') ?? '');
+  if (!UUID.test(id)) return;
+  const on = formData.get('on') === '1';
+  const { error } = await createServiceClient().from('participants').update({ is_ghost: on }).eq('id', id);
+  await notice(error ? 'Não foi possível mudar a conta fantasma.' : on ? 'Conta fantasma ligada: não entra em matches nem no ranking.' : 'Conta fantasma desligada.');
+  revalidatePath('/admin/participantes');
+}
