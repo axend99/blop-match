@@ -10,6 +10,10 @@
 export const MAX_GUESSES = 3;
 export const MAX_SAID = 3;
 export const POINTS = { said: 1, firstMessage: 1, review: 1 } as const;
+// Inviting friends: per friend who joins the game (chose a password), up to MAX_INVITES.
+export const INVITE_POINTS = 4;
+export const MAX_INVITES = 5;
+export const AMBASSADOR_INVITES = 3;
 // Finding the password: more points the sooner you get it (1st, 2nd, 3rd try).
 export const FOUND_POINTS = [5, 3, 1] as const;
 export const foundPoints = (attempt: number) => FOUND_POINTS[attempt - 1] ?? 0;
@@ -17,7 +21,7 @@ export const PRIZE_PLACES = 3;
 export const LEADERBOARD_SIZE = 10;
 export const SMOOTH_TALKER_TIMES = 5;
 
-export const BADGES = ['first_guess', 'sharp_eye', 'smooth_talker', 'icebreaker', 'full_detective'] as const;
+export const BADGES = ['first_guess', 'sharp_eye', 'smooth_talker', 'icebreaker', 'full_detective', 'ambassador'] as const;
 export type Badge = (typeof BADGES)[number];
 
 export type GamePerson = { id: string };
@@ -32,14 +36,16 @@ export type Score = {
   said: number; // times I said my password (up to MAX_SAID per match)
   firstMessages: number; // matches where I say I sent the first message
   reviews: number;
+  invites: number; // friends who joined the game through my link (counted up to MAX_INVITES)
   badges: Badge[];
 };
 
-export function scores({ people, matches, reviews, guesses }: {
+export function scores({ people, matches, reviews, guesses, invites = new Map() }: {
   people: GamePerson[];
   matches: GameMatch[];
   reviews: GameReview[];
   guesses: GameGuess[];
+  invites?: Map<string, number>; // inviter → friends who joined the game
 }): Map<string, Score> {
   const reviewOf = new Map(reviews.map((r) => [`${r.match_id}|${r.reviewer_id}`, r]));
   const result = new Map<string, Score>();
@@ -61,14 +67,18 @@ export function scores({ people, matches, reviews, guesses }: {
     if (said >= SMOOTH_TALKER_TIMES) badges.push('smooth_talker');
     if (firstMessages > 0) badges.push('icebreaker');
     if (open.length > 0 && open.every((m) => reviewOf.has(`${m.id}|${p.id}`))) badges.push('full_detective');
+    const invited = Math.min(MAX_INVITES, invites.get(p.id) ?? 0);
+    if (invited >= AMBASSADOR_INVITES) badges.push('ambassador');
     result.set(p.id, {
       points:
         hits.reduce((sum, attempt) => sum + foundPoints(attempt), 0) +
-        said * POINTS.said + firstMessages * POINTS.firstMessage + myReviews.length * POINTS.review,
+        said * POINTS.said + firstMessages * POINTS.firstMessage + myReviews.length * POINTS.review +
+        invited * INVITE_POINTS,
       rightGuesses,
       said,
       firstMessages,
       reviews: myReviews.length,
+      invites: invited,
       badges,
     });
   }
@@ -122,3 +132,11 @@ export function nicknameLabel(
   if (!t.animals[animal] || !t.colours[colour]) return 'Blop';
   return `${t.nickname(t.animals[animal], t.colours[colour])}${n ? ` ${n}` : ''}`;
 }
+
+// --- Invites: a short, unambiguous code for the invite link (/i/<code>) ---
+
+const CODE_ALPHABET = 'abcdefghjkmnpqrstuvwxyz23456789'; // no 0/o, 1/l/i
+export function makeInviteCode(random: () => number = Math.random, length = 6): string {
+  return Array.from({ length }, () => CODE_ALPHABET[Math.floor(random() * CODE_ALPHABET.length)]).join('');
+}
+export const isInviteCode = (value: string) => new RegExp(`^[${CODE_ALPHABET}]{6}$`).test(value);

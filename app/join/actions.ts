@@ -1,5 +1,6 @@
 'use server';
 
+import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { after } from 'next/server';
 import { createElement } from 'react';
@@ -13,6 +14,7 @@ import { validateProfile, type FieldErrors, type ProfileInput } from '@/lib/prof
 import { profileTexts } from '@/lib/moderation';
 import { moderate } from '@/lib/moderationService';
 import { siteUrl } from '@/lib/site';
+import { INVITE_COOKIE, inviterFor } from '@/lib/invites';
 import { suggestTalkAbout, type SuggestionResult } from '@/lib/talkSuggestion';
 import { createClient } from '@/lib/supabase/server';
 import { createServiceClient } from '@/lib/supabase/service';
@@ -38,10 +40,12 @@ export async function createProfile(input: Omit<ProfileInput, 'lang'>): Promise<
 
   const profile = result.data;
   const supabase = createServiceClient();
+  // Joined through a friend's invite link (/i/<code>): remember who invited them.
+  const invitedBy = await inviterFor((await cookies()).get(INVITE_COOKIE)?.value, user.id);
   const { data: participant, error } = await supabase
     .from('participants')
     // Held until the AI check of the name and texts comes back clean (lib/verification.ts).
-    .insert({ ...profile, user_id: user.id, email: user.email, consent_at: new Date().toISOString(), pending_review: true })
+    .insert({ ...profile, user_id: user.id, email: user.email, consent_at: new Date().toISOString(), pending_review: true, invited_by: invitedBy })
     .select('id')
     .single();
 

@@ -51,6 +51,9 @@ export default async function ProfilePage() {
           <p className="text-lg">{me.name}</p>
         </div>
       </div>
+      <Link href="/me#invite" className={NAV_BUTTON}>
+        {t.invite.title}
+      </Link>
       <p className="text-midnight/70">{t.profile.intro}</p>
 
       <dl className="divide-y divide-midnight/10 rounded-3xl bg-white px-5">

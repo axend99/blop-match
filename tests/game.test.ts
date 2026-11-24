@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { ANIMALS, COLOURS, leaderboard, letterCount, pickNickname, scores } from '@/lib/game';
+import { ANIMALS, COLOURS, isInviteCode, leaderboard, letterCount, makeInviteCode, pickNickname, scores } from '@/lib/game';
 
 const people = [{ id: 'a' }, { id: 'b' }, { id: 'c' }];
 const matches = [
@@ -47,7 +47,7 @@ describe('scores', () => {
 
 describe('leaderboard', () => {
   it('sorts by points then right guesses, shares ranks on ties and drops zeros', () => {
-    const s = (points: number, rightGuesses = 0, said = 0) => ({ points, rightGuesses, said, firstMessages: 0, reviews: 0, badges: [] });
+    const s = (points: number, rightGuesses = 0, said = 0) => ({ points, rightGuesses, said, firstMessages: 0, reviews: 0, invites: 0, badges: [] });
     const rows = leaderboard(new Map([['x', s(4, 1)], ['y', s(4, 1)], ['z', s(4, 0)], ['w', s(7)], ['q', s(0)]]));
     expect(rows.map((r) => [r.id, r.rank])).toEqual([['w', 1], ['x', 2], ['y', 2], ['z', 4]]);
   });
@@ -66,5 +66,23 @@ describe('letterCount', () => {
   it('counts letters, accents included', () => {
     expect(letterCount('Coração')).toBe(7);
     expect(letterCount('мост')).toBe(4);
+  });
+});
+
+describe('invites', () => {
+  it('gives 4 points per friend who joined, up to 5 friends, and the ambassador badge from 3', () => {
+    const s = scores({ people, matches: [], reviews: [], guesses: [], invites: new Map([['a', 7], ['b', 3], ['c', 1]]) });
+    expect(s.get('a')).toMatchObject({ invites: 5, points: 20 });
+    expect(s.get('a')!.badges).toContain('ambassador');
+    expect(s.get('b')).toMatchObject({ invites: 3, points: 12 });
+    expect(s.get('c')).toMatchObject({ invites: 1, points: 4 });
+    expect(s.get('c')!.badges).not.toContain('ambassador');
+  });
+
+  it('makes short codes without look-alike characters', () => {
+    const code = makeInviteCode(() => 0.5);
+    expect(isInviteCode(code)).toBe(true);
+    expect(isInviteCode('abc0l1')).toBe(false);
+    expect(isInviteCode('../x')).toBe(false);
   });
 });

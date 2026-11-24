@@ -281,7 +281,7 @@ const en = {
     rules: [
       'Your mission: say your password as many times as you can in your conversations with your matches. When you rate the conversation, tell us how many times you managed: +1 point each (up to 3 per match).',
       'Each match has a password too. Guess it on their page whenever you like, with 2 clues (number of letters and word type) and 3 tries per match. Translations count (heart = coração). Find it on the first try: +5 points; second: +3; third: +1.',
-      'Also +1 point for sending the first message and +1 for each rating.',
+      'Also +1 point for sending the first message, +1 for each rating and +4 for each friend you invite who joins (up to 5).',
       '🏆 The top 3 on the leaderboard at the end of the study get free entry to the BLOP party!',
     ],
     tip: "Pick an unusual word you can still slip into a conversation. Avoid words everyone says all the time (like 'think' or 'cool') and don't copy the example 😉 Keep it to yourself: only you can see it.",
@@ -324,7 +324,7 @@ const en = {
     points: (n: number) => `${n} ${n === 1 ? 'point' : 'points'}`,
     rank: (n: number) => `#${n} on the leaderboard`,
     noRank: 'Not on the leaderboard yet',
-    pointsHow: '+5 / +3 / +1 for each password you find out on the 1st / 2nd / 3rd try · +1 each time you say yours (up to 3 per match) · +1 for the first message · +1 for each rating',
+    pointsHow: '+5 / +3 / +1 for each password you find out on the 1st / 2nd / 3rd try · +1 each time you say yours (up to 3 per match) · +1 for the first message · +1 for each rating · +4 for each friend who joins (up to 5)',
     prize: '🏆 The top 3 at the end of the study get free entry to the BLOP party!',
     leaderboardLink: 'See the leaderboard',
     appearAs: (label: string) => `On the leaderboard you appear as ${label}.`,
@@ -337,6 +337,7 @@ const en = {
       smooth_talker: { name: 'Smooth talker', desc: 'Say your password 5 times' },
       icebreaker: { name: 'Icebreaker', desc: 'Send the first message' },
       full_detective: { name: 'Full detective', desc: 'Rate all your matches' },
+      ambassador: { name: 'Ambassador', desc: 'Bring 3 friends to BLOP' },
     },
     matchTried: (name: string) => `👀 ${name} tried to guess your password`,
     boardTitle: 'Leaderboard 🏆',
@@ -391,6 +392,15 @@ const en = {
     appButton: 'Answer',
     appDone: 'Answered ✓ Thank you!',
   },
+  invite: {
+    title: 'Invite a friend 💌',
+    body: 'Know someone who would enjoy BLOP? Send them your link.',
+    points: (n: number) => `You get +4 points on the leaderboard for each friend who joins (up to 5). Friends who joined so far: ${n}.`,
+    whatsapp: 'Share on WhatsApp',
+    copy: 'Copy link',
+    copied: 'Link copied ✓',
+    message: (link: string) => `I'm on BLOP Match: it introduces you to people who like the same things you do, and there's a fun password game 🤫 Join with my link (it's free): ${link}`,
+  },
   leave: {
     button: 'Leave the study',
     confirm: "Leave the study? You won't get new matches. Your current matches stay visible.",
@@ -417,7 +427,7 @@ const en = {
       },
       {
         heading: 'What we collect',
-        body: 'Your profile (first name, email, WhatsApp, Instagram if given, city, language, age, gender if given, time in the city, origin, interests and what you want to talk about), the reviews you send about your matches, your password and guesses in the password game, that you tapped the WhatsApp or Instagram button on a match, and when (not your messages), and whether you opened the waiting-list link for the BLOP bracelet and app. Five days after joining we email you an invitation to that waiting list. For the sample analysis, the team may estimate gender from first names when it was not given; this estimate is never shown to anyone else. We also count visits to the site pages anonymously and without cookies (Vercel Web Analytics and our own counter, with just the page and the day).',
+        body: 'Your profile (first name, email, WhatsApp, Instagram if given, city, language, age, gender if given, time in the city, origin, interests and what you want to talk about), the reviews you send about your matches, your password and guesses in the password game, who invited you (if you joined through a friend\'s link), that you tapped the WhatsApp or Instagram button on a match, and when (not your messages), and whether you opened the waiting-list link for the BLOP bracelet and app. Five days after joining we email you an invitation to that waiting list. For the sample analysis, the team may estimate gender from first names when it was not given; this estimate is never shown to anyone else. We also count visits to the site pages anonymously and without cookies (Vercel Web Analytics and our own counter, with just the page and the day).',
       },
       {
         heading: 'Who sees it',

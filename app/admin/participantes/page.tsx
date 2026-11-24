@@ -101,6 +101,7 @@ export default async function ParticipantsPage({ searchParams }: { searchParams:
                       ['Tempo na cidade', pt.join.timeInCityOptions[p.time_in_city as keyof typeof pt.join.timeInCityOptions] ?? p.time_in_city],
                       ['Origem', pt.join.originOptions[p.origin as keyof typeof pt.join.originOptions] ?? p.origin],
                       ['Idioma', LANG[p.lang] ?? p.lang],
+                      ...(p.invited_by ? [['Convidado por', personById.get(p.invited_by)?.name ?? '—'] as [string, string]] : []),
                       ['Versão', p.cohort === 'v2' ? `V2 · password: ${p.password ?? 'ainda não escolheu'}${p.password_kind ? ` (${pt.password.kinds[p.password_kind] ?? p.password_kind})` : ''} · ranking: ${p.leaderboard_show_name ? 'nome' : nicknameLabel(p.nickname, pt.game)}` : 'V1'],
                       ['Quer falar sobre', p.talk_about_code ? interestLabel(p.talk_about_code, 'pt') : (p.talk_about ?? '—')],
                     ].map(([k, v]) => (
