@@ -740,7 +740,7 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
                   reviews,
                   guesses,
                 }),
-              ].filter(([id]) => personById.get(id)?.active && personById.get(id)?.password),
+              ].filter(([id]) => personById.get(id)?.active && personById.get(id)?.password && !personById.get(id)?.is_ghost),
             ),
           );
           return (

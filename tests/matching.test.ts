@@ -297,3 +297,15 @@ describe('invites', () => {
     expect(back).not.toContain(me.id);
   });
 });
+
+describe('groups', () => {
+  it('matches test accounts only with each other', () => {
+    const cfg = { maxCompatible: 3, maxControl: 1, minSharedCompatible: 2 };
+    const me = person(ROCK, { group: 'test' });
+    const real = person(ROCK);
+    const test = person(ROCK_LIKE, { group: 'test' });
+    const ids = planMatches(me, [me, real, test], cfg, seeded()).flatMap((p) => [p.aId, p.bId]);
+    expect(ids).toContain(test.id);
+    expect(ids).not.toContain(real.id);
+  });
+});

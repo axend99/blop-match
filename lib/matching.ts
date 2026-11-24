@@ -21,6 +21,7 @@ export type Candidate = {
   lang?: string; // only people with the same language are matched (password game clues, conversation)
   talkAboutCode?: string | null; // the interest they want to talk about (match score bonus)
   invitedBy?: string | null; // who invited them: friends who invited each other already know each other
+  group?: string; // only people of the same group are matched ('test' for the e2e accounts, 'real' otherwise)
   compatibleCount: number;
   controlCount: number;
   matchedIds: Set<string>;
@@ -213,7 +214,7 @@ export function planMatches(
 
   for (const type of shuffle(slots, rng)) {
     const candidates = pool
-      .filter((c) => c.active && c.id !== person.id && !person.matchedIds.has(c.id) && hasSlot(c, type, config) && sameLang(person, c) && ageOk(person, c, config.maxAgeGap) && !knowEachOther(person, c))
+      .filter((c) => c.active && c.id !== person.id && !person.matchedIds.has(c.id) && hasSlot(c, type, config) && sameLang(person, c) && ageOk(person, c, config.maxAgeGap) && !knowEachOther(person, c) && (person.group ?? 'real') === (c.group ?? 'real'))
       .map((c) => {
         const common = shared(person.interests, c.interests);
         return { c, shared: common, points: compatPoints(common.length, person.age, c.age), score: matchScore(person, c, shares) };
