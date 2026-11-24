@@ -283,3 +283,17 @@ describe('v2: the match score decides compatibility', () => {
     expect(analysisGroup({ created_at: '2026-10-20T10:00:00+00:00', score: 0.3, shared_count: 7 }, [20, 40], cfg, end)).toBe('control');
   });
 });
+
+describe('invites', () => {
+  it('never matches a person with the friend who invited them', () => {
+    const cfg = { maxCompatible: 3, maxControl: 1, minSharedCompatible: 2 };
+    const me = person(ROCK);
+    const friend = person(ROCK, { invitedBy: me.id });
+    const stranger = person(ROCK_LIKE);
+    const ids = planMatches(me, [me, friend, stranger], cfg, seeded()).flatMap((p) => [p.aId, p.bId]);
+    expect(ids).not.toContain(friend.id);
+    expect(ids).toContain(stranger.id);
+    const back = planMatches(friend, [friend, me], cfg, seeded()).flatMap((p) => [p.aId, p.bId]);
+    expect(back).not.toContain(me.id);
+  });
+});

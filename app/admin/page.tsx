@@ -731,6 +731,10 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
             new Map(
               [
                 ...gameScores({
+                  invites: v2.reduce(
+                    (m, p) => (p.invited_by && p.password ? m.set(p.invited_by, (m.get(p.invited_by) ?? 0) + 1) : m),
+                    new Map<string, number>(),
+                  ),
                   people: v2.map((p) => ({ id: p.id })),
                   matches: gameMatches.filter((m) => inV2.has(m.a_id) && inV2.has(m.b_id)),
                   reviews,
@@ -743,7 +747,7 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
             <Section
               n="2b"
               title="Jogo da password (v2)"
-              description="Cada pessoa da v2 escolhe uma palavra secreta e tenta dizê-la nas conversas o máximo de vezes. Pode adivinhar a do match quando quiser, com 2 pistas (número de letras e tipo de palavra) e 3 tentativas por match, e vê logo se acertou. Conta como certo a mesma palavra noutro idioma (heart = coração) ou noutra forma (plural, género, gralha), verificado pelo Claude. Pontos: +5 / +3 / +1 por password descoberta à 1.ª / 2.ª / 3.ª tentativa, +1 por cada vez que disse a sua (declarado na review, até 3 por match), +1 por mandar a primeira mensagem (declarado), +1 por review."
+              description="Cada pessoa da v2 escolhe uma palavra secreta e tenta dizê-la nas conversas o máximo de vezes. Pode adivinhar a do match quando quiser, com 2 pistas (número de letras e tipo de palavra) e 3 tentativas por match, e vê logo se acertou. Conta como certo a mesma palavra noutro idioma (heart = coração) ou noutra forma (plural, género, gralha), verificado pelo Claude. Pontos: +5 / +3 / +1 por password descoberta à 1.ª / 2.ª / 3.ª tentativa, +1 por cada vez que disse a sua (declarado na review, até 3 por match), +1 por mandar a primeira mensagem (declarado), +1 por review, +4 por amigo convidado que entra no jogo (até 5). Quem convidou e quem foi convidado nunca fazem match entre si."
             >
               <Table head={['', '%']}>
                 <tr>
@@ -804,7 +808,7 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
               {board.length === 0 ? (
                 <p className="text-sm text-midnight/60">Ainda ninguém tem pontos.</p>
               ) : (
-                <Table head={['#', 'Pessoa', 'Aparece como', 'Pontos', 'Descobriu', 'Disse', '1.ª msg', 'Reviews']}>
+                <Table head={['#', 'Pessoa', 'Aparece como', 'Pontos', 'Descobriu', 'Disse', '1.ª msg', 'Reviews', 'Convites']}>
                   {board.slice(0, 20).map((r) => {
                     const p = personById.get(r.id)!;
                     return (
@@ -817,6 +821,7 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
                         <td className="px-2 py-1.5">{r.score.said}</td>
                         <td className="px-2 py-1.5">{r.score.firstMessages}</td>
                         <td className="px-2 py-1.5">{r.score.reviews}</td>
+                        <td className="px-2 py-1.5">{r.score.invites}</td>
                       </tr>
                     );
                   })}

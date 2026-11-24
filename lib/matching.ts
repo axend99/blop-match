@@ -20,6 +20,7 @@ export type Candidate = {
   age?: number | null; // tie-breaker: closer ages first
   lang?: string; // only people with the same language are matched (password game clues, conversation)
   talkAboutCode?: string | null; // the interest they want to talk about (match score bonus)
+  invitedBy?: string | null; // who invited them: friends who invited each other already know each other
   compatibleCount: number;
   controlCount: number;
   matchedIds: Set<string>;
@@ -183,6 +184,11 @@ function sameLang(a: Candidate, b: Candidate): boolean {
   return !a.lang || !b.lang || a.lang === b.lang;
 }
 
+// Inviter and invitee are friends already: never matched with each other.
+function knowEachOther(a: Candidate, b: Candidate): boolean {
+  return (a.invitedBy != null && a.invitedBy === b.id) || (b.invitedBy != null && b.invitedBy === a.id);
+}
+
 // v2: same rule for compatible and control, so the comparison between the groups stays fair.
 // Unknown ages are not held back.
 function ageOk(a: Candidate, b: Candidate, maxGap: number | undefined): boolean {
@@ -207,7 +213,7 @@ export function planMatches(
 
   for (const type of shuffle(slots, rng)) {
     const candidates = pool
-      .filter((c) => c.active && c.id !== person.id && !person.matchedIds.has(c.id) && hasSlot(c, type, config) && sameLang(person, c) && ageOk(person, c, config.maxAgeGap))
+      .filter((c) => c.active && c.id !== person.id && !person.matchedIds.has(c.id) && hasSlot(c, type, config) && sameLang(person, c) && ageOk(person, c, config.maxAgeGap) && !knowEachOther(person, c))
       .map((c) => {
         const common = shared(person.interests, c.interests);
         return { c, shared: common, points: compatPoints(common.length, person.age, c.age), score: matchScore(person, c, shares) };

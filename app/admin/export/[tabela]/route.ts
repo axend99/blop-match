@@ -21,7 +21,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
   let csv: string;
   if (tabela === 'participantes') {
     csv = toCsv(
-      ['id', 'name', 'email', 'whatsapp', 'instagram', 'city', 'lang', 'age', 'age_range', 'time_in_city', 'origin', 'match_lang', 'interests', 'other_text', 'talk_about', 'talk_about_code', 'gender', 'gender_estimate', 'cohort', 'password', 'password_kind', 'nickname', 'leaderboard_show_name', 'active', 'deleted_at', 'is_seed', 'created_at'],
+      ['id', 'name', 'email', 'whatsapp', 'instagram', 'city', 'lang', 'age', 'age_range', 'time_in_city', 'origin', 'match_lang', 'interests', 'other_text', 'talk_about', 'talk_about_code', 'gender', 'gender_estimate', 'cohort', 'invited_by', 'invite_code', 'password', 'password_kind', 'nickname', 'leaderboard_show_name', 'active', 'deleted_at', 'is_seed', 'created_at'],
       participants,
     );
   } else if (tabela === 'matches') {

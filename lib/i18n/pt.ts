@@ -281,7 +281,7 @@ const pt: Dict = {
     rules: [
       'A tua missão: dizer a tua password o máximo de vezes que conseguires nas conversas com os teus matches. Quando avaliares a conversa, dizes-nos quantas vezes conseguiste: +1 ponto por cada (até 3 por match).',
       'Cada match também tem uma password. Adivinha-a na página dele quando quiseres, com 2 pistas (número de letras e tipo de palavra) e 3 tentativas por match. Traduções contam (heart = coração). Se acertares à primeira: +5 pontos; à segunda: +3; à terceira: +1.',
-      'Ganhas também +1 ponto por mandares a primeira mensagem e +1 por cada avaliação.',
+      'Ganhas também +1 ponto por mandares a primeira mensagem, +1 por cada avaliação e +4 por cada amigo que convidares e entrar (até 5).',
       '🏆 Os 3 primeiros do ranking no fim do estudo têm entrada grátis na festa BLOP!',
     ],
     tip: "Escolhe uma palavra pouco comum, mas que dê para encaixar numa conversa. Evita palavras que toda a gente diz a toda a hora (como 'acho' ou 'fixe') e não copies o exemplo 😉 Guarda-a para ti: só tu a vês.",
@@ -323,7 +323,7 @@ const pt: Dict = {
     points: (n: number) => `${n} ${n === 1 ? 'ponto' : 'pontos'}`,
     rank: (n: number) => `${n}.º no ranking`,
     noRank: 'Ainda não estás no ranking',
-    pointsHow: '+5 / +3 / +1 por cada password que descobres à 1.ª / 2.ª / 3.ª tentativa · +1 por cada vez que dizes a tua (até 3 por match) · +1 pela primeira mensagem · +1 por cada avaliação',
+    pointsHow: '+5 / +3 / +1 por cada password que descobres à 1.ª / 2.ª / 3.ª tentativa · +1 por cada vez que dizes a tua (até 3 por match) · +1 pela primeira mensagem · +1 por cada avaliação · +4 por cada amigo que entrar (até 5)',
     prize: '🏆 Os 3 primeiros no fim do estudo têm entrada grátis na festa BLOP!',
     leaderboardLink: 'Ver o ranking',
     appearAs: (label: string) => `No ranking apareces como ${label}.`,
@@ -336,6 +336,7 @@ const pt: Dict = {
       smooth_talker: { name: 'Mestre da lábia', desc: 'Diz a tua password 5 vezes' },
       icebreaker: { name: 'Quebra-gelo', desc: 'Manda a primeira mensagem' },
       full_detective: { name: 'Detetive completo', desc: 'Avalia todos os teus matches' },
+      ambassador: { name: 'Embaixador', desc: 'Traz 3 amigos para o BLOP' },
     },
     matchTried: (name: string) => `👀 ${name} tentou adivinhar a tua password`,
     boardTitle: 'Ranking 🏆',
@@ -390,6 +391,15 @@ const pt: Dict = {
     appButton: 'Responder',
     appDone: 'Respondido ✓ Obrigado!',
   },
+  invite: {
+    title: 'Convida um amigo 💌',
+    body: 'Conheces alguém que ia gostar do BLOP? Envia-lhe o teu link.',
+    points: (n: number) => `Ganhas +4 pontos no ranking por cada amigo que entrar (até 5). Amigos que já entraram: ${n}.`,
+    whatsapp: 'Partilhar no WhatsApp',
+    copy: 'Copiar link',
+    copied: 'Link copiado ✓',
+    message: (link: string) => `Estou no BLOP Match: apresenta-te pessoas que gostam das mesmas coisas que tu, e tem um jogo da password muito giro 🤫 Entra com o meu link (é grátis): ${link}`,
+  },
   leave: {
     button: 'Sair do estudo',
     confirm: 'Sair do estudo? Deixas de receber novos matches. Os matches atuais continuam visíveis.',
@@ -416,7 +426,7 @@ const pt: Dict = {
       },
       {
         heading: 'O que recolhemos',
-        body: 'O teu perfil (primeiro nome, e-mail, WhatsApp, Instagram se indicado, cidade, idioma, idade, género se indicado, tempo na cidade, origem, interesses e aquilo de que queres falar), as avaliações que envias sobre os teus matches, a tua password e os teus palpites no jogo da password, o facto de tocares no botão de WhatsApp ou Instagram de um match, e quando (não as tuas mensagens), e se abriste o link da lista de espera da pulseira e da app BLOP. Cinco dias depois de entrares enviamos-te por e-mail um convite para essa lista de espera. Para a análise da amostra, a equipa pode estimar o género a partir do primeiro nome quando não foi indicado; essa estimativa nunca é mostrada a mais ninguém. Contamos também as visitas às páginas do site de forma anónima e sem cookies (Vercel Web Analytics e um contador nosso, só com a página e o dia).',
+        body: 'O teu perfil (primeiro nome, e-mail, WhatsApp, Instagram se indicado, cidade, idioma, idade, género se indicado, tempo na cidade, origem, interesses e aquilo de que queres falar), as avaliações que envias sobre os teus matches, a tua password e os teus palpites no jogo da password, quem te convidou (se entraste pelo link de um amigo), o facto de tocares no botão de WhatsApp ou Instagram de um match, e quando (não as tuas mensagens), e se abriste o link da lista de espera da pulseira e da app BLOP. Cinco dias depois de entrares enviamos-te por e-mail um convite para essa lista de espera. Para a análise da amostra, a equipa pode estimar o género a partir do primeiro nome quando não foi indicado; essa estimativa nunca é mostrada a mais ninguém. Contamos também as visitas às páginas do site de forma anónima e sem cookies (Vercel Web Analytics e um contador nosso, só com a página e o dia).',
       },
       {
         heading: 'Quem vê',

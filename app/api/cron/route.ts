@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from 'next/server';
 import { runMatchingForAll } from '@/lib/matchingService';
 import { runReviewEmails } from '@/lib/reviewService';
 import { sendWaitlistEmails } from '@/lib/waitlistService';
+import { fillMissingPasswordKinds } from '@/lib/passwordHints';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 300;
@@ -15,7 +16,7 @@ async function step<T>(name: string, run: () => Promise<T>): Promise<T | { error
   }
 }
 
-// Routine (SPEC §6), every hour 08–21 UTC from Supabase pg_cron, and daily from Vercel as a fallback: 1) matching, 2) match_nudge, review_open, review_reminder, 3) waiting-list invitation.
+// Routine (SPEC §6), every hour 08–21 UTC from Supabase pg_cron, and daily from Vercel as a fallback: 1) matching, 2) match_nudge, review_open, review_reminder, 3) waiting-list invitation, 4) missing password clues (word type).
 // Each step has a time slice so the run fits in maxDuration; leftovers go out in the next run.
 export async function GET(request: NextRequest) {
   const secret = process.env.CRON_SECRET;
@@ -31,5 +32,6 @@ export async function GET(request: NextRequest) {
   const matching = await step('matching', () => runMatchingForAll(start + 90_000));
   const reviews = await step('reviews', () => runReviewEmails({ nudges: start + 140_000, requests: start + 200_000, reminders: start + 250_000 }));
   const waitlist = await step('waitlist', () => sendWaitlistEmails(start + 270_000));
-  return NextResponse.json({ matching, reviews, waitlist });
+  const passwordHints = await step('passwordHints', () => fillMissingPasswordKinds(start + 285_000));
+  return NextResponse.json({ matching, reviews, waitlist, passwordHints });
 }

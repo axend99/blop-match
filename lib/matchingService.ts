@@ -14,6 +14,7 @@ type Participant = {
   email: string | null;
   lang: string;
   match_lang: string | null;
+  invited_by: string | null;
   interests: string[];
   talk_about_code: string | null;
   age: number | null;
@@ -32,7 +33,7 @@ async function loadState() {
   const supabase = createServiceClient();
   const [people, matches] = await Promise.all([
     pageAll((a, b) =>
-      supabase.from('participants').select('id, name, email, lang, match_lang, interests, talk_about_code, age, active, pending_review, created_at, deleted_at, cohort, password').order('id').range(a, b),
+      supabase.from('participants').select('id, name, email, lang, match_lang, invited_by, interests, talk_about_code, age, active, pending_review, created_at, deleted_at, cohort, password').order('id').range(a, b),
     ),
     pageAll((a, b) => supabase.from('matches').select('id, a_id, b_id, type, created_at').order('id').range(a, b)),
   ]);
@@ -54,6 +55,7 @@ async function loadState() {
         age: p.age,
         lang: p.match_lang ?? p.lang, // the language they want to chat in, not the site's
         talkAboutCode: p.talk_about_code,
+        invitedBy: p.invited_by,
         compatibleCount: 0,
         controlCount: 0,
         matchedIds: new Set<string>(),
@@ -115,6 +117,7 @@ async function createMatches(
       p_by_cat: p.sharedByCategory,
       p_max_compatible: config.maxCompatible,
       p_max_control: config.maxControl,
+      p_counted_since: V1_ENDS_AT, // v1 matches don't use up v2 slots (as in loadState)
     });
     if (error || !matchId) {
       // Failed, or lost a race for the slot: undo the in-memory booking; the next run tries again.

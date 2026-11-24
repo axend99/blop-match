@@ -30,13 +30,14 @@ export type GameState = {
   top: BoardRow[];
   me: BoardRow | null; // my row when I'm outside the top
   matches: Map<string, MatchGame>;
+  invitedFriends: number; // friends who joined the game through my link (not capped)
 };
 
 export async function loadGame(meId: string): Promise<GameState> {
   const supabase = createServiceClient();
   const { data: people } = await supabase
     .from('participants')
-    .select('id, name, password, password_kind, nickname, leaderboard_show_name, active, deleted_at')
+    .select('id, name, password, password_kind, nickname, leaderboard_show_name, active, deleted_at, invited_by')
     .eq('cohort', 'v2')
     .is('deleted_at', null);
   const v2 = people ?? [];
@@ -65,7 +66,11 @@ export async function loadGame(meId: string): Promise<GameState> {
     .filter((g) => matchById.has(g.match_id))
     .map((g) => ({ ...g, right: guessCounts(g.is_right, g.guess, byId.get(otherOf(g.match_id, g.guesser_id))?.password ?? null) }));
 
+  // Invites: friends in the game (v2, with a password) who joined through someone's link.
+  const invites = new Map<string, number>();
+  for (const p of v2) if (p.invited_by && p.password) invites.set(p.invited_by, (invites.get(p.invited_by) ?? 0) + 1);
   const all = scores({
+    invites,
     people: v2.map((p) => ({ id: p.id })),
     matches: matches.map((m) => ({ ...m, reviewOpen: reviewDueAt(m.created_at) <= new Date() })),
     reviews: reviews ?? [],
@@ -105,7 +110,8 @@ export async function loadGame(meId: string): Promise<GameState> {
 
   const me = byId.get(meId);
   return {
-    score: all.get(meId) ?? { points: 0, rightGuesses: 0, said: 0, firstMessages: 0, reviews: 0, badges: [] },
+    score: all.get(meId) ?? { points: 0, rightGuesses: 0, said: 0, firstMessages: 0, reviews: 0, invites: 0, badges: [] },
+    invitedFriends: invites.get(meId) ?? 0,
     rank: mine?.rank ?? null,
     nickname: me?.nickname ?? null,
     showName: Boolean(me?.leaderboard_show_name),

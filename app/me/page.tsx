@@ -13,7 +13,9 @@ import { getLang } from '@/lib/i18n/server';
 import { loadGame } from '@/lib/gameService';
 import { getMyStudy } from '@/lib/myStudy';
 import StudyTabs from '@/components/StudyTabs';
-import { BLOP_INSTAGRAM } from '@/lib/site';
+import { BLOP_INSTAGRAM, siteUrl } from '@/lib/site';
+import InviteCard from '@/components/InviteCard';
+import { ensureInviteCode } from '@/lib/invites';
 import { waitlistUrl } from '@/lib/waitlist';
 import looking from '@/public/blop/looking.webp';
 
@@ -31,6 +33,9 @@ export default async function MePage({ searchParams }: { searchParams: Promise<{
   const study = await getMyStudy(me);
   const { matches, toReview, askExperience } = study;
   const game = me.cohort === 'v2' ? await loadGame(me.id) : null;
+  // Invite a friend (v2, still in the study): the person's own link.
+  const inviteCode = me.cohort === 'v2' && me.active && me.password ? await ensureInviteCode(me.id) : null;
+  const inviteLink = inviteCode ? `${siteUrl() ?? ''}/i/${inviteCode}` : null;
 
   return (
     <div className="space-y-8">
@@ -58,6 +63,21 @@ export default async function MePage({ searchParams }: { searchParams: Promise<{
       )}
 
       {game && me.password && <GameCard game={game} password={me.password} name={me.name} t={t} />}
+
+      {inviteLink && game && (
+        <InviteCard
+          link={inviteLink}
+          whatsappHref={`https://wa.me/?text=${encodeURIComponent(t.invite.message(inviteLink))}`}
+          t={{
+            title: t.invite.title,
+            body: t.invite.body,
+            points: t.invite.points(game.invitedFriends),
+            whatsapp: t.invite.whatsapp,
+            copy: t.invite.copy,
+            copied: t.invite.copied,
+          }}
+        />
+      )}
 
       {askExperience && (
         <section className="space-y-3 rounded-3xl bg-pink/50 p-6">
