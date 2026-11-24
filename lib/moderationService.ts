@@ -49,7 +49,14 @@ async function assess(texts: ModerationText[]): Promise<ModerationResult[] | str
     return parsed.results as ModerationResult[];
   } catch (err) {
     console.error('[moderation] check failed', err);
-    return 'A verificação automática falhou.';
+    // The cause goes into the alert, so the team can see it in /admin (e.g. no credit, bad key).
+    const cause =
+      err instanceof Anthropic.APIError
+        ? `${err.status ?? 'sem estado'}: ${err.message}`
+        : err instanceof Error
+          ? err.message
+          : String(err);
+    return `A verificação automática falhou (${cause.slice(0, 200)}).`;
   }
 }
 
