@@ -20,7 +20,7 @@ QR code: `qr-match-meetblop.png` (leva a https://match.meetblop.com). Cards para
 ## Médio (post de Instagram / LinkedIn)
 
 **PT**
-> Fazer amigos em adulto não devia ser tão difícil.
+> Novo na cidade ou com vontade de conhecer gente nova? 👋
 >
 > O BLOP Match junta pessoas pelo que realmente gostam. Escolhes os teus interesses e aquilo de que te apetece falar, e nós apresentamos-te pessoas compatíveis contigo — com o primeiro nome, o que têm em comum e uma sugestão para quebrar o gelo.
 >
@@ -31,7 +31,7 @@ QR code: `qr-match-meetblop.png` (leva a https://match.meetblop.com). Cards para
 > (O BLOP Match faz parte de um projeto de investigação sobre como nascem as amizades. Os teus dados ficam protegidos e nunca mostramos o teu e-mail.)
 
 **EN**
-> Making friends as an adult shouldn't be this hard.
+> New in town or just want to meet new people? 👋
 >
 > BLOP Match connects people through what they actually love. Pick your interests and what you'd like to talk about, and we'll introduce you to compatible people — with their first name, what you have in common and an icebreaker.
 >
