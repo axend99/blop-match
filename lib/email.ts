@@ -85,6 +85,18 @@ export async function sendOther(to: string[], subject: string, text: string, rea
   }
 }
 
+// One message with ready-made HTML (campaigns sent from /admin). Never throws.
+export async function sendHtml(to: string, subject: string, html: string, text: string, replyTo?: string): Promise<boolean> {
+  if (!emailConfigured()) return false;
+  try {
+    await transport().sendMail({ from: process.env.EMAIL_FROM, to, subject, html, text, replyTo });
+    return true;
+  } catch (err) {
+    console.error('[email] campaign send failed', err);
+    return false;
+  }
+}
+
 // Short notice to the team. Plain text, no personal data. Never throws.
 export async function sendAdminNotice(to: string[], subject: string, text: string, react?: React.ReactElement): Promise<void> {
   await sendOther(to, subject, text, react);

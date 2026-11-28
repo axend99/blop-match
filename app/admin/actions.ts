@@ -11,6 +11,7 @@ import { sendInvitePreview, sendInvites } from '@/lib/inviteService';
 import { saveSnapshot } from '@/lib/visitService';
 import { sendWaitlistPreview } from '@/lib/waitlistService';
 import { sendV2InvitePreview, sendV2Invites } from '@/lib/v2InviteService';
+import { campaignById, sendCampaign, sendCampaignPreview } from '@/lib/campaigns';
 import { approveProfile, banParticipant, dismissReport, recheckProfile, type ResumeResult } from '@/lib/verification';
 import { createServiceClient } from '@/lib/supabase/service';
 
@@ -181,4 +182,31 @@ export async function setGhost(formData: FormData): Promise<void> {
   const { error } = await createServiceClient().from('participants').update({ is_ghost: on }).eq('id', id);
   await notice(error ? 'Não foi possível mudar a conta fantasma.' : on ? 'Conta fantasma ligada: não entra em matches nem no ranking.' : 'Conta fantasma desligada.');
   revalidatePath('/admin/participantes');
+}
+
+// One-off e-mail campaign (section 8e): a test to the admins, or the real send to a pasted list.
+export async function campaign(formData: FormData): Promise<void> {
+  if (!(await isAdmin())) return;
+  const id = String(formData.get('campaign') ?? '');
+  if (!campaignById(id)) return;
+  if (formData.get('mode') === 'preview') {
+    const n = await sendCampaignPreview(id);
+    await notice(`E-mail de teste enviado para ${n} ${n === 1 ? 'endereço' : 'endereços'} de admin.`);
+  } else if (formData.get('confirm')) {
+    const { valid, invalid } = parseEmailList(String(formData.get('emails') ?? ''));
+    if (valid.length === 0) {
+      await notice(`Nenhum e-mail válido na lista.${invalid.length ? ` Ignorados: ${invalid.join(', ')}.` : ''}`);
+      revalidatePath('/admin');
+      return;
+    }
+    const r = await sendCampaign(id, valid, Date.now() + 45_000);
+    const parts = [`Enviados: ${r.sent}.`];
+    if (r.already) parts.push(`Já tinham recebido: ${r.already}.`);
+    if (r.banned) parts.push(`Banidos: ${r.banned}.`);
+    if (r.failed) parts.push(`Falharam: ${r.failed} (podes tentar de novo).`);
+    if (r.remaining) parts.push(`Faltam ${r.remaining} por falta de tempo: carrega de novo.`);
+    if (invalid.length) parts.push(`Ignorados (não parecem e-mails): ${invalid.join(', ')}.`);
+    await notice(parts.join(' '));
+  }
+  revalidatePath('/admin');
 }
