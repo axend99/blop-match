@@ -2,7 +2,8 @@ import type { Metadata } from 'next';
 import { cookies } from 'next/headers';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { funnelSnapshot, invite, resendReviews, resolveFlag, v2Invite, waitlistPreview } from '@/app/admin/actions';
+import { campaign, funnelSnapshot, invite, resendReviews, resolveFlag, v2Invite, waitlistPreview } from '@/app/admin/actions';
+import { CAMPAIGNS, campaignCounts } from '@/lib/campaigns';
 import { v2InviteAudience } from '@/lib/v2InviteService';
 import AdminNav from '@/components/admin/AdminNav';
 import DoseChart from '@/components/admin/DoseChart';
@@ -1248,6 +1249,54 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
               <div className="flex flex-wrap gap-2">
                 <button name="mode" value="send" className="rounded-full bg-violet px-4 py-2 text-sm font-semibold text-white">
                   Enviar convites
+                </button>
+                <button name="mode" value="preview" formNoValidate className="rounded-full border border-midnight/20 bg-white px-4 py-2 text-sm font-medium">
+                  Enviar teste aos admins
+                </button>
+              </div>
+            </form>
+          </Section>
+        );
+      })()}
+
+      {await (async () => {
+        const counts = await campaignCounts();
+        return (
+          <Section
+            n="8e"
+            title="Enviar um e-mail a uma lista"
+            description="Escolhe o e-mail, cola os endereços (um por linha ou separados por vírgulas) e envia. Um e-mail por pessoa: ninguém vê os outros endereços. Cada endereço recebe cada e-mail uma vez só, mesmo que voltes a colá-lo; endereços banidos são saltados. As respostas vão para founders@meetblop.com."
+          >
+            <ul className="space-y-1 text-sm">
+              {CAMPAIGNS.map((c) => (
+                <li key={c.id}>
+                  <b>{c.title}</b> · assunto “{c.subject}” · já enviado a <b className="tabular-nums">{counts[c.id] ?? 0}</b> ·{' '}
+                  <a href={`/admin/campanha/${c.id}`} target="_blank" className="text-violet underline">
+                    ver o e-mail
+                  </a>
+                </li>
+              ))}
+            </ul>
+            <form action={campaign} className="space-y-2">
+              <select name="campaign" className="w-full rounded-2xl border border-midnight/20 bg-white p-2 text-sm" defaultValue={CAMPAIGNS[0].id}>
+                {CAMPAIGNS.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.title}
+                  </option>
+                ))}
+              </select>
+              <textarea
+                name="emails"
+                rows={5}
+                placeholder="Um e-mail por linha (ou separados por vírgulas)"
+                className="w-full rounded-2xl border border-midnight/20 bg-white p-3 text-sm"
+              />
+              <label className="flex items-center gap-2 text-sm">
+                <input type="checkbox" name="confirm" required /> Confirmo que quero enviar este e-mail a estes endereços
+              </label>
+              <div className="flex flex-wrap gap-2">
+                <button name="mode" value="send" className="rounded-full bg-violet px-4 py-2 text-sm font-semibold text-white">
+                  Enviar
                 </button>
                 <button name="mode" value="preview" formNoValidate className="rounded-full border border-midnight/20 bg-white px-4 py-2 text-sm font-medium">
                   Enviar teste aos admins
